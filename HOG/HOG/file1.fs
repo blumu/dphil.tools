@@ -1,30 +1,220 @@
 
-type typ = Gr | Ar of typ * typ ;
+type typ = Gr | Ar of typ * typ ;;
 
 let rec typeorder = function  Gr ->  0 | Ar(a,b) -> max (1+ typeorder a) (typeorder b) ;;
 
-type ident = string
-type alphabet = ident * typ list;
-
-let Sigma = [ "f", Ar(Gr,Gr);
-              "phi", Ar(Gr,Ar(Gr,Gr)) ;
-              "e", Gr ]
-
-
-type terminal = ident;
-type nonterminal = ident;
+type ident = string;;
+type alphabet = (ident * typ) list;;
+type terminal = ident;;
+type nonterminal = ident;;
 
 (* applicative term *)
-type appterm = Tm of terminal | Var of ident | App of appterm * appterm;
+type appterm = Nt of nonterminal | Tm of terminal | Var of ident | App of appterm * appterm;;
 
-type equation = nonterminal * ident list * appterm;
-type recscheme = equation list;
+type equation = nonterminal * ident list * appterm;;
+type recscheme = { nonterminals : alphabet;  sigma : alphabet;
+				   eqs : equation list } ;;
 
-let rc  = [ "S",["x","y"],App(Tm("f"), Var("x"));
-			"T",["g","x"],App(Tm("f"), App(Tm("g"), Var("x")));
-		  ] ;;
+let rcs = { nonterminals = [ "S", Gr;
+                             "F", Ar(Gr,Ar(Gr,Gr)) ;
+                             "G", Ar(Ar(Gr,Gr),Ar(Gr,Gr)) ];
+  sigma = [ "f", Ar(Gr,Ar(Gr,Gr));
+            "g", Ar(Gr,Gr);
+            "t", Ar(Gr,Ar(Gr,Gr)) ;
+            "e", Gr ];
+  eqs = [ "S",[],App(App(Tm("f"), Tm("e")),Tm("e"));
+          "F",["x";"y"],App(App(Tm("f"), Var("x")), Var("y"));
+          "G",["phi";"x"],App(Tm("g"), App(Tm("g"), Var("x")));
+        ]
+ };;
+
+(* HORS producing Urzyczyn's tree *)
+let urz = { nonterminals = [ "S", Gr;
+                             "D", Ar(Ar(Gr,Ar(Gr,Gr)), Ar(Gr,Ar(Gr,Ar(Gr,Gr)))) ;
+                             "F", Ar(Gr,Gr) ;
+                             "E", Gr ;
+                             "G", Ar(Gr,Ar(Gr,Gr)) ;
+							 ];
+  sigma = [ "[", Ar(Gr,Gr);
+            "]", Ar(Gr,Gr);
+            "*", Ar(Gr,Gr);
+            "3", Ar(Gr,Ar(Gr,Ar(Gr,Gr)));
+            "e", Gr;
+            "r", Gr;
+			];
+  eqs = [ "S",[],App(Tm("["),
+					 App(App(App(App(Nt("D"), Nt("G")),Nt("E")),Nt("E")),Nt("E"))
+					); 
+          "D",["phi";"x";"y";"z"],
+			App(App(App(Tm("3"),
+				App(Tm("["), 
+				App(App(App(App(Nt("D"), App(App(Nt("D"), Var("phi")),Var("x"))),
+				Var("z")
+				),
+				App(Nt("F"), Var("y"))
+				),App(Nt("F"), Var("y")))
+				)),
+				App(Tm("]"), App(App(Var("phi"),Var("y")),Var("x")))),
+				App(Tm("*"), Var("z")));
+		  "F",["x"],App(Tm("*"),Var("x"));
+		  "E",[],Tm("e");
+		  "G",["u";"v"],Tm("r");
+        ]
+ };;
+
+ 
+let rec string_of_type = function
+    Gr -> "o"
+  | Ar(a,b) -> "("^(string_of_type a)^" -> "^(string_of_type b)^")"
+;;
+
+string_of_type (Ar(Gr,Ar(Gr,Gr)));;
 
 
+let print_alphabet a =
+	let print_letter (l,t) =
+	  print_string (l^":"^(string_of_type t)) ;
+	  print_newline();
+	in
+	List.iter print_letter a
+;;
+
+(* 
+print_alphabet rcs.sigma;; *)
+
+let rec print_appterm = function
+  Tm(f) -> print_string f
+ | Nt(nt) -> print_string nt
+ | Var(x) -> print_string x
+ | App(a,b) -> print_string "("; print_appterm a; print_string " ";
+	print_appterm b; print_string ")"; 
+;;
+
+let print_eq rcs (nt,para,appterm) = 
+    print_string nt;
+    print_string " ";
+    List.iter (function s -> print_string (s^" ")) para;
+    print_string "= ";
+    print_appterm appterm;
+    print_newline()
+;;
+
+let print_rcs rcs =
+    print_string "Terminals:"; print_newline();
+    print_alphabet rcs.sigma;
+    print_string "Non-terminals:"; print_newline();
+    print_alphabet rcs.nonterminals;
+    print_string "Equations:"; print_newline();
+    List.iter (print_eq rcs) rcs.eqs;
+;;
+
+print_rcs rcs;;
+
+
+exception Type_check_error;;
+exception Wrong_variable_name of ident;;
+exception Wrong_terminal_name of ident;;
+exception Wrong_nonterminal_name of ident;;
+
+let terminal_type rcs f =
+    try 
+        List.assoc f rcs.sigma
+    with Not_found -> raise (Wrong_terminal_name f)
+;;
+
+let nonterminal_type rcs nt =
+  try 
+    List.assoc nt rcs.nonterminals
+  with Not_found -> raise (Wrong_nonterminal_name nt)
+;;
+
+(* Create an association list mapping parameters name in p to 
+  the type of the correspding parameter in type t *)
+let rec create_paramtyplist nt p t = match p,t with
+  | [],Gr -> []
+  | x::q, Ar(l,r) -> (x,l)::(create_paramtyplist nt q r)
+  | _ -> failwith ("Type of non-terminal "^nt^" does not match with the number of specified parameters.")
+;;
+
+
+
+(* Check that rcs is a well-defined recursion scheme *)
+let rcs_check rcs =
+  (* - parameters' names must be disjoint from terminals' names
+     - appterm must be well-typed and para must be a superset of fv(appterm)
+     - appterm must be of ground type
+  *)
+  let check_eq ((nt,para,appterm) as eq) =
+    let partypelst = create_paramtyplist nt para (nonterminal_type rcs nt) in
+    let var_type x =  List.assoc x partypelst in
+    let rec typecheck_term = function
+          Tm(f) -> terminal_type rcs f
+        | Nt(nt) -> nonterminal_type rcs nt
+        | Var(x) -> if List.exists (function m -> m=x) para then
+                      var_type x
+                    else
+                      raise (Wrong_variable_name x);
+        | App(a,b) -> match (typecheck_term a), (typecheck_term b) with
+                       Ar(tl,tr), tb when tl=tb ->  tr
+                      |  _ -> raise Type_check_error;
+    in
+    (* ensures that the non-terminal name is defined *)
+    let _ = nonterminal_type rcs nt in
+
+    (* check that the parameters names do not clash with terminals names *)
+    let _ = List.exists (function p-> 
+    (List.exists (function (a,t)-> 
+            if a=p then
+            begin
+              print_string ("Parameter name "^p^" conflicts with a terminal name in ");
+              print_eq rcs eq;
+            end;
+            a=p) rcs.sigma)) para in
+    
+    try if (typecheck_term appterm) != Gr then
+        begin
+          print_string ("RHS is not of ground type in: ");
+          print_eq rcs eq;
+        end
+    with 
+        Wrong_variable_name(x) ->
+            print_string ("Undefined variable '"^x^"' in RHS of: ") ;
+            print_eq rcs eq;
+        | Wrong_terminal_name(x) ->
+            print_string ("Undefined terminal '"^x^"' in RHS of: ") ;
+            print_eq rcs eq;
+        | Wrong_nonterminal_name(x) ->
+            print_string ("Undefined non-terminal '"^x^"' in RHS of: ") ;
+            print_eq rcs eq;
+        | Type_check_error ->
+            print_string ("Type-checking error in RHS of: ") ;
+            print_eq rcs eq;
+in
+    List.iter check_eq rcs.eqs
+;;
+
+rcs_check rcs;;
+
+print_newline();;
+print_rcs urz;;
+rcs_check urz;;
+
+(*
+		  let appterm_type rcs param = function
+	  Tm(f) -> terminal_type f
+	| Var(x) -> 
+	let var_type x =   List.assoc f rcs.sigma
+;;
+	var_type f
+	| App(a,b) ->
+;;
+
+
+let appterm_order rcs param t = typeorder (appterm_type rcs param t);;
+*)
+
+
+		  
 (** Grammars in long normal form (lnf) *)
 
 
@@ -38,18 +228,10 @@ and lnfoperator = LnfOpAt | LnfOpVar of ident | LnfOpNt of nonterminal
 and lnfoperand = lnfrhs ;;
 
 (* a recursion scheme in lnf *)
-type lnfrecscheme = nonterminal * lnfrhs list
+type lnfrecscheme = { sigma : alphabet  ; eqs: nonterminal * lnfrhs list };;
 
 let freshvar = ref 0;;
-
-let appterm_type = function
-	  Tm(f) -> 
-	| Var(x) ->
-	| App(a,b) ->
-;;
-
-let appterm_order t = typeorder (appterm_type t);;
-
+(*
 let eq_to_lnf (nt,param,appterm) = 
   let rec aux = function
      Tm(t) -> LnfOpAt
@@ -62,238 +244,13 @@ let eq_to_lnf (nt,param,appterm) =
 
 let rs_to_lnf s = List.map eq_to_lnf s;;
 
+*)
 
 
-// F# Visual Studio Sample File
-//
-// This file contains some sample constructs to guide you through the
-// primitives of F#.
-//
-// Contents:
-//   - Simple computations
-//   - Functions on integers.  
-//   - Tuples 
-//   - Strings
-//   - Lists
-//   - Arrays
-//   - Functions
-
-// Simple computations
-// ---------------------------------------------------------------
-// Here is a simple computation.  Note how code can be documented
-// with '///' comments.  You can use the extra --html-* command line
-// options to generate HTML documentation directly from these comments.
-
-/// The position of 'c' in a sample string
-let posc = String.index "abcdef" 'c'
-
-  // Try re-typing the above line to see intellisense in action.
-  // Try ctrl-J on (partial) identifiers.
-
-// Simple arithmetic:
-let xA = 1
-let xB = 2
-let xC = xA + xB
-let twist x = 10 - x
-do  Printf.printf "res = %d\n" (twist (xC+4))
-  // note: let binds values and functions
-  // note: do <expr> evaluates expression 
-
-
-// Functions on integers.  
-// ---------------------------------------------------------------
-
-let inc x = x + 1
-let rec fact n = if n=0 then 1 else n * fact (n-1)
-
-/// Highest-common-factor 
-let rec hcf a b =           // notice: 2 arguments seperated by spaces
-  if a=0 then
-    b
-  else
-    if a<b then
-      hcf a (b-a)           // notice: 2 arguments seperated by spaces
-    else
-      hcf (a-b) b
-  // note: function arguments are usually space seperated.
-  // note: let rec binds recursive functions.
-
-      
-// Tuples.  These combine values into packets.
-// ---------------------------------------------------------------
-let pA = (1,2,3)
-let pB = (1,"fred",3.1415)
-let swap (a,b) = (b,a)
-
-/// Note: hcf2 takes one argument which is in fact a tuple.
-let rec hcf2 (a,b) = 
-  if a = 0 then b
-  else if a<b then hcf2 (a,b-a)
-  else hcf2 (a-b,a)
-
-
-// Booleans.
-// ---------------------------------------------------------------
-
-let bA = true
-let bB = false
-let bC = not bA && (bB || false)
-
-
-// Strings.
-// ---------------------------------------------------------------
-
-let sA  = "hello"
-let sB  = "world"
-let sC  = sA + " " + sB
-let sC2 = String.concat " " [sA;sB]
-do  Printf.printf "sC = %s, sC2 = %s\n" sC sC2
-let s3 = Printf.sprintf "sC = %s, sC2 = %d\n" sC sC2.Length
-
-
-// Functional Lists.
-// ---------------------------------------------------------------
-
-let xsA = [ ]           // empty list
-let xsB = [ 1;2;3 ]     // list of 3 ints
-let xsC = 1 :: [2;3]    // :: is cons operation.
-
-do print_any xsC
-
-let rec sumList xs =
-  match xs with
-  | []    -> 0
-  | y::ys -> y + sumList ys
-	
-let y   = sumList [1;2;3]  // sum a list
-let xsD = xsA @ [1;2;3]    // append
-let xsE = 99 :: xsD        // cons on front
-
-
-// Mutable Arrays, a primitive for efficient computations
-// ---------------------------------------------------------------
-
-let arr = Array.create 4 "hello"
-do  arr.(1) <- "world"
-do  arr.(3) <- "don"
-let nA = Array.length arr  // function in Array module/class
-let nB = arr.Length        // instance method on array object
-
-let front = Array.sub arr 0 2
-  // Trying re-typing the above line to see intellisense in action.
-  // Note, ctrl-J on (partial) identifiers re-activates it.
-
-// Other common data structures
-// ---------------------------------------------------------------
-
-// See namespaces 
-//   System.Collections.Generic
-//   Microsoft.FSharp.Collections
-//   Hashtbl
-//   Set
-//   Map
-
-
-// Functions
-// ---------------------------------------------------------------
-
-let inc2 x = x + 2              // as a function definition
-let inc3   = fun x -> x + 3     // as a lambda expression
-
-let ysA = List.map inc2 [1;2;3]
-let ysB = List.map inc3 [1;2;3]
-let ysC = List.map (fun x -> x+4) [1;2;3]
-
-// Pipelines:
-let pipe1 = [1;2;3] |> List.map (fun x -> x+4) 
-let pipe2 = 
-  [1;2;3] 
-  |> List.map (fun x -> x+4) 
-  |> List.filter (fun x -> x>5) 
-
-// Composition pipelines:
-let processor = List.map (fun x -> x+4) >> List.filter (fun x -> x>5) 
-
-// Types - datatypes
-// ---------------------------------------------------------------
-
-type expr = 
-  | Num of int
-  | Add of expr * expr
-  | Sub of expr * expr
-  | Mul of expr * expr
-  | Div of expr * expr
-  | Var of string
-  
-let lookup id (env : (string * int) list) = List.assoc id env
-  
-let rec eval env exp = match exp with
-  | Num n -> n
-  | Add (x,y) -> eval env x + eval env y
-  | Sub (x,y) -> eval env x - eval env y
-  | Mul (x,y) -> eval env x * eval env y
-  | Div (x,y) -> eval env x / eval env y
-  | Var id    -> lookup id env
-  
-let envA = [ "a",1 ;
-             "b",2 ;
-             "c",3 ]
-             
-let expT1 = Add(Var "a",Mul(Num 2,Var "b"))
-let resT1 = eval envA expT1
-
-
-// Types - records
-// ---------------------------------------------------------------
-
-type card = { name  : string;
-              phone : string;
-              ok    : bool }
-              
-let cardA = { name = "Alf" ; phone = "+44.1223.000.000" ; ok = false }
-let cardB = {cardA with phone = "+44.1223.123.456"; ok = true }
-let string_of_card c = 
-  c.name + " phone: " + c.phone + (if not c.ok then " (unchecked)" else "")
-
-
-// Here's a longer construction syntax should you get name conflicts:
-let cardC = {  new card 
-               with name  = "Alf" 
-               and  phone = "+44.1223.000.000" 
-               and  ok = false }
-
-
-
-// Types - interfaces, which are like records of functions
-// ---------------------------------------------------------------
-
-type IPeekPoke = interface
-  abstract member Peek: unit -> int
-  abstract member Poke: int -> unit
-end
-              
-
-// Types - classes
-// ---------------------------------------------------------------
-
-type widget = class
-  val mutable state: int 
-  member x.Poke(n) = x.state <- x.state + n
-  member x.Peek() = x.state 
-  member x.HasBeenPoked = (x.state <> 0)
-  new() = { state = 0 }
-end
-              
-// Types - classes with interface implementations
-// ---------------------------------------------------------------
-
-type wodget = class
-  val mutable state: int 
-  interface IPeekPoke with 
-    member x.Poke(n) = x.state <- x.state + n
-    member x.Peek() = x.state 
-  end
-  member x.HasBeenPoked = (x.state <> 0)
-  new() = { state = 0 }
-end
-              
+class widget =
+  object (self)
+    val mutable state = 0 ;
+    method poke n = state <- state + n
+    method peek = state 
+    method hasBeenPoked = (state <> 0)
+end;;
