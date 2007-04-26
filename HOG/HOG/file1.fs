@@ -171,7 +171,7 @@ let rcs_check rcs =
             end;
             a=p) rcs.sigma)) para in
     
-    try if (typecheck_term appterm) != Gr then
+    try if (typecheck_term appterm) <> Gr then
         begin
           print_string ("RHS is not of ground type in: ");
           print_eq rcs eq;
@@ -198,6 +198,7 @@ rcs_check rcs;;
 print_newline();;
 print_rcs urz;;
 rcs_check urz;;
+
 
 (*
 		  let appterm_type rcs param = function
@@ -246,7 +247,7 @@ let rs_to_lnf s = List.map eq_to_lnf s;;
 
 *)
 
-
+(*
 class widget =
   object (self)
     val mutable state = 0 ;
@@ -254,3 +255,4 @@ class widget =
     method peek = state 
     method hasBeenPoked = (state <> 0)
 end;;
+*)
