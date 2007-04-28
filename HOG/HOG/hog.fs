@@ -80,27 +80,17 @@ let rec string_of_type = function
 string_of_type (Ar(Gr,Ar(Gr,Gr)));;
 
 
-let print_alphabet a =
-	let print_letter (l,t) =
-	  print_string (l^":"^(string_of_type t)) ;
-	  print_newline();
+let string_of_alphabet a =
+	let string_of_letter (l,t) =
+	  l^":"^(string_of_type t)^"\n" ;
 	in
-	List.iter print_letter a
+	List.fold_left (function acc -> function l -> acc^(string_of_letter l)) "" a
 ;;
+let print_alphabet a = print_string (string_of_alphabet a);;
 
-(* 
-print_alphabet rcs.sigma;; *)
+(* print_alphabet rcs.sigma;; *)
 
-let rec print_appterm_old = function
-  Tm(f) -> print_string f
- | Nt(nt) -> print_string nt
- | Var(x) -> print_string x
- | App(a,b) -> print_string "("; print_appterm_old a; print_string " ";
-	print_appterm_old b; print_string ")"; 
-;;
-
-
-let string_of_appterm term = 
+let string_of_appterm term :string= 
   let rec aux term = 
      match term with
   	  Tm(f) -> f
@@ -114,25 +104,21 @@ let string_of_appterm term =
 let print_appterm term = print_string (string_of_appterm term);;
 
 
-let print_eq rcs (nt,para,appterm) = 
-    print_string nt;
-    print_string " ";
-    List.iter (function s -> print_string (s^" ")) para;
-    print_string "= ";
-    print_appterm appterm;
-    print_newline()
+let string_of_rule rcs ((nt,para,appterm):rule) = 
+    nt^" "^(List.fold_left (function acc -> function p -> acc^p^" ") "" para)^"= "^(string_of_appterm appterm)^"\n"
 ;;
 
-let print_rcs rcs =
-    print_string "Terminals:"; print_newline();
-    print_alphabet rcs.sigma;
-    print_string "Non-terminals:"; print_newline();
-    print_alphabet rcs.nonterminals;
-    print_string "Rules:"; print_newline();
-    List.iter (print_eq rcs) rcs.rules;
+let print_rule rcs r = print_string (string_of_rule rcs r);;
+
+let string_of_rcs rcs =
+    "Terminals:\n"^(string_of_alphabet rcs.sigma)^
+    "Non-terminals:\n"^(string_of_alphabet rcs.nonterminals)^
+    "Rules:\n"^(List.fold_left (function acc -> function r -> acc^(string_of_rule rcs r)) "" rcs.rules)
 ;;
 
-print_rcs rcs;;
+let print_rcs rcs = print_string (string_of_rcs rcs);;
+
+(* print_rcs rcs;; *)
 
 
 exception Type_check_error;;
@@ -193,28 +179,28 @@ let rcs_check rcs =
             if a=p then
             begin
               print_string ("Parameter name "^p^" conflicts with a terminal name in ");
-              print_eq rcs eq; valid := false;
+              print_rule rcs eq; valid := false;
             end;
             a=p) rcs.sigma)) para in
     
     try if (typecheck_term appterm) <> Gr then
         begin
           print_string ("RHS is not of ground type in: ");
-          print_eq rcs eq; valid := false;
+          print_rule rcs eq; valid := false;
         end
     with 
         Wrong_variable_name(x) ->
             print_string ("Undefined variable '"^x^"' in RHS of: ") ;
-            print_eq rcs eq; valid := false;
+            print_rule rcs eq; valid := false;
         | Wrong_terminal_name(x) ->
             print_string ("Undefined terminal '"^x^"' in RHS of: ") ;
-            print_eq rcs eq; valid := false;
+            print_rule rcs eq; valid := false;
         | Wrong_nonterminal_name(x) ->
             print_string ("Undefined non-terminal '"^x^"' in RHS of: ") ;
-            print_eq rcs eq; valid := false;
+            print_rule rcs eq; valid := false;
         | Type_check_error ->
             print_string ("Type-checking error in RHS of: ") ;
-            print_eq rcs eq; valid := false;
+            print_rule rcs eq; valid := false;
 in
 	(* Check all the rules *)
     List.iter check_eq rcs.rules;
@@ -233,9 +219,10 @@ in
 
 rcs_check rcs;;
 
-print_newline();;
+(* print_newline();;
 print_rcs urz;;
 rcs_check urz;;
+*)
 
 (** Tree structure used for performing reduction of the grammar rules 
 type gramredtree = GrtNt of nonterminal | GrtTm of terminal | GrtApp of gramredtree * gramredtree;;
@@ -294,7 +281,7 @@ let step_reduce rcs appterm =
 			| Var(_) -> failwith "Trying to reduce an open term!";
 			| Nt(nt) -> true,true,(substitute nt operands)
 			| App(t0_tqminusone,tq) -> 			
-				let f,o,t = findredcontext_and_substitute t0_tqminusone (operands@[tq]) in
+				let f,o,t = findredcontext_and_substitute t0_tqminusone (tq::operands) in
 					if f then (* a context was found (and reduced) *)
 					  true,o,
 						( (* the outermost redex is exaclty the outermost application appterm = T0 T1 ... Tq *)
@@ -325,47 +312,6 @@ let oi_derivation rcs =
 ;;
 
 (* oi_derivation urz; *)
-
-
-
-// Create a form and set some properties
-(*
-let form = new Form() in
-
-form.Text <- "My First F# Form";
-form.Visible <- true;
-
-let menu = form.Menu <- new MainMenu()
-let mnuFile = form.Menu.MenuItems.Add("&File")
-
-let mnuiOpen = 
-  new MenuItem("&Open...", 
-               new EventHandler(fun _ _ -> 
-                   let d = new OpenFileDialog() in 
-                   d.InitialDirectory <- "c:\\";
-                   d.Filter <- "txt files (*.txt)|*.txt|All files (*.*)|*.*";
-                   d.FilterIndex <- 2;
-                   d.RestoreDirectory <- true;
-                   if d.ShowDialog() = DialogResult.OK then 
-                       match d.OpenFile() with 
-                       | null -> printf "Ooops... Could not read the file...\n"
-                       | s -> 
-                           let r = new StreamReader(s) in 
-                           printf "The first line of the file is: %s!\n" (r.ReadLine());
-                           s.Close();
-               ), 
-               Shortcut.CtrlO)
-
-mnuFile.MenuItems.Add(mnuiOpen)
-
-#if COMPILED
-// Run the main code. The attribute marks the startup application thread as "Single 
-// Thread Apartment" mode, which is necessary for GUI applications. 
-[<STAThread>]    
-do Application.Run(form)
-
-#endif
-*)
 
 
 (*
@@ -415,28 +361,10 @@ let rs_to_lnf s = List.map eq_to_lnf s;;
 
 *)
 
-(*
-class widget =
-  object (self)
-    val mutable state = 0 ;
-    method poke n = state <- state + n
-    method peek = state 
-    method hasBeenPoked = (state <> 0)
-end;;
-*)
 
-
-
-
-// Copyright (c) Microsoft Corporation 2005-2006.
-// This sample code is provided "as is" without warranty of any kind. 
-// We disclaim all warranties, either express or implied, including the 
-// warranties of merchantability and fitness for a particular purpose. 
 
 
 #light
-
-//module Display
 
 open System
 //open System.Collections.Generic
@@ -569,15 +497,32 @@ type MyForm =
         this.samplesTreeView.ShowRootLines <- false;
         this.samplesTreeView.Size <- new System.Drawing.Size(266, 654);
         this.samplesTreeView.TabIndex <- 1;
-        this.samplesTreeView.add_AfterExpand(fun _ e -> 
+        //this.samplesTreeView.add_AfterExpand(fun _ e -> 
+        this.samplesTreeView.add_NodeMouseDoubleClick(fun  _ e -> 
               match e.Node.Level with 
-              | 1 | 2 -> 
+              | 0  -> 
                 e.Node.ImageKey <- "BookOpen";
                 e.Node.SelectedImageKey <- "BookOpen";
-              | _ -> ());
-          
-          
-        this.samplesTreeView.add_BeforeCollapse(fun _ e -> 
+              | _ when (e.Node.Tag<> null) -> let _,redterm = step_reduce urz (e.Node.Tag:?>appterm)
+                                              let op,operands = appterm_operator_operands redterm
+                                              (match op with
+                                                Tm(f) -> e.Node.Text <- f;
+                                                         e.Node.ImageKey <- "Item";
+                                                         e.Node.SelectedImageKey <- "SelectedImageKey";
+                                                         e.Node.Tag <- null;
+                                                         List.iter (function operand -> let newNode = new TreeNode((string_of_appterm operand), ImageKey = "Help", SelectedImageKey = "Help")
+                                                                                        newNode.Tag <- operand;
+                                                                                        ignore(e.Node.Nodes.Add(newNode));) operands;
+                                                         e.Node.Expand();
+                                                    (* The leftmost operator is not a terminal: we just replace the Treeview node label
+                                                       by the reduced term. *)
+                                               | Nt(nt) -> e.Node.Text <- string_of_appterm redterm;
+                                                           e.Node.Tag <- redterm;
+                                               | _ -> failwith "bug in appterm_operator_operands!");
+              | _ -> ();
+              );
+                        
+          this.samplesTreeView.add_BeforeCollapse(fun _ e -> 
               match e.Node.Level with 
               | 0 -> 
                 e.Cancel <- true;
@@ -589,13 +534,13 @@ type MyForm =
             | null -> 
                 this.runButton.Enabled <- false;
                 this.descriptionTextBox.Text <- "Select a query from the tree to the left.";
-                this.codeRichTextBox.Clear();
+                //this.codeRichTextBox.Clear();
                 this.outputTextBox.Clear();
                 if (e.Action <> TreeViewAction.Collapse && e.Action <> TreeViewAction.Unknown) then
                     e.Node.Expand();
             | _ -> ());
               
-        this.samplesTreeView.add_AfterCollapse(fun _ e -> 
+     (*   this.samplesTreeView.add_AfterCollapse(fun _ e -> 
           match e.Node.Level with 
           | 1 -> 
             e.Node.ImageKey <- "BookStack";
@@ -604,7 +549,7 @@ type MyForm =
             e.Node.ImageKey <- "BookClosed";
             e.Node.SelectedImageKey <- "BookClosed"
           | _ -> ());
-
+*)
         // 
         // imageList
         // 
@@ -712,7 +657,7 @@ type MyForm =
         this.codeRichTextBox.ReadOnly <- true;
         this.codeRichTextBox.Size <- new System.Drawing.Size(680, 240);
         this.codeRichTextBox.TabIndex <- 1;
-        this.codeRichTextBox.Text <- "";
+        this.codeRichTextBox.Text <- (string_of_rcs urz) ;
         //this.codeRichTextBox.Dock <- DockStyle.Fill;
         this.codeRichTextBox.WordWrap <- false;
         // 
@@ -845,16 +790,17 @@ type MyForm =
         let rootNode = new TreeNode(title, Tag = (null : obj), ImageKey = "Help", SelectedImageKey = "Help")
         ignore(this.samplesTreeView.Nodes.Add(rootNode));
         rootNode.Expand();
+      
 
         let harnessNode = new TreeNode("S")  
         harnessNode.Tag <- (null : obj);
         harnessNode.ImageKey <- "BookStack";
         harnessNode.SelectedImageKey <- "BookStack";
+        harnessNode.Tag <- Nt("S");
         ignore(rootNode.Nodes.Add(harnessNode));
-
+        (*
         let category = ref ""  
-        let categoryNode = ref (null: TreeNode)  
-        ["toto"] |> List.iter (fun sample ->
+        let categoryNode = ref (null: TreeNode)          
             let n = new TreeNode("Truc")
             n.Tag <- (null : obj);
             n.ImageKey <- "BookClosed";
@@ -867,17 +813,12 @@ type MyForm =
             node.Tag <- sample;
             node.ImageKey <- "Item";
             node.SelectedImageKey <- "Item";
-            ignore((!categoryNode).Nodes.Add(node)))
+            ignore((!categoryNode).Nodes.Add(node))); *)
   end
   
   
-  
-  // #light
 
-open System;;
-open System.Collections.Generic;;
-open System.Windows.Forms;;
-open System.IO;;
+
 
 /// <summary>
 /// The main entry point for the application.
@@ -885,7 +826,7 @@ open System.IO;;
 [<STAThread>]
 let main() = 
     Application.EnableVisualStyles();
-    let form = new MyForm("HOG derviation tree" ) in
+    let form = new MyForm("HOG value tree" ) in
     ignore(form.ShowDialog());;
 //(urz:Hogrammar.recscheme)
 main();;
