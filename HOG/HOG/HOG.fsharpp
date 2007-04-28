@@ -49,15 +49,11 @@
     {
     "ProjRelPath" = "T"
     }
-    "form.fs"
-    {
-    "ProjRelPath" = "T"
-    }
     "hog.fs"
     {
     "ProjRelPath" = "T"
     }
-    "form.resx"
+    "myform.resx"
     {
     "ProjRelPath" = "T"
     }

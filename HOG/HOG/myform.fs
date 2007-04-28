@@ -17,6 +17,9 @@ open System.Text
 open System.Windows.Forms
 open System.IO
 open Printf
+open Comlab
+
+let test (rcs:Comlab.recscheme ) = rcs.rules ;;
 
 let keywords = 
    [  "abstract";"and";"as";"assert"; "asr";

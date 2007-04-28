@@ -5,9 +5,7 @@ if "%FSC%"=="" ( set FSC=%FSHARP_HOME%\bin\fsc.exe )
 if "%FSYACC%"=="" ( set FSYACC=%FSHARP_HOME%\bin\fsyacc.exe )
 if "%FSLEX%"=="" ( set FSLEX=%FSHARP_HOME%\bin\fslex.exe )
 
-
-
-"""%FSC%""" --fullpaths --progress -Ooff -o Differentiate.exe --no-warn 40 --target-winexe -g hog.fsi form.fs hog.fs   form.resx
+"""%FSC%""" --fullpaths --progress -Ooff -o hog.exe --no-warn 40 --target-winexe -g hog.fsi hog.fs  myform.resx
 
 if ERRORLEVEL 1 goto Exit
 
