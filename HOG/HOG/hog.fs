@@ -488,11 +488,11 @@ type MyForm =
                         System.Windows.Forms.AnchorStyles.Right];
         this.samplesTreeView.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
         this.samplesTreeView.HideSelection <- false;
-        this.samplesTreeView.ImageKey <- "Item";
+        this.samplesTreeView.ImageKey <- "";
+        this.samplesTreeView.SelectedImageKey <- "";
         this.samplesTreeView.ImageList <- this.imageList;
         this.samplesTreeView.Location <- new System.Drawing.Point(0, 28);
         this.samplesTreeView.Name <- "samplesTreeView";
-        this.samplesTreeView.SelectedImageKey <- "Item";
         this.samplesTreeView.ShowNodeToolTips <- true;
         this.samplesTreeView.ShowRootLines <- false;
         this.samplesTreeView.Size <- new System.Drawing.Size(266, 654);
@@ -500,25 +500,28 @@ type MyForm =
         //this.samplesTreeView.add_AfterExpand(fun _ e -> 
         this.samplesTreeView.add_NodeMouseDoubleClick(fun  _ e -> 
               match e.Node.Level with 
-              | 0  -> 
-                e.Node.ImageKey <- "BookOpen";
-                e.Node.SelectedImageKey <- "BookOpen";
-              | _ when (e.Node.Tag<> null) -> let _,redterm = step_reduce urz (e.Node.Tag:?>appterm)
-                                              let op,operands = appterm_operator_operands redterm
-                                              (match op with
-                                                Tm(f) -> e.Node.Text <- f;
-                                                         e.Node.ImageKey <- "Item";
-                                                         e.Node.SelectedImageKey <- "SelectedImageKey";
-                                                         e.Node.Tag <- null;
-                                                         List.iter (function operand -> let newNode = new TreeNode((string_of_appterm operand), ImageKey = "Help", SelectedImageKey = "Help")
-                                                                                        newNode.Tag <- operand;
-                                                                                        ignore(e.Node.Nodes.Add(newNode));) operands;
-                                                         e.Node.Expand();
-                                                    (* The leftmost operator is not a terminal: we just replace the Treeview node label
-                                                       by the reduced term. *)
-                                               | Nt(nt) -> e.Node.Text <- string_of_appterm redterm;
-                                                           e.Node.Tag <- redterm;
-                                               | _ -> failwith "bug in appterm_operator_operands!");
+              | 0  -> ()
+              | _ when (e.Node.Tag<> null) -> let rec expand_term_in_treeview (rootnode:TreeNode) t = 
+                                                  let op,operands = appterm_operator_operands t
+                                                  match op with
+                                                    Tm(f) -> rootnode.Text <- f;
+                                                             rootnode.ImageKey <- "BookClosed";
+                                                             rootnode.SelectedImageKey <- "BookClosed";
+                                                             rootnode.Tag <- null;
+                                                             List.iter (function operand -> let newNode = new TreeNode((string_of_appterm operand), ImageKey = "Help", SelectedImageKey = "Help")
+                                                                                            newNode.Tag <- operand;
+                                                                                            ignore(rootnode.Nodes.Add(newNode));
+                                                                                            expand_term_in_treeview newNode operand
+                                                                                            ) operands;
+                                                             rootnode.Expand();                                                             
+                                                        (* The leftmost operator is not a terminal: we just replace the Treeview node label
+                                                           by the reduced term. *)
+                                                   | Nt(nt) -> rootnode.Text <- string_of_appterm t;
+                                                               rootnode.Tag <- t;
+                                                   | _ -> failwith "bug in appterm_operator_operands!";
+                                               
+                                              let _,redterm = step_reduce urz (e.Node.Tag:?>appterm)
+                                              expand_term_in_treeview e.Node redterm
               | _ -> ();
               );
                         
@@ -787,33 +790,17 @@ type MyForm =
 
         this.Text <- title;
 
-        let rootNode = new TreeNode(title, Tag = (null : obj), ImageKey = "Help", SelectedImageKey = "Help")
+        let rootNode = new TreeNode(title, Tag = (null : obj), ImageKey = "BookStack", SelectedImageKey = "BookStack")
         ignore(this.samplesTreeView.Nodes.Add(rootNode));
         rootNode.Expand();
       
 
-        let harnessNode = new TreeNode("S")  
-        harnessNode.Tag <- (null : obj);
-        harnessNode.ImageKey <- "BookStack";
-        harnessNode.SelectedImageKey <- "BookStack";
-        harnessNode.Tag <- Nt("S");
-        ignore(rootNode.Nodes.Add(harnessNode));
-        (*
-        let category = ref ""  
-        let categoryNode = ref (null: TreeNode)          
-            let n = new TreeNode("Truc")
-            n.Tag <- (null : obj);
-            n.ImageKey <- "BookClosed";
-            n.SelectedImageKey <- "BookClosed";
-            ignore(harnessNode.Nodes.Add(n));
-            category := "chose";
-            categoryNode := n;          
-           
-            let node = new TreeNode("Machin")  
-            node.Tag <- sample;
-            node.ImageKey <- "Item";
-            node.SelectedImageKey <- "Item";
-            ignore((!categoryNode).Nodes.Add(node))); *)
+        let SNode = new TreeNode("S")  
+        SNode.Tag <- (null : obj);
+        SNode.ImageKey <- "Help";
+        SNode.SelectedImageKey <- "Help";
+        SNode.Tag <- Nt("S");
+        ignore(rootNode.Nodes.Add(SNode));       
   end
   
   
