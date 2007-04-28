@@ -45,7 +45,19 @@
 }
 "Files"
 {
-    "file1.fs"
+    "hog.fsi"
+    {
+    "ProjRelPath" = "T"
+    }
+    "form.fs"
+    {
+    "ProjRelPath" = "T"
+    }
+    "hog.fs"
+    {
+    "ProjRelPath" = "T"
+    }
+    "form.resx"
     {
     "ProjRelPath" = "T"
     }
