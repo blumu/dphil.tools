@@ -151,7 +151,7 @@ type MyForm =
         // 
         this.outerSplitContainer.Panel2.Controls.Add(this.rightContainer);
         this.outerSplitContainer.Size <- new System.Drawing.Size(952, 682);
-        this.outerSplitContainer.SplitterDistance <- 268;
+        this.outerSplitContainer.SplitterDistance <- 450;
         this.outerSplitContainer.TabIndex <- 0;
         // 
         // samplesTreeView
@@ -170,7 +170,7 @@ type MyForm =
         this.samplesTreeView.Name <- "samplesTreeView";
         this.samplesTreeView.ShowNodeToolTips <- true;
         this.samplesTreeView.ShowRootLines <- false;
-        this.samplesTreeView.Size <- new System.Drawing.Size(266, 654);
+        this.samplesTreeView.Size <- new System.Drawing.Size(450, 654);
         this.samplesTreeView.TabIndex <- 1;
         //this.samplesTreeView.add_AfterExpand(fun _ e -> 
         this.samplesTreeView.add_NodeMouseDoubleClick(fun  _ e -> 
@@ -211,7 +211,7 @@ type MyForm =
             match currentNode.Tag with 
             | null -> 
                 this.runButton.Enabled <- true;
-                this.descriptionTextBox.Text <- "Select a query from the tree to the left.";
+                this.descriptionTextBox.Text <- "You can double-click on the item labelled with a question mark in the treeview. This will perform the reduction of the corresponding rule of the recursion scheme.";
                 //this.codeRichTextBox.Clear();
                 this.outputTextBox.Clear();
                 if (e.Action <> TreeViewAction.Collapse && e.Action <> TreeViewAction.Unknown) then
@@ -249,7 +249,7 @@ type MyForm =
         this.samplesLabel.Name <- "samplesLabel";
         this.samplesLabel.Size <- new System.Drawing.Size(58, 16);
         this.samplesLabel.TabIndex <- 0;
-        this.samplesLabel.Text <- "Samples:";
+        this.samplesLabel.Text <- "The lazy value-tree:";
         // 
         // rightContainer
         // 
@@ -317,7 +317,7 @@ type MyForm =
         this.descriptionLabel.Name <- "descriptionLabel";
         this.descriptionLabel.Size <- new System.Drawing.Size(72, 16);
         this.descriptionLabel.TabIndex <- 0;
-        this.descriptionLabel.Text <- "Description:";
+        this.descriptionLabel.Text <- "Tip:";
         // 
         // codeRichTextBox
         // 
@@ -345,9 +345,9 @@ type MyForm =
         this.codeLabel.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
         this.codeLabel.Location <- new System.Drawing.Point(3, -1);
         this.codeLabel.Name <- "codeLabel";
-        this.codeLabel.Size <- new System.Drawing.Size(38, 16);
+        this.codeLabel.Size <- new System.Drawing.Size(100, 16);
         this.codeLabel.TabIndex <- 0;
-        this.codeLabel.Text <- "Code:";
+        this.codeLabel.Text <- "Description of the recursion scheme:";
         // 
         // runButton
         // 
@@ -358,9 +358,9 @@ type MyForm =
         this.runButton.ImageList <- this.imageList;
         this.runButton.Location <- new System.Drawing.Point(0, -1);
         this.runButton.Name <- "runButton";
-        this.runButton.Size <- new System.Drawing.Size(119, 27);
+        this.runButton.Size <- new System.Drawing.Size(159, 27);
         this.runButton.TabIndex <- 0;
-        this.runButton.Text <- " Run Sample!";
+        this.runButton.Text <- "Computation graph";
         this.runButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
         this.runButton.Click.Add(fun e -> 
             //create a form
@@ -372,7 +372,7 @@ type MyForm =
             let graph = new Microsoft.Glee.Drawing.Graph("graph")
             
             let lnfrules = rs_to_lnf cur_rs            
-            this.outputTextBox.Text <- (String.concat "\n" (List.map (lnf_to_string cur_rs) lnfrules));
+            this.outputTextBox.Text <- "Rules in eta-long normal form:\n"^(String.concat "\n" (List.map (lnf_to_string cur_rs) lnfrules));
             
             let colornode (node:Microsoft.Glee.Drawing.INode) = function
               LnfAppVar(_) ->
@@ -436,7 +436,7 @@ type MyForm =
             form.ResumeLayout();
 
             //show the form
-            ignore(form.ShowDialog()); 
+            ignore(form.Show()); 
         );
          (*
               this.UseWaitCursor <- true;
@@ -538,7 +538,7 @@ type MyForm =
        then 
         this.InitializeComponent();
 
-        this.Text <- title;
+        this.Text <- "Higher-order recursion scheme tool";
 
         let rootNode = new TreeNode(title, Tag = (null : obj), ImageKey = "BookStack", SelectedImageKey = "BookStack")
         ignore(this.samplesTreeView.Nodes.Add(rootNode));

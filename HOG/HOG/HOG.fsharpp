@@ -11,7 +11,7 @@
     "StrongNamingLevel" = "None"
     "LanguageRestriction" = "None"
     "OutputPath" = ""
-    "SearchPath" = ""
+    "SearchPath" = "-r Microsoft.GLEE.dll -r Microsoft.GLEE.Drawing.dll -r Microsoft.GLEE.GraphViewerGDI.dll"
     "StrongNameFile" = ""
     "OutputBase" = ""
     "CustomCommandLine" = ""
@@ -30,7 +30,7 @@
     "StrongNamingLevel" = "None"
     "LanguageRestriction" = "Fast F#"
     "OutputPath" = ""
-    "SearchPath" = ""
+    "SearchPath" = "-r Microsoft.GLEE.dll -r Microsoft.GLEE.Drawing.dll -r Microsoft.GLEE.GraphViewerGDI.dll"
     "StrongNameFile" = ""
     "OutputBase" = ""
     "CustomCommandLine" = ""
@@ -45,11 +45,19 @@
 }
 "Files"
 {
-    "hog.fsi"
+    "hog.mli"
     {
     "ProjRelPath" = "T"
     }
-    "hog.fs"
+    "hog.ml"
+    {
+    "ProjRelPath" = "T"
+    }
+    "hocpda.ml"
+    {
+    "ProjRelPath" = "T"
+    }
+    "myform.fs"
     {
     "ProjRelPath" = "T"
     }
@@ -61,6 +69,7 @@
     {
     "ProjRelPath" = "T"
     }
+ 
 }
 "ProjStartupServices"
 {

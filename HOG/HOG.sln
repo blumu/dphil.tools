@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
 Project("{94D665CA-D915-4DE1-AA53-913450A1AE2D}") = "HOG", "HOG\HOG.fsharpp", "{39D89C93-C1C8-409F-BD13-4658370848F2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GUI", "GUI\GUI.csproj", "{F5874E23-CEEB-4E88-8AB9-DFF0D09FFE46}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -25,16 +23,6 @@ Global
 		{39D89C93-C1C8-409F-BD13-4658370848F2}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{39D89C93-C1C8-409F-BD13-4658370848F2}.Release|Win32.ActiveCfg = Release|Win32
 		{39D89C93-C1C8-409F-BD13-4658370848F2}.Release|Win32.Build.0 = Release|Win32
-		{F5874E23-CEEB-4E88-8AB9-DFF0D09FFE46}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F5874E23-CEEB-4E88-8AB9-DFF0D09FFE46}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F5874E23-CEEB-4E88-8AB9-DFF0D09FFE46}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{F5874E23-CEEB-4E88-8AB9-DFF0D09FFE46}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{F5874E23-CEEB-4E88-8AB9-DFF0D09FFE46}.Debug|Win32.ActiveCfg = Debug|Any CPU
-		{F5874E23-CEEB-4E88-8AB9-DFF0D09FFE46}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F5874E23-CEEB-4E88-8AB9-DFF0D09FFE46}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F5874E23-CEEB-4E88-8AB9-DFF0D09FFE46}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{F5874E23-CEEB-4E88-8AB9-DFF0D09FFE46}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{F5874E23-CEEB-4E88-8AB9-DFF0D09FFE46}.Release|Win32.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

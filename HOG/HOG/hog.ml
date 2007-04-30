@@ -24,7 +24,8 @@ let rec typearity = function  Gr ->  0 | Ar(_,b) -> 1+ (typearity b) ;;
  
 let rec string_of_type = function
     Gr -> "o"
-  | Ar(a,b) -> "("^(string_of_type a)^" -> "^(string_of_type b)^")"
+  | Ar(Ar(_) as a, b) -> "("^(string_of_type a)^") -> "^(string_of_type b)
+  | Ar(a,b) -> (string_of_type a)^" -> "^(string_of_type b)
 ;;
 
 let string_of_alphabet a =
@@ -42,7 +43,7 @@ let string_of_appterm term :string=
   	  Tm(f) -> f
 	| Nt(nt) -> nt
 	| Var(x) -> x
-	| App(l,(App(_,_) as r)) -> (aux l)^" ("^(aux  r)^")"
+	| App(l,(App(_) as r)) -> (aux l)^" ("^(aux  r)^")"
 	| App(l,r) -> (aux l)^" "^(aux  r)
   in aux term
 ;;
