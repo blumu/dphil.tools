@@ -1,14 +1,4 @@
-// Copyright (c) Microsoft Corporation 2005-2006.
-// This sample code is provided "as is" without warranty of any kind. 
-// We disclaim all warranties, either express or implied, including the 
-// warranties of merchantability and fitness for a particular purpose. 
-
-
-#light
-
-module Display
-
-open System
+﻿open System
 //open System.Collections.Generic
 open System.ComponentModel
 open System.Data
@@ -17,9 +7,48 @@ open System.Text
 open System.Windows.Forms
 open System.IO
 open Printf
-open Comlab
+open Hog
 
-let test (rcs:Comlab.recscheme ) = rcs.rules ;;
+
+(* HORS producing the Urzyczyn's tree *)
+let urz = {
+    nonterminals = [ "S", Gr;
+                     "D", Ar(Ar(Gr,Ar(Gr,Gr)), Ar(Gr,Ar(Gr,Ar(Gr,Gr)))) ;
+                     "F", Ar(Gr,Gr) ;
+                     "E", Gr ;
+                     "G", Ar(Gr,Ar(Gr,Gr)) ;
+                   ];
+    sigma = [   "[", Ar(Gr,Gr) ;
+                "]", Ar(Gr,Gr);
+                "*", Ar(Gr,Gr);
+                "3", Ar(Gr,Ar(Gr,Ar(Gr,Gr)));
+                "e", Gr;
+                "r", Gr;
+            ];
+    rules = [   "S",[],App(Tm("["),
+                     App(App(App(App(Nt("D"), Nt("G")),Nt("E")),Nt("E")),Nt("E"))
+                     ); 
+                "D",["phi";"x";"y";"z"],
+                    App(App(App(Tm("3"),
+                        App(Tm("["), 
+                        App(App(App(App(Nt("D"), App(App(Nt("D"), Var("phi")),Var("x"))),
+                        Var("z")
+                        ),
+                        App(Nt("F"), Var("y"))
+                        ),App(Nt("F"), Var("y")))
+                        )),
+                        App(Tm("]"), App(App(Var("phi"),Var("y")),Var("x")))),
+                        App(Tm("*"), Var("z")));
+                "F",["x"],App(Tm("*"),Var("x"));
+                "E",[],Tm("e");
+                "G",["u";"v"],Tm("r");
+        ]
+ };;
+
+rs_check urz;;
+
+(* Set the current recursion scheme to urz *)
+let cur_rs = urz;;
 
 let keywords = 
    [  "abstract";"and";"as";"assert"; "asr";
@@ -38,10 +67,12 @@ let keywords =
       "property";"rec";"static";"struct"; "sig";
       "then";"to";"true";"try";
       "type";"upcast"; "val";"virtual";"when";
-      "while";"with";"="; ":?"; "->"; "|"; "#light"  ]
+      "while";"with";"="; ":?"; "->"; "|"; "#light"  ]   ;;
+
+      
+#light;;
 let colorizeCode(rtb: # RichTextBox) = 
     let text = rtb.Text 
-            
     rtb.SelectAll()
     rtb.SelectionColor <- rtb.ForeColor
 
@@ -67,7 +98,7 @@ let colorizeCode(rtb: # RichTextBox) =
     );
     rtb.Select(0, 0)
 
-type SampleForm = 
+type MyForm = 
   class
     inherit Form as base
 
@@ -79,7 +110,7 @@ type SampleForm =
 
     member this.InitializeComponent() =
         this.components <- new System.ComponentModel.Container();
-        let resources = new System.ComponentModel.ComponentResourceManager((type SampleForm)) 
+        let resources = new System.ComponentModel.ComponentResourceManager((type MyForm)) 
         this.outerSplitContainer <- new System.Windows.Forms.SplitContainer();
         this.samplesTreeView <- new System.Windows.Forms.TreeView();
         this.imageList <- new System.Windows.Forms.ImageList(this.components);
@@ -132,24 +163,44 @@ type SampleForm =
                         System.Windows.Forms.AnchorStyles.Right];
         this.samplesTreeView.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
         this.samplesTreeView.HideSelection <- false;
-        this.samplesTreeView.ImageKey <- "Item";
+        this.samplesTreeView.ImageKey <- "";
+        this.samplesTreeView.SelectedImageKey <- "";
         this.samplesTreeView.ImageList <- this.imageList;
         this.samplesTreeView.Location <- new System.Drawing.Point(0, 28);
         this.samplesTreeView.Name <- "samplesTreeView";
-        this.samplesTreeView.SelectedImageKey <- "Item";
         this.samplesTreeView.ShowNodeToolTips <- true;
         this.samplesTreeView.ShowRootLines <- false;
         this.samplesTreeView.Size <- new System.Drawing.Size(266, 654);
         this.samplesTreeView.TabIndex <- 1;
-        this.samplesTreeView.add_AfterExpand(fun _ e -> 
+        //this.samplesTreeView.add_AfterExpand(fun _ e -> 
+        this.samplesTreeView.add_NodeMouseDoubleClick(fun  _ e -> 
               match e.Node.Level with 
-              | 1 | 2 -> 
-                e.Node.ImageKey <- "BookOpen";
-                e.Node.SelectedImageKey <- "BookOpen";
-              | _ -> ());
-          
-          
-        this.samplesTreeView.add_BeforeCollapse(fun _ e -> 
+              | 0  -> ()
+              | _ when (e.Node.Tag<> null) -> let rec expand_term_in_treeview (rootnode:TreeNode) t = 
+                                                  let op,operands = appterm_operator_operands t
+                                                  match op with
+                                                    Tm(f) -> rootnode.Text <- f;
+                                                             rootnode.ImageKey <- "BookClosed";
+                                                             rootnode.SelectedImageKey <- "BookClosed";
+                                                             rootnode.Tag <- null;
+                                                             List.iter (function operand -> let newNode = new TreeNode((string_of_appterm operand), ImageKey = "Help", SelectedImageKey = "Help")
+                                                                                            newNode.Tag <- operand;
+                                                                                            ignore(rootnode.Nodes.Add(newNode));
+                                                                                            expand_term_in_treeview newNode operand
+                                                                                            ) operands;
+                                                             rootnode.Expand();                                                             
+                                                        (* The leftmost operator is not a terminal: we just replace the Treeview node label
+                                                           by the reduced term. *)
+                                                   | Nt(nt) -> rootnode.Text <- string_of_appterm t;
+                                                               rootnode.Tag <- t;
+                                                   | _ -> failwith "bug in appterm_operator_operands!";
+                                               
+                                              let _,redterm = step_reduce cur_rs (e.Node.Tag:?>appterm)
+                                              expand_term_in_treeview e.Node redterm
+              | _ -> ();
+              );
+                        
+          this.samplesTreeView.add_BeforeCollapse(fun _ e -> 
               match e.Node.Level with 
               | 0 -> 
                 e.Cancel <- true;
@@ -159,15 +210,15 @@ type SampleForm =
             let currentNode = this.samplesTreeView.SelectedNode  
             match currentNode.Tag with 
             | null -> 
-                this.runButton.Enabled <- false;
+                this.runButton.Enabled <- true;
                 this.descriptionTextBox.Text <- "Select a query from the tree to the left.";
-                this.codeRichTextBox.Clear();
+                //this.codeRichTextBox.Clear();
                 this.outputTextBox.Clear();
                 if (e.Action <> TreeViewAction.Collapse && e.Action <> TreeViewAction.Unknown) then
                     e.Node.Expand();
             | _ -> ());
               
-        this.samplesTreeView.add_AfterCollapse(fun _ e -> 
+     (*   this.samplesTreeView.add_AfterCollapse(fun _ e -> 
           match e.Node.Level with 
           | 1 -> 
             e.Node.ImageKey <- "BookStack";
@@ -176,10 +227,11 @@ type SampleForm =
             e.Node.ImageKey <- "BookClosed";
             e.Node.SelectedImageKey <- "BookClosed"
           | _ -> ());
-
+*)
         // 
         // imageList
         // 
+        
         this.imageList.ImageStream <- (resources.GetObject("imageList.ImageStream") :?> System.Windows.Forms.ImageListStreamer);
         this.imageList.Images.SetKeyName(0, "Help");
         this.imageList.Images.SetKeyName(1, "BookStack");
@@ -187,6 +239,7 @@ type SampleForm =
         this.imageList.Images.SetKeyName(3, "BookOpen");
         this.imageList.Images.SetKeyName(4, "Item");
         this.imageList.Images.SetKeyName(5, "Run");
+        
         // 
         // samplesLabel
         // 
@@ -282,7 +335,7 @@ type SampleForm =
         this.codeRichTextBox.ReadOnly <- true;
         this.codeRichTextBox.Size <- new System.Drawing.Size(680, 240);
         this.codeRichTextBox.TabIndex <- 1;
-        this.codeRichTextBox.Text <- "";
+        this.codeRichTextBox.Text <- (string_of_rs cur_rs) ;
         //this.codeRichTextBox.Dock <- DockStyle.Fill;
         this.codeRichTextBox.WordWrap <- false;
         // 
@@ -298,7 +351,7 @@ type SampleForm =
         // 
         // runButton
         // 
-        this.runButton.Enabled <- false;
+        this.runButton.Enabled <- true;
         this.runButton.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
         this.runButton.ImageAlign <- System.Drawing.ContentAlignment.MiddleRight;
         this.runButton.ImageKey <- "Run";
@@ -310,7 +363,82 @@ type SampleForm =
         this.runButton.Text <- " Run Sample!";
         this.runButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
         this.runButton.Click.Add(fun e -> 
-         
+            //create a form
+            let form = new System.Windows.Forms.Form()
+            //create a viewer object
+            let viewer = new Microsoft.Glee.GraphViewerGdi.GViewer()
+
+            //create a graph object
+            let graph = new Microsoft.Glee.Drawing.Graph("graph")
+            
+            let lnfrules = rs_to_lnf cur_rs            
+            this.outputTextBox.Text <- (String.concat "\n" (List.map (lnf_to_string cur_rs) lnfrules));
+            
+            let colornode (node:Microsoft.Glee.Drawing.INode) = function
+              LnfAppVar(_) ->
+                node.NodeAttribute.Fillcolor <- Microsoft.Glee.Drawing.Color.Green;
+            | LnfAppTm(_) ->
+                node.NodeAttribute.Fillcolor <- Microsoft.Glee.Drawing.Color.Salmon;
+            | LnfAppNt(_) -> ();
+            in            
+            let rec create_nt_subgraph (nt,lnfrhs) =
+              let rootnode = graph.FindNode (aux nt lnfrhs)
+              rootnode.NodeAttribute.Label <- nt^":"^(rootnode.NodeAttribute.Label);
+              rootnode.NodeAttribute.Fillcolor <- Microsoft.Glee.Drawing.Color.Yellow;
+            and aux rootid (abs_part,app_part) =
+                match app_part with
+                  (* If it's a non-terminal of ground type then there is no need to create an extra abstraction node *)
+                  LnfAppNt(nt, []) -> nt;
+                | LnfAppVar(x, operands) | LnfAppTm(x, operands) 
+                | LnfAppNt(x, operands) ->
+                    let absnode = graph.AddNode rootid
+                    absnode.NodeAttribute.Label <- "λ"^(String.concat " " abs_part);
+                    let appnode = graph.AddNode(string_of_int (graph.NodeCount+1))                   
+                    ignore(graph.AddEdge(absnode.NodeAttribute.Id,appnode.NodeAttribute.Id));
+                    (*If it is an @ node then add the edge pointing to the operator *)
+                    match app_part with
+                      LnfAppNt(_) ->
+                        appnode.NodeAttribute.Label <- "@";
+                        let opedge = graph.AddEdge(appnode.NodeAttribute.Id,x);
+                        opedge.EdgeAttr.Color <- Microsoft.Glee.Drawing.Color.Green;
+                    | _ -> appnode.NodeAttribute.Label <- x;
+
+                    colornode appnode app_part;
+
+                    let iparam = ref 1 in
+                    List.iter (function u -> let n = aux (string_of_int (graph.NodeCount+1)) u
+                                             
+                                             let operand_edge = graph.AddEdge(appnode.NodeAttribute.Id, string_of_int !iparam, n)
+                                             incr(iparam);) operands;
+                    absnode.NodeAttribute.Id
+                
+            (*ignore(create_nt_subgraph (List.assoc "S" lnfrules));*)
+              
+            List.iter create_nt_subgraph lnfrules;
+            
+            //create the graph content
+(*            ignore(graph.AddEdge("A", "B"));
+            ignore(graph.AddEdge("B", "C"));
+            graph.AddEdge("A", "C").EdgeAttr.Color <- Microsoft.Glee.Drawing.Color.Green;
+            graph.FindNode("S").NodeAttribute.Fillcolor <- Microsoft.Glee.Drawing.Color.Magenta;
+            // graph.FindNode("B").NodeAttribute.Fillcolor <- Microsoft.Glee.Drawing.Color.MistyRose;
+            let c = graph.FindNode("C")
+            c.NodeAttribute.Fillcolor <- Microsoft.Glee.Drawing.Color.PaleGreen;
+            c.NodeAttribute.Shape <- Microsoft.Glee.Drawing.Shape.Diamond;
+*)            
+            //bind the graph to the viewer
+            viewer.Graph <- graph;
+
+            //associate the viewer with the form
+            form.SuspendLayout();
+            viewer.Dock <- System.Windows.Forms.DockStyle.Fill;
+            form.Controls.Add(viewer);
+            form.ResumeLayout();
+
+            //show the form
+            ignore(form.ShowDialog()); 
+        );
+         (*
               this.UseWaitCursor <- true;
               try 
                 this.outputTextBox.Text <- "";
@@ -320,8 +448,8 @@ type SampleForm =
                 writer.Flush();
                 this.outputTextBox.Text <- this.outputTextBox.Text + writer.Encoding.GetString(stream.ToArray());
               finally
-                this.UseWaitCursor <- false);
-            // 
+                this.UseWaitCursor <- false);  *)
+        // 
         // outputTextBox
         // 
         this.outputTextBox.Anchor <- 
@@ -412,31 +540,30 @@ type SampleForm =
 
         this.Text <- title;
 
-        let rootNode = new TreeNode(title, Tag = (null : obj), ImageKey = "Help", SelectedImageKey = "Help")
+        let rootNode = new TreeNode(title, Tag = (null : obj), ImageKey = "BookStack", SelectedImageKey = "BookStack")
         ignore(this.samplesTreeView.Nodes.Add(rootNode));
         rootNode.Expand();
+      
 
-        let harnessNode = new TreeNode("S")  
-        harnessNode.Tag <- (null : obj);
-        harnessNode.ImageKey <- "BookStack";
-        harnessNode.SelectedImageKey <- "BookStack";
-        ignore(rootNode.Nodes.Add(harnessNode));
-
-        let category = ref ""  
-        let categoryNode = ref (null: TreeNode)  
-        ["toto"] |> List.iter (fun sample ->
-            let n = new TreeNode("Truc")
-            n.Tag <- (null : obj);
-            n.ImageKey <- "BookClosed";
-            n.SelectedImageKey <- "BookClosed";
-            ignore(harnessNode.Nodes.Add(n));
-            category := "chose";
-            categoryNode := n;          
-           
-            let node = new TreeNode("Machin")  
-            node.Tag <- sample;
-            node.ImageKey <- "Item";
-            node.SelectedImageKey <- "Item";
-            ignore((!categoryNode).Nodes.Add(node)))
+        let SNode = new TreeNode("S")  
+        SNode.Tag <- (null : obj);
+        SNode.ImageKey <- "Help";
+        SNode.SelectedImageKey <- "Help";
+        SNode.Tag <- Nt("S");
+        ignore(rootNode.Nodes.Add(SNode));       
   end
   
+  
+
+
+
+/// <summary>
+/// The main entry point for the application.
+/// </summary>
+[<STAThread>]
+let main() = 
+    Application.EnableVisualStyles();
+    let form = new MyForm("HOG value tree" ) in
+    ignore(form.ShowDialog());;
+//(cur_rs:Hogrammar.recscheme)
+main();;
