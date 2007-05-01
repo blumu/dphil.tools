@@ -172,108 +172,107 @@ let rec appterm_operator_operands t = match t with
 
 (* Perform a reduction on the applicative term appterm (which must not contain any free variable) *)
 let step_reduce rs appterm = 
-	let substitute nt operands = 
-		let nttyp = nonterminal_type rs nt in
-		let _,parms,rhs = List.find (function rname,_,_ -> rname=nt) rs.rules in
-		(* Check that we have the right number of operands (we only reduce full applications to non-terminals) *)
-		if List.length parms = List.length operands then	
-			let substlst = List.combine parms operands in
-			let rec subst term = match term with
-			     Tm(_) | Nt(_) -> term
-			   | App(l,r) -> App((subst l), (subst r))
-			   | Var(x)  -> try List.assoc x substlst
-					        with Not_found -> term
-			in
-			subst rhs
-		else
-			failwith ("Error: partial application to the terminal "^nt^".")
+  let substitute nt operands = 
+    let _,parms,rhs = List.find (function rname,_,_ -> rname=nt) rs.rules in
+      (* Check that we have the right number of operands (we only reduce full applications to non-terminals) *)
+      if List.length parms = List.length operands then	
+	let substlst = List.combine parms operands in
+	let rec subst term = match term with
+	    Tm(_) | Nt(_) -> term
+	  | App(l,r) -> App((subst l), (subst r))
+	  | Var(x)  -> try List.assoc x substlst
+	    with Not_found -> term
 	in
-	
-	(* Look for the outermost reduction context in appterm, and if there is one perform the reduction.
-		A reduction context is of the form C[_] where the hole contains a term of the form X t1 ... tn for some nonterminal X.
-		
-	 The function takes two parameters:
-		-appterm: the term in which we look for a context. 
-		 Let us assume that it is of the form T0 T1 T2 ... Tq where T0 is not an application.
-		-operands: a list of operands terms that are applied to appterm (this parameter is used to 
-		collect the list of parameters as we approach the operator node in the AST so that the parameters list
-		is available when we reach the operator node and so we can perform the substitution)
-		
-	 The function returns a triple: (found,outer,term) where
-        If found=true then a reduction context has been found in appterm
-	  and 'term' contains the reducted term. 'outer' is set to true iff 
-	  the outermost redex-context is exactly the outermost application
-	  i.e. the context is C[_] = _ (and therefore C[appterm] = appterm)
-	  and Op is a non-terminal.
-	  
-	    If found=false then 'term' contains appterm and 'outer' has no meaning.
-	  *)
-	let rec findredcontext_and_substitute appterm operands =
-			match appterm with
-			  Tm(_) -> false,false,appterm
-			| Var(_) -> failwith "Trying to reduce an open term!";
-			| Nt(nt) -> true,true,(substitute nt operands)
-			| App(t0_tqminusone,tq) -> 			
-				let f,o,t = findredcontext_and_substitute t0_tqminusone (tq::operands) in
-					if f then (* a context was found (and reduced) *)
-					  true,o,
-						( (* the outermost redex is exaclty the outermost application appterm = T0 T1 ... Tq *)
-                          if o then t 
-						  (* the outermost context lies somewhere inside T0 or T1 or ... T_(q-1) *)
-						  else App(t,tq)
-						)
-					else (* no context found: *)
-					    (* then look for a context in the operand T_q *)
-						let f,o,t = findredcontext_and_substitute tq [] in
-							f,false,App(t0_tqminusone, t)
-	in
-	let f,_,red = findredcontext_and_substitute appterm [] in
-	f,red
- ;;
+	  subst rhs
+      else
+	failwith ("Error: partial application to the terminal "^nt^".")
+  in
+    
+  (* Look for the outermost reduction context in appterm, and if there is one perform the reduction.
+     A reduction context is of the form C[_] where the hole contains a term of the form X t1 ... tn for some nonterminal X.
+     
+     The function takes two parameters:
+     -appterm: the term in which we look for a context. 
+     Let us assume that it is of the form T0 T1 T2 ... Tq where T0 is not an application.
+     -operands: a list of operands terms that are applied to appterm (this parameter is used to 
+     collect the list of parameters as we approach the operator node in the AST so that the parameters list
+     is available when we reach the operator node and so we can perform the substitution)
+     
+     The function returns a triple: (found,outer,term) where
+     If found=true then a reduction context has been found in appterm
+     and 'term' contains the reducted term. 'outer' is set to true iff 
+     the outermost redex-context is exactly the outermost application
+     i.e. the context is C[_] = _ (and therefore C[appterm] = appterm)
+     and Op is a non-terminal.
+     
+     If found=false then 'term' contains appterm and 'outer' has no meaning.
+  *)
+  let rec findredcontext_and_substitute appterm operands =
+    match appterm with
+	Tm(_) -> false,false,appterm
+      | Var(_) -> failwith "Trying to reduce an open term!";
+      | Nt(nt) -> true,true,(substitute nt operands)
+      | App(t0_tqminusone,tq) -> 			
+	  let f,o,t = findredcontext_and_substitute t0_tqminusone (tq::operands) in
+	    if f then (* a context was found (and reduced) *)
+	      true,o,
+	  ( (* the outermost redex is exaclty the outermost application appterm = T0 T1 ... Tq *)
+            if o then t 
+	      (* the outermost context lies somewhere inside T0 or T1 or ... T_(q-1) *)
+	    else App(t,tq)
+	  )
+	    else (* no context found: *)
+	      (* then look for a context in the operand T_q *)
+	      let f,o,t = findredcontext_and_substitute tq [] in
+		f,false,App(t0_tqminusone, t)
+  in
+  let f,_,red = findredcontext_and_substitute appterm [] in
+    f,red
+;;
 
 (* Perform an OI-derivation of the recursion scheme rs *)
 let oi_derivation rs =
 
-    let t = ref (Nt("S")) in 
+  let t = ref (Nt("S")) in 
     print_newline(); print_appterm !t;  print_newline();
     while (input_line stdin) <> "q" do
       let red,tred = step_reduce rs !t in
-      t := tred;	
-
-      print_appterm !t; print_newline(); print_newline();
+	t := tred;	
+	
+	print_appterm !t; print_newline(); print_newline();
     done;
 ;;
 
 (* Return the type of an applicative term (assume that the term is well-typed) 
    @param fvtypes gives the types of the free variable in the term:
-    it is a list of pair (var,typ) where 'typ' is the type of the variable 'var'.
- *)
+   it is a list of pair (var,typ) where 'typ' is the type of the variable 'var'.
+*)
 let rec appterm_type rs fvtypes = function
-      Tm(f) -> terminal_type rs f
-    | Nt(nt) -> nonterminal_type rs nt
-    | Var(x) -> List.assoc x fvtypes
-    | App(a,_) -> match appterm_type rs fvtypes a with 
-                     Gr -> failwith "Term is not well-typed!"
-                   | Ar(_,r) -> r
+    Tm(f) -> terminal_type rs f
+  | Nt(nt) -> nonterminal_type rs nt
+  | Var(x) -> List.assoc x fvtypes
+  | App(a,_) -> match appterm_type rs fvtypes a with 
+        Gr -> failwith "Term is not well-typed!"
+      | Ar(_,r) -> r
 ;;
 
 (* return the order of an appterm *)
 let appterm_order rs fvtypes t = typeorder (appterm_type rs fvtypes t);;
 
 
-  
+
 (** Long normal form (lnf) *)
 
 (* We define the type of the right-hand side of a rule in lnf that we call RHS for short. It is given by:
-- the top abstraction: a list of abstracted variables,
-- the (leftmost) operator : either @, a variable or a nonterminal,
-- the list of operands that are themselves of the type RHS. *)
+   - the top abstraction: a list of abstracted variables,
+   - the (leftmost) operator : either @, a variable or a nonterminal,
+   - the list of operands that are themselves of the type RHS. *)
 type lnfrhs = lnfabstractpart  * lnfapplicativepart
 and lnfabstractpart = ident list
 and lnfapplicativepart = 
-      LnfAppVar of ident * lnfrhs list
-    | LnfAppNt of nonterminal * lnfrhs list
-    | LnfAppTm of terminal * lnfrhs list
+    LnfAppVar of ident * lnfrhs list
+  | LnfAppNt of nonterminal * lnfrhs list
+  | LnfAppTm of terminal * lnfrhs list
 ;;
 type lnfrule = nonterminal * lnfrhs ;;
 
@@ -282,8 +281,8 @@ let freshvar = ref 0;;
 let new_freshvar() = incr(freshvar); string_of_int !freshvar; ;;
 
 (* [rule_to_lnf rs rule] converts a grammar rule into LNF
-@param rs is the recursion scheme
-@param rule is the rule to be converted
+   @param rs is the recursion scheme
+   @param rule is the rule to be converted
 *)
 let rule_to_lnf rs (nt,param,rhs) = 
   (* create the association list mapping parameters' name to their type *)
@@ -292,38 +291,38 @@ let rule_to_lnf rs (nt,param,rhs) =
   let rec lnf appterm = lnf_aux (appterm_type rs fvtypes appterm) appterm
   and lnf_aux typ appterm =     
     let op,operands = appterm_operator_operands appterm in
-    (* Create a list of fresh variables Phi_1 ... Phi_n where n is the arity of appterm *)
+      (* Create a list of fresh variables Phi_1 ... Phi_n where n is the arity of appterm *)
     let absvars = Array.to_list (Array.init (typearity typ) (fun i -> new_freshvar()) ) in
-    (* create an association list mapping Phi_1 ... Phi_n to their respective types *)
+      (* create an association list mapping Phi_1 ... Phi_n to their respective types *)
     let absvars_types = create_paramtyplist "#not a nt#" absvars typ
-    (* compute the lnfs of the operands *)
+      (* compute the lnfs of the operands *)
     and lnfoperands = List.map lnf operands in
-    (* add 'lnf(Phi_1) ... lnf(Phi_n)'  to the list of operands *)    
+      (* add 'lnf(Phi_1) ... lnf(Phi_n)'  to the list of operands *)    
     let lnfoperands_ext = lnfoperands@(List.map (function (v,t) -> lnf_aux t (Var(v))) absvars_types) in
-    match op with
-        Tm(t)  -> absvars, LnfAppTm(t, lnfoperands_ext)
-      | Var(v) -> absvars, LnfAppVar(v, lnfoperands_ext)
-      | Nt(nt) -> absvars, LnfAppNt(nt, lnfoperands_ext)
-      | App(_) -> failwith "eq_to_lnf: appterm_operator_operands returned wrong operator."
+      match op with
+          Tm(t)  -> absvars, LnfAppTm(t, lnfoperands_ext)
+	| Var(v) -> absvars, LnfAppVar(v, lnfoperands_ext)
+	| Nt(nt) -> absvars, LnfAppNt(nt, lnfoperands_ext)
+	| App(_) -> failwith "eq_to_lnf: appterm_operator_operands returned wrong operator."
   in  
-  nt,(param, (snd (lnf rhs))) (* the first element of the pair returned by 'lnf appterm' (the list of abstracted variables)  must be empty since the rhs of the rule is of order 0 *) 
+    nt,(param, (snd (lnf rhs))) (* the first element of the pair returned by 'lnf appterm' (the list of abstracted variables)  must be empty since the rhs of the rule is of order 0 *) 
 ;;
 
 let lnf_to_string (rs:recscheme) ((nt,lnfrhs):lnfrule) =
   let rec rhs_to_string (abs_part,app_part) =
     "\\"^(String.concat " " abs_part)^"."^(
-    match app_part with
-    LnfAppTm(x,operands)
-    |LnfAppVar(x,operands)
-    |LnfAppNt(x,operands) -> let p = String.concat " " (List.map rhs_to_string operands) in
+      match app_part with
+	  LnfAppTm(x,operands)
+	|LnfAppVar(x,operands)
+	|LnfAppNt(x,operands) -> let p = String.concat " " (List.map rhs_to_string operands) in
             "("^x^(if p = "" then "" else " "^p)^")")  
   in
-  nt^" = "^(rhs_to_string lnfrhs)
+    nt^" = "^(rhs_to_string lnfrhs)
 ;;
 
 let rs_to_lnf rs = 
-    freshvar := 0;
-    List.map (rule_to_lnf rs) rs.rules;;
+  freshvar := 0;
+  List.map (rule_to_lnf rs) rs.rules;;
 
 
 
@@ -331,20 +330,21 @@ let rs_to_lnf rs =
 (**** Tests *)
 
 (* example of recursion scheme *)
-let rs : recscheme = { nonterminals = [ "S", Gr;
-                             "F", Ar(Gr,Ar(Gr,Gr)) ;
-                             "G", Ar(Ar(Gr,Gr),Ar(Gr,Gr)) ];
+let rs : recscheme = {
+  nonterminals = [ "S", Gr;
+                   "F", Ar(Gr,Ar(Gr,Gr)) ;
+                   "G", Ar(Ar(Gr,Gr),Ar(Gr,Gr)) ];
   sigma = [ "f", Ar(Gr,Ar(Gr,Gr));
             "g", Ar(Gr,Gr);
             "t", Ar(Gr,Ar(Gr,Gr)) ;
             "e", Gr ];
   rules = [ "S",[],App(App(Tm("f"), Tm("e")),Tm("e"));
-          "F",["x";"y"],App(App(Tm("f"), Var("x")), Var("y"));
-          "G",["phi";"x"],App(Tm("g"), App(Tm("g"), Var("x")));
-        ]
- } ;;
- 
- 
+            "F",["x";"y"],App(App(Tm("f"), Var("x")), Var("y"));
+            "G",["phi";"x"],App(Tm("g"), App(Tm("g"), Var("x")));
+          ]
+} ;;
+
+
 (* string_of_type (Ar(Gr,Ar(Gr,Gr)));; *)
 (* print_alphabet rs.sigma;; *)
 (* print_rs rs;; *)

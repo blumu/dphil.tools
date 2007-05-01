@@ -1,8 +1,6 @@
 (* Interface File *)
 (* namespace Comlab *)
 
-open System
-
 type typ = Gr | Ar of typ * typ ;;
 
 type ident = string;;
