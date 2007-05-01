@@ -61,6 +61,10 @@
     {
     "ProjRelPath" = "T"
     }
+    "cpdaform.fs"
+    {
+    "ProjRelPath" = "T"
+    }
     "myform.resx"
     {
     "ProjRelPath" = "T"
@@ -69,7 +73,6 @@
     {
     "ProjRelPath" = "T"
     }
- 
 }
 "ProjStartupServices"
 {

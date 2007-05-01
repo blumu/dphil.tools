@@ -1,4 +1,15 @@
+open System
+//open System.Collections.Generic
+open System.ComponentModel
+open System.Data
+open System.Drawing
+open System.Text
+open System.Windows.Forms
+open System.IO
+open Printf
+open Hocpda
 
+#light;;
 type CpdaForm = 
   class
     inherit Form as base
@@ -11,7 +22,7 @@ type CpdaForm =
 
     member this.InitializeComponent() =
         this.components <- new System.ComponentModel.Container();
-        let resources = new System.ComponentModel.ComponentResourceManager((type MyForm)) 
+        let resources = new System.ComponentModel.ComponentResourceManager((type CpdaForm)) 
         this.outerSplitContainer <- new System.Windows.Forms.SplitContainer();
         this.samplesTreeView <- new System.Windows.Forms.TreeView();
         this.imageList <- new System.Windows.Forms.ImageList(this.components);

@@ -12,22 +12,25 @@ type link = int  * int (* A link is specified by a pair j,k. The stack pointed t
                           by perfoming k iterations of the 'pop_j' operation *)
 type operation = 
       Popn of int
-    (* Popn(n) removes the top (n-1)-stack from the stack. *)
+    (** Popn(n) removes the top (n-1)-stack from the stack. *)
 
     | Push1 of stackelement * link 
-    (* Push1(a,l) push the element 'a' with the associated link 'l' onto the top 1-stack. *)
+    (** Push1(a,l) push the element 'a' with the associated link 'l' onto the top 1-stack. *)
     
     | Pushn of int
-    (* Pushn(n+1) where n>=1 duplicates the top n-stack (within the top (n+1)-stack). *)
+    (** Pushn(n+1) where n>=1 duplicates the top n-stack (within the top (n+1)-stack). *)
     
     | Collapse
-    (* Collapse the stack to the prefix stack determined by the pointer associated to the top 0-element. *)
+    (** Collapse the stack to the prefix stack determined by the pointer associated to the top 0-element. *)
+    
+    | Goto of state
+    (** Goto(q) will jump to instruction 'q' *)
     
     | GotoIfTop0 of state * terminal
-    (* GotoIf(q,f) will jump to state 'q' if the top 0-element in the stack is 'f' *)
+    (** GotoIfTop0(q,f) will jump to instruction 'q' if the top 0-element in the stack is 'f' *)
     
     | Emit of terminal * state list
-     (* Emit(f,[q_1;  ;q_ar(f)]) will emit the non-terminal f and then perform a Goto to 
+     (** Emit(f,[q_1;  ;q_ar(f)]) will emit the non-terminal f and then perform a Goto to 
         one of the state q_1 ... q_ar(f) chosen non-deterministically. 
      *)
 
@@ -39,12 +42,10 @@ type hocpda =
   n : int;                             (** Order of the CPDA *)
   terminals_alphabet : Hog.alphabet;   (** This corresponds to Sigma in the formal definition *)
   stack_alphabet : stackelement list;  (** Gamma in the formal definition *)
-  nprocedures: int;                    (** Number of procedures *)
-  state_code: (operation list) array;  (** An array of length nstates. Each cell contains the list of instructions that
-                                          will be executed when the CPDA is in the corresponding state. *)
+  code: operation array;               (** The code of the CPDA stored as an array of instructions. *)
   
   (* Current configuration: *)
-  mutable curstate : state;            (** Current CPDA state *)
+  mutable ip: int;                     (** Current CPDA state (i.e. instruction pointer) *)
   mutable stk: hostack;                (** Current stack state *)
 }
 
@@ -57,10 +58,8 @@ let rec empty_hostack = function
 let test = { n = 5;
 	     terminals_alphabet = ["f",Gr];
 	     stack_alphabet = ["e1";"e2"];
-	     nprocedures = 2;
-	     state_code = [|[Push1("e1",(0,0)); GotoIfTop0(1,"e2")];
-			    [Push1("e1",(0,0)); Collapse]|];
-	     curstate = 0;
+	     code = [|Push1("e1",(0,0)); GotoIfTop0(1,"e2"); Push1("e1",(0,0)); Collapse|];
+	     ip = 0;
 	     stk = Stack([Stack([Stack([Stack([Stack([El("e1",(0,0))])])])])]); (* empty_hostack 5;*)
 };;
 
@@ -81,7 +80,7 @@ let top0 cpda =
 
 (** [popn cpda n] performs an order n pop on the stack, with n>=1. *)
 let popn cpda n =
-  if n == 0 then failwith "Instruction pop0 undefined!";
+  if n = 0 then failwith "Instruction pop0 undefined!";
   let rec aux k stk = 
     match k,stk with
        0,_ | _,El(_) -> raise BadHOStackStructure
@@ -125,31 +124,65 @@ let collapse cpda =
   done
 ;;
 
+exception CpdaHalt;;
+exception JumpToInexistingCode;;
+
+(** Increment the instruction pointer. If the end of the code is reached then
+raise the exception CpdaHalt. *)
+let incr_ip cpda =
+    cpda.ip <- cpda.ip +1;
+    if cpda.ip = Array.length cpda.code then
+      raise CpdaHalt
+;;
+
+(** [jump cpda i] performs a jump to the instruction i (set cpda.ip to i). 
+    If i does not lie within the program code then raise the exception
+    JumpToInexistingCode *)
+let jmp cpda i =    
+    if i < (Array.length cpda.code) then
+      raise JumpToInexistingCode
+    else
+      cpda.ip <- i;
+;;
+
 (** [hopcpda_step cpda opponent] performs a transition of the cpda.
     @param cpda is the CPDA
-    @param opponent is a function of type [terminal -> state list -> state] modeling the (history-free) strategy of the opponent player.
+    @param opponent is a function of type [terminal -> state list -> state option] modeling the (history-free) strategy of the opponent player.
     It is  called each time an operation emits a Sigma-constant f. The Opponent is then responsible of chosing one direction among
     1..ar(f), and does so by returning the corresponding state from the list passed in the second parameter.
+    If and only f is of arity 0, opponent can return None.
     *)
 let hocpda_step cpda opponent =
   let execute = function
-      Popn(n) -> popn cpda n
-    | Push1(a,l) -> push1 cpda a l
-    | Pushn(j) -> pushj cpda j
-    | Collapse -> collapse cpda
-    | GotoIfTop0(q, t) -> if fst (top0 cpda) == t then cpda.curstate <- q;
-    | Emit(t,ql) -> opponent t ql
-	
+      Popn(n) -> popn cpda n; incr_ip cpda;
+    | Push1(a,l) -> push1 cpda a l; incr_ip cpda;
+    | Pushn(j) -> pushj cpda j; incr_ip cpda;
+    | Collapse -> collapse cpda; incr_ip cpda;
+    | GotoIfTop0(q, t) -> if fst (top0 cpda) = t then 
+                            jmp cpda q
+                          else 
+                            incr_ip cpda;
+    | Goto(q) -> jmp cpda q;
+    | Emit(t,ql) -> match opponent t ql with 
+                        None -> raise CpdaHalt
+                      | Some(i) -> jmp cpda i;
   in
-    List.iter execute cpda.state_code.(cpda.curstate);
+    execute cpda.code.(cpda.ip)
 ;;
-
 
 (** Initialization of a CPDA. *)
 let hocpda_init cpda =
   cpda.stk <- empty_hostack cpda.n;
-  cpda.curstate <- 0;
+  cpda.ip <- 0;
 ;;
 
+(** Define a strategy for the opponent that always choose the first parameter of
+    the emitted terminal. *)
+let opp_strategy a q =
+    print_string ("CPDA emits terminal "^a);
+    match q with 
+        [] -> None
+      | p1::_ -> print_string "Opponent choses "; print_int p1; Some(p1)
+;;
 
-hocpda_step test (function a -> function q -> print_string a);;
+hocpda_step test opp_strategy;; 
