@@ -3,6 +3,8 @@
 
 type typ = Gr | Ar of typ * typ ;;
 
+val typeorder : typ -> int
+
 type ident = string;;
 type alphabet = (ident * typ) list;;
 type terminal = ident;;
@@ -16,6 +18,7 @@ type recscheme = { nonterminals : alphabet;
 				   sigma : alphabet;
 				   rules : rule list } ;;
 
+val string_of_alphabet : alphabet -> string
 val string_of_appterm : appterm -> string
 val string_of_rs : recscheme -> string
 val appterm_operator_operands  : appterm -> appterm * appterm list

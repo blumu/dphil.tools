@@ -8,7 +8,7 @@ open System.Windows.Forms
 open System.IO
 open Printf
 open Hog
-
+open Hocpda
 
 (* HORS producing the Urzyczyn's tree *)
 let urz = {
@@ -46,9 +46,145 @@ let urz = {
  };;
 
 rs_check urz;;
+(*
+let testcpda = {    n = 5;
+                    terminals_alphabet = ["f",Gr; "g",Ar(Gr,Gr); ];
+                    stack_alphabet = ["e1";"e2"];
+                    code = [|Push1("e1",(0,0)); Emit("g",[1;2]); GotoIfTop0(1,"e2"); Push1("e1",(0,0)); Collapse|];
+               }
+*)
 
-(* Set the current recursion scheme to urz *)
-let cur_rs = urz;;
+
+(** Content of the node of the graph *)
+type nodecontent = 
+    NCntApp
+  | NCntAbs of ident list
+  | NCntVar of ident
+  | NCntTm of terminal
+;;
+
+let IgnoreCase s1 s2 = 
+   System.String.Compare(s1,s2,true) // "true" indicates "ignore case"
+
+let IdNodeContentMaps : Map.ProviderUntagged<string,nodecontent> =  Map.Make(IgnoreCase) 
+
+
+
+(** Convert a HORS to a CPDA. 
+    @param hors the HO recursion scheme
+    @param graph the computation graph of the HORS
+    @param created_nodes map from node id to node contents
+    @return the corresponding CPDA
+*)
+let hors_to_cpda hors (graph:Microsoft.Glee.Drawing.Graph) (nodes_content: Tagged.Map<string,nodecontent,System.Collections.Generic.IComparer<string>>) =
+    (* compute the order of the grammar *)
+    let order = List.fold_left max 0 (List.map (function nt,t -> typeorder t) hors.nonterminals) in 
+    
+    (* compute the stack alphabet (i.e. the set of nodes of the graph) *)
+    let stkalphabet = ref ([] :stackelement list) in
+    let iter = graph.Nodes.GetEnumerator() in
+    while iter.MoveNext() do
+        let node = (iter.Current :?> Microsoft.Glee.Drawing.Node) in
+        stkalphabet := (node.Id)::(!stkalphabet);
+    done;
+    
+    let child nodeid edgelabel = 
+       let iter = graph.Edges.GetEnumerator()
+       and child = ref "" in
+        while iter.MoveNext() && !child = "" do
+          let edge = iter.Current  in
+          if edge.Source = nodeid && edge.EdgeAttr.Label = edgelabel then child := edge.Target;
+        done;
+        if !child = "" then
+            failwith "child node non-existent!"
+        else
+        !child        
+    in
+    
+    (* [build_node_procedure nodeid] build the procedure associated to the node [nodeid] of the graph
+        @param nodeid is the identifier of the graph node 
+        @returns a list of instructions. *)
+    let build_node_procedure nodeid =
+        let nd = graph.FindNode nodeid in
+            match IdNodeContentMaps.find nodeid nodes_content with
+              NCntApp -> [HliLabel(nodeid);HliPush1((child nodeid "0"),(1,1))]
+            | NCntAbs(_) -> [HliLabel(nodeid);HliPush1((child nodeid ""),(1,1))]
+            | NCntVar(x)-> [HliLabel(nodeid);]
+            | NCntTm(f) -> [HliLabel(nodeid);HliEmit(f,[])]
+    in
+    (* The first instructions are responsible of jumping to the procedure
+       associated to the node of the graph read from the top-1 stack. *)
+    let switchingtable = List.map (function name -> HliGotoIfTop0(name,name)) !stkalphabet in
+    let procedures_code = List.flatten (List.map build_node_procedure !stkalphabet) in
+        {   n = order;
+            terminals_alphabet = hors.sigma;
+            stack_alphabet = !stkalphabet;
+            code = hlicode_to_cpdacode (switchingtable@procedures_code); (** compile the higher-level code to low-level code *)
+        }
+;;
+
+
+
+(** Convert a recursion scheme to a computation graph
+    @param rcs recursion scheme
+    @param lnfrules the rules of the recursion scheme in lnf
+    @return the compuation graph
+*)
+let horcs_to_graph rcs lnfrules =
+    // create a graph object
+    let graph = new Microsoft.Glee.Drawing.Graph("graph") in
+    
+    // list of created nodes
+    let created_nodes = ref (IdNodeContentMaps.empty) in
+    
+    let colornode (node:Microsoft.Glee.Drawing.INode) = function
+      LnfAppVar(_) -> node.NodeAttribute.Fillcolor <- Microsoft.Glee.Drawing.Color.Green;
+    | LnfAppTm(_) -> node.NodeAttribute.Fillcolor <- Microsoft.Glee.Drawing.Color.Salmon;
+    | LnfAppNt(_) -> ();
+    in            
+    let rec create_nt_subgraph (nt,lnfrhs) =
+      let rootnode = graph.FindNode (aux nt lnfrhs) in
+      (* rootnode.NodeAttribute.Label <- nt^":"^(rootnode.NodeAttribute.Label); *)
+      rootnode.NodeAttribute.Fillcolor <- Microsoft.Glee.Drawing.Color.Yellow;
+    and aux rootid (abs_part,app_part) =
+        match app_part with
+          (* If it's a non-terminal of ground type then there is no need to create an extra abstraction node *)
+          LnfAppNt(nt, []) -> nt;
+        | LnfAppVar(x, operands) | LnfAppTm(x, operands) 
+        | LnfAppNt(x, operands) ->
+            let absnode = graph.AddNode rootid in
+            absnode.NodeAttribute.Label <- "λ"^(String.concat " " abs_part)^" ["^rootid^"]";
+            created_nodes := IdNodeContentMaps.add rootid (NCntAbs(abs_part)) !created_nodes;
+            let appnode = graph.AddNode (string_of_int (graph.NodeCount+1)) in
+            ignore(graph.AddEdge(absnode.NodeAttribute.Id,appnode.NodeAttribute.Id));
+            (*If it is an @ node then add the edge pointing to the operator *)
+            (match app_part with
+              LnfAppNt(_) ->
+                appnode.NodeAttribute.Label <- "@"^" ["^appnode.NodeAttribute.Id^"]";
+                let opedge = graph.AddEdge(appnode.NodeAttribute.Id,x) in
+                opedge.EdgeAttr.Color <- Microsoft.Glee.Drawing.Color.Green;
+                opedge.EdgeAttr.Label <- "0";
+             | _ -> appnode.NodeAttribute.Label <- x^" ["^appnode.NodeAttribute.Id^"]");
+
+            created_nodes := IdNodeContentMaps.add appnode.NodeAttribute.Id
+                                    (match app_part with
+                                        LnfAppNt(_,_) -> NCntApp
+                                      | LnfAppTm(tm,_) -> NCntTm(tm)
+                                      | LnfAppVar(x,_) -> NCntVar(x)
+                                    ) 
+                                  !created_nodes;
+            
+            colornode appnode app_part;
+
+            let iparam = ref 1 in
+            List.iter (function u -> let n = aux (string_of_int (graph.NodeCount+1)) u in                                     
+                                     let operand_edge = graph.AddEdge(appnode.NodeAttribute.Id, string_of_int !iparam, n) in
+                                     incr(iparam);) operands;
+            absnode.NodeAttribute.Id
+    in
+    List.iter create_nt_subgraph lnfrules;
+    graph,!created_nodes
+;;
 
 let keywords = 
    [  "abstract";"and";"as";"assert"; "asr";
@@ -122,6 +258,7 @@ type MyForm =
         this.codeRichTextBox <- new System.Windows.Forms.RichTextBox();
         this.codeLabel <- new System.Windows.Forms.Label();
         this.runButton <- new System.Windows.Forms.Button();
+        this.cpdaButton <- new System.Windows.Forms.Button();
         this.outputTextBox <- new System.Windows.Forms.RichTextBox();
         this.outputLabel <- new System.Windows.Forms.Label();
         this.outerSplitContainer.Panel1.SuspendLayout();
@@ -195,7 +332,7 @@ type MyForm =
                                                                rootnode.Tag <- t;
                                                    | _ -> failwith "bug in appterm_operator_operands!";
                                                
-                                              let _,redterm = step_reduce cur_rs (e.Node.Tag:?>appterm)
+                                              let _,redterm = step_reduce this.hors (e.Node.Tag:?>appterm)
                                               expand_term_in_treeview e.Node redterm
               | _ -> ();
               );
@@ -264,7 +401,8 @@ type MyForm =
         // 
         // rightContainer.Panel2
         // 
-        this.rightContainer.Panel2.Controls.Add(this.runButton);
+        this.rightContainer.Panel2.Controls.Add(this.runButton);        
+        this.rightContainer.Panel2.Controls.Add(this.cpdaButton);
         this.rightContainer.Panel2.Controls.Add(this.outputTextBox);
         this.rightContainer.Panel2.Controls.Add(this.outputLabel);
         this.rightContainer.Size <- new System.Drawing.Size(680, 682);
@@ -335,7 +473,7 @@ type MyForm =
         this.codeRichTextBox.ReadOnly <- true;
         this.codeRichTextBox.Size <- new System.Drawing.Size(680, 240);
         this.codeRichTextBox.TabIndex <- 1;
-        this.codeRichTextBox.Text <- (string_of_rs cur_rs) ;
+        this.codeRichTextBox.Text <- (string_of_rs this.hors) ;
         //this.codeRichTextBox.Dock <- DockStyle.Fill;
         this.codeRichTextBox.WordWrap <- false;
         // 
@@ -348,6 +486,27 @@ type MyForm =
         this.codeLabel.Size <- new System.Drawing.Size(100, 16);
         this.codeLabel.TabIndex <- 0;
         this.codeLabel.Text <- "Description of the recursion scheme:";
+        //
+        // cpdaButton
+        //
+        this.cpdaButton.Enabled <- true;
+        this.cpdaButton.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
+        this.cpdaButton.ImageAlign <- System.Drawing.ContentAlignment.MiddleRight;
+        this.cpdaButton.ImageKey <- "Run";
+        this.cpdaButton.ImageList <- this.imageList;
+        this.cpdaButton.Location <- new System.Drawing.Point(200, -1);
+        this.cpdaButton.Name <- "cpdaButton";
+        this.cpdaButton.Size <- new System.Drawing.Size(159, 27);
+        this.cpdaButton.TabIndex <- 0;
+        this.cpdaButton.Text <- "Build CPDA";
+        this.cpdaButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
+        this.cpdaButton.Click.Add( fun e -> //create the cpda form
+                                            let cpda = (hors_to_cpda this.hors this.graph this.gr_nodes)
+                                            let initconf = State(0),(push1 cpda (empty_hostack cpda.n) "S" (0,0) )
+                                            let form = new Cpdaform.CpdaForm("CPDA", cpda, initconf) in
+                                            ignore(form.Show());
+                                 );
+            
         // 
         // runButton
         // 
@@ -363,71 +522,13 @@ type MyForm =
         this.runButton.Text <- "Computation graph";
         this.runButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
         this.runButton.Click.Add(fun e -> 
-            //create a form
+            // create a form
             let form = new System.Windows.Forms.Form()
-            //create a viewer object
+            // create a viewer object
             let viewer = new Microsoft.Glee.GraphViewerGdi.GViewer()
-
-            //create a graph object
-            let graph = new Microsoft.Glee.Drawing.Graph("graph")
-            
-            let lnfrules = rs_to_lnf cur_rs            
-            this.outputTextBox.Text <- "Rules in eta-long normal form:\n"^(String.concat "\n" (List.map (lnf_to_string cur_rs) lnfrules));
-            
-            let colornode (node:Microsoft.Glee.Drawing.INode) = function
-              LnfAppVar(_) ->
-                node.NodeAttribute.Fillcolor <- Microsoft.Glee.Drawing.Color.Green;
-            | LnfAppTm(_) ->
-                node.NodeAttribute.Fillcolor <- Microsoft.Glee.Drawing.Color.Salmon;
-            | LnfAppNt(_) -> ();
-            in            
-            let rec create_nt_subgraph (nt,lnfrhs) =
-              let rootnode = graph.FindNode (aux nt lnfrhs)
-              rootnode.NodeAttribute.Label <- nt^":"^(rootnode.NodeAttribute.Label);
-              rootnode.NodeAttribute.Fillcolor <- Microsoft.Glee.Drawing.Color.Yellow;
-            and aux rootid (abs_part,app_part) =
-                match app_part with
-                  (* If it's a non-terminal of ground type then there is no need to create an extra abstraction node *)
-                  LnfAppNt(nt, []) -> nt;
-                | LnfAppVar(x, operands) | LnfAppTm(x, operands) 
-                | LnfAppNt(x, operands) ->
-                    let absnode = graph.AddNode rootid
-                    absnode.NodeAttribute.Label <- "λ"^(String.concat " " abs_part);
-                    let appnode = graph.AddNode(string_of_int (graph.NodeCount+1))                   
-                    ignore(graph.AddEdge(absnode.NodeAttribute.Id,appnode.NodeAttribute.Id));
-                    (*If it is an @ node then add the edge pointing to the operator *)
-                    match app_part with
-                      LnfAppNt(_) ->
-                        appnode.NodeAttribute.Label <- "@";
-                        let opedge = graph.AddEdge(appnode.NodeAttribute.Id,x);
-                        opedge.EdgeAttr.Color <- Microsoft.Glee.Drawing.Color.Green;
-                    | _ -> appnode.NodeAttribute.Label <- x;
-
-                    colornode appnode app_part;
-
-                    let iparam = ref 1 in
-                    List.iter (function u -> let n = aux (string_of_int (graph.NodeCount+1)) u
-                                             
-                                             let operand_edge = graph.AddEdge(appnode.NodeAttribute.Id, string_of_int !iparam, n)
-                                             incr(iparam);) operands;
-                    absnode.NodeAttribute.Id
-                
-            (*ignore(create_nt_subgraph (List.assoc "S" lnfrules));*)
-              
-            List.iter create_nt_subgraph lnfrules;
-            
-            //create the graph content
-(*            ignore(graph.AddEdge("A", "B"));
-            ignore(graph.AddEdge("B", "C"));
-            graph.AddEdge("A", "C").EdgeAttr.Color <- Microsoft.Glee.Drawing.Color.Green;
-            graph.FindNode("S").NodeAttribute.Fillcolor <- Microsoft.Glee.Drawing.Color.Magenta;
-            // graph.FindNode("B").NodeAttribute.Fillcolor <- Microsoft.Glee.Drawing.Color.MistyRose;
-            let c = graph.FindNode("C")
-            c.NodeAttribute.Fillcolor <- Microsoft.Glee.Drawing.Color.PaleGreen;
-            c.NodeAttribute.Shape <- Microsoft.Glee.Drawing.Shape.Diamond;
-*)            
-            //bind the graph to the viewer
-            viewer.Graph <- graph;
+            this.outputTextBox.Text <- "Rules in eta-long normal form:\n"^(String.concat "\n" (List.map (lnf_to_string this.hors) this.lnfrules));
+            // bind the graph to the viewer
+            viewer.Graph <- this.graph;
 
             //associate the viewer with the form
             form.SuspendLayout();
@@ -511,20 +612,26 @@ type MyForm =
     val mutable outputTextBox : System.Windows.Forms.RichTextBox;
     val mutable outputLabel : System.Windows.Forms.Label;
     val mutable runButton : System.Windows.Forms.Button;
+    val mutable cpdaButton : System.Windows.Forms.Button;
     val mutable rightUpperSplitContainer : System.Windows.Forms.SplitContainer;
     val mutable descriptionTextBox : System.Windows.Forms.TextBox;
     val mutable descriptionLabel : System.Windows.Forms.Label;
     val mutable codeLabel : System.Windows.Forms.Label;
     val mutable samplesTreeView : System.Windows.Forms.TreeView;
     val mutable imageList : System.Windows.Forms.ImageList;
-    val mutable codeRichTextBox : System.Windows.Forms.RichTextBox
+    val mutable codeRichTextBox : System.Windows.Forms.RichTextBox;
+    val mutable hors : recscheme;
+    val mutable lnfrules : lnfrule list;
+    val mutable graph : Microsoft.Glee.Drawing.Graph;
+    val mutable gr_nodes : Tagged.Map<string,nodecontent,System.Collections.Generic.IComparer<string>>;
 
-    new (title) as this =
+    new (title,newhors) as this =
        { outerSplitContainer = null;
          samplesLabel = null;
          rightContainer = null;
          outputTextBox = null;
          outputLabel =null;
+         cpdaButton = null;
          runButton =null;
          rightUpperSplitContainer =null;
          descriptionTextBox =null;
@@ -533,7 +640,12 @@ type MyForm =
          samplesTreeView = null;
          imageList = null;
          codeRichTextBox = null;
-         components = null }
+         components = null;
+         hors = newhors;
+         lnfrules = [];
+         graph = null; 
+         gr_nodes = IdNodeContentMaps.empty
+         }
        
        then 
         this.InitializeComponent();
@@ -544,6 +656,13 @@ type MyForm =
         ignore(this.samplesTreeView.Nodes.Add(rootNode));
         rootNode.Expand();
       
+        // convert the rules to LNF
+        this.lnfrules <- rs_to_lnf this.hors;
+        
+        // create the computation graph from the HO recursion scheme
+        let gr,nodes = horcs_to_graph this.hors this.lnfrules in
+        this.gr_nodes <- nodes;        
+        this.graph <- gr;
 
         let SNode = new TreeNode("S")  
         SNode.Tag <- (null : obj);
@@ -563,7 +682,7 @@ type MyForm =
 [<STAThread>]
 let main() = 
     Application.EnableVisualStyles();
-    let form = new MyForm("HOG value tree" ) in
+    (* Load the urz recursion scheme *)
+    let form = new MyForm("HOG value tree", urz) in
     ignore(form.ShowDialog());;
-//(cur_rs:Hogrammar.recscheme)
 main();;

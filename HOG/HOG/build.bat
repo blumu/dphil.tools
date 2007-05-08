@@ -9,7 +9,7 @@ if "%FSLEX%"=="" ( set FSLEX=%FSHARP_HOME%\bin\fslex.exe )
 if "%GLEE%"=="" ( set GLEE=C:\Program Files\Microsoft Research\GLEE)
 
 :compile
-"""%FSC%""" --fullpaths --progress -Ooff -I "%GLEE%\bin" -r Microsoft.GLEE.dll -r Microsoft.GLEE.GraphViewerGDI.dll -r Microsoft.GLEE.Drawing.dll -o hog.exe --no-warn 40 --target-winexe -g hog.mli hog.ml hocpda.ml myform.fs cpdaform.fs myform.resx
+"""%FSC%""" --fullpaths --progress -Ooff -I "%GLEE%\bin" -r Microsoft.GLEE.dll -r Microsoft.GLEE.GraphViewerGDI.dll -r Microsoft.GLEE.Drawing.dll -o hog.exe --no-warn 40 --target-winexe -g hog.mli hog.ml hocpda.ml cpdaform.fs myform.fs  myform.resx
 
 if ERRORLEVEL 1 goto exit
 

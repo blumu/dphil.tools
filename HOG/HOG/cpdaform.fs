@@ -7,7 +7,10 @@ open System.Text
 open System.Windows.Forms
 open System.IO
 open Printf
+open Hog
 open Hocpda
+
+
 
 #light;;
 type CpdaForm = 
@@ -88,31 +91,33 @@ type CpdaForm =
         this.samplesTreeView.add_NodeMouseDoubleClick(fun  _ e -> 
               match e.Node.Level with 
               | 0  -> ()
-              | _ when (e.Node.Tag<> null) -> let rec expand_term_in_treeview (rootnode:TreeNode) t = 
-                                                  let op,operands = appterm_operator_operands t
-                                                  match op with
-                                                    Tm(f) -> rootnode.Text <- f;
-                                                             rootnode.ImageKey <- "BookClosed";
-                                                             rootnode.SelectedImageKey <- "BookClosed";
-                                                             rootnode.Tag <- null;
-                                                             List.iter (function operand -> let newNode = new TreeNode((string_of_appterm operand), ImageKey = "Help", SelectedImageKey = "Help")
-                                                                                            newNode.Tag <- operand;
-                                                                                            ignore(rootnode.Nodes.Add(newNode));
-                                                                                            expand_term_in_treeview newNode operand
-                                                                                            ) operands;
-                                                             rootnode.Expand();                                                             
-                                                        (* The leftmost operator is not a terminal: we just replace the Treeview node label
-                                                           by the reduced term. *)
-                                                   | Nt(nt) -> rootnode.Text <- string_of_appterm t;
-                                                               rootnode.Tag <- t;
-                                                   | _ -> failwith "bug in appterm_operator_operands!";
-                                               
-                                              let _,redterm = step_reduce urz (e.Node.Tag:?>appterm)
-                                              expand_term_in_treeview e.Node redterm
+              | _ when (e.Node.Tag<> null) -> let conf = (e.Node.Tag:?>gen_configuration)
+                                              try 
+                                                  let newconf = hocpda_step this.cpda conf
+                                                  this.outputTextBox.Text <- string_of_genconfiguration newconf;
+                                                  match newconf with 
+                                                    State(ip),stk ->  e.Node.Tag <- newconf;
+                                                                      e.Node.Text <- string_of_int ip;
+                                                  | TmState(f,ql),stk ->  e.Node.Text <- f;
+                                                                          e.Node.ImageKey <- "BookClosed";
+                                                                          e.Node.SelectedImageKey <- "BookClosed";
+                                                                          e.Node.Tag <- null;
+                                                                          List.iter (function ip -> let newNode = new TreeNode((string_of_int ip), ImageKey = "Help", SelectedImageKey = "Help")
+                                                                                                    let conf = State(ip),stk
+                                                                                                    newNode.Tag <- conf;
+                                                                                                    ignore(e.Node.Nodes.Add(newNode));
+                                                                                                    ) ql;
+                                                                          e.Node.Expand();
+                                                  
+                                              with CpdaHalt -> e.Node.Tag <- null;
+                                                               e.Node.Text <- "halted";
+                                                               e.Node.ImageKey <- "BookClosed";
+                                                               e.Node.SelectedImageKey <- "BookClosed";
               | _ -> ();
               );
+              
                         
-          this.samplesTreeView.add_BeforeCollapse(fun _ e -> 
+        this.samplesTreeView.add_BeforeCollapse(fun _ e -> 
               match e.Node.Level with 
               | 0 -> 
                 e.Cancel <- true;
@@ -123,12 +128,12 @@ type CpdaForm =
             match currentNode.Tag with 
             | null -> 
                 this.runButton.Enabled <- false;
-                this.descriptionTextBox.Text <- "Select a query from the tree to the left.";
-                //this.codeRichTextBox.Clear();
+                this.descriptionTextBox.Text <- "Double-click on a node of the treeview to execute the corresponding transition of the CPDA.";
                 this.outputTextBox.Clear();
                 if (e.Action <> TreeViewAction.Collapse && e.Action <> TreeViewAction.Unknown) then
                     e.Node.Expand();
-            | _ -> ());
+            | _ ->  this.outputTextBox.Text <- (string_of_genconfiguration (e.Node.Tag:?>gen_configuration));
+            );
               
      (*   this.samplesTreeView.add_AfterCollapse(fun _ e -> 
           match e.Node.Level with 
@@ -161,7 +166,7 @@ type CpdaForm =
         this.samplesLabel.Name <- "samplesLabel";
         this.samplesLabel.Size <- new System.Drawing.Size(58, 16);
         this.samplesLabel.TabIndex <- 0;
-        this.samplesLabel.Text <- "Samples:";
+        this.samplesLabel.Text <- "Value tree:";
         // 
         // rightContainer
         // 
@@ -229,7 +234,7 @@ type CpdaForm =
         this.descriptionLabel.Name <- "descriptionLabel";
         this.descriptionLabel.Size <- new System.Drawing.Size(72, 16);
         this.descriptionLabel.TabIndex <- 0;
-        this.descriptionLabel.Text <- "Description:";
+        this.descriptionLabel.Text <- "Tip:";
         // 
         // codeRichTextBox
         // 
@@ -247,7 +252,7 @@ type CpdaForm =
         this.codeRichTextBox.ReadOnly <- true;
         this.codeRichTextBox.Size <- new System.Drawing.Size(680, 240);
         this.codeRichTextBox.TabIndex <- 1;
-        this.codeRichTextBox.Text <- (string_of_rcs urz) ;
+        this.codeRichTextBox.Text <- string_of_hocpda this.cpda ;
         //this.codeRichTextBox.Dock <- DockStyle.Fill;
         this.codeRichTextBox.WordWrap <- false;
         // 
@@ -259,7 +264,7 @@ type CpdaForm =
         this.codeLabel.Name <- "codeLabel";
         this.codeLabel.Size <- new System.Drawing.Size(38, 16);
         this.codeLabel.TabIndex <- 0;
-        this.codeLabel.Text <- "Code:";
+        this.codeLabel.Text <- "CPDA description:";
         // 
         // runButton
         // 
@@ -313,7 +318,7 @@ type CpdaForm =
         this.outputLabel.Name <- "outputLabel";
         this.outputLabel.Size <- new System.Drawing.Size(47, 16);
         this.outputLabel.TabIndex <- 1;
-        this.outputLabel.Text <- "Output:";
+        this.outputLabel.Text <- "Configuration at the selected node:";
         // 
         // DisplayForm
         // 
@@ -355,8 +360,9 @@ type CpdaForm =
     val mutable samplesTreeView : System.Windows.Forms.TreeView;
     val mutable imageList : System.Windows.Forms.ImageList;
     val mutable codeRichTextBox : System.Windows.Forms.RichTextBox
+    val mutable cpda : Hocpda.hocpda
 
-    new (title) as this =
+    new (title, newcpda, initconf:gen_configuration) as this =
        { outerSplitContainer = null;
          samplesLabel = null;
          rightContainer = null;
@@ -370,11 +376,12 @@ type CpdaForm =
          samplesTreeView = null;
          imageList = null;
          codeRichTextBox = null;
-         components = null }
+         components = null;
+         cpda = newcpda;
+       }
        
        then 
         this.InitializeComponent();
-
         this.Text <- title;
 
         let rootNode = new TreeNode(title, Tag = (null : obj), ImageKey = "BookStack", SelectedImageKey = "BookStack")
@@ -382,11 +389,10 @@ type CpdaForm =
         rootNode.Expand();
       
 
-        let SNode = new TreeNode("S")  
-        SNode.Tag <- (null : obj);
+        let SNode = new TreeNode("0")
         SNode.ImageKey <- "Help";
         SNode.SelectedImageKey <- "Help";
-        SNode.Tag <- Nt("S");
-        ignore(rootNode.Nodes.Add(SNode));       
+        SNode.Tag <- initconf;
+        ignore(rootNode.Nodes.Add(SNode));
   end
   

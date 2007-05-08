@@ -57,11 +57,11 @@
     {
     "ProjRelPath" = "T"
     }
-    "myform.fs"
+    "cpdaform.fs"
     {
     "ProjRelPath" = "T"
     }
-    "cpdaform.fs"
+    "myform.fs"
     {
     "ProjRelPath" = "T"
     }
@@ -70,6 +70,10 @@
     "ProjRelPath" = "T"
     }
     "build.bat"
+    {
+    "ProjRelPath" = "T"
+    }
+    "cpdaform.resx"
     {
     "ProjRelPath" = "T"
     }
