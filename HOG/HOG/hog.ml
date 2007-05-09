@@ -276,6 +276,26 @@ and lnfapplicativepart =
 ;;
 type lnfrule = nonterminal * lnfrhs ;;
 
+
+(** [get_parameter_type rs x] returns the type of the formal parameter [x].
+    (Recall that the formal parameter names of the grammar equation are required to be disjoint,
+    hence there is at most one equation that uses a given parameter) *)
+let get_parameter_type rs x = 
+  (* find the equation that uses the parameter x *)
+  try 
+      let (nt,parms,_) = List.find (function (_,parms,_) -> List.mem x parms) rs.rules
+      in
+        let rec get_param_type parms typ = match parms,typ with
+          | [],Gr -> failwith "get_parameter_type: ground-type terminal!"
+          | p::_, Ar(l,_) when p = x -> l
+          | _::q, Ar(l,r) -> (get_param_type q r)
+          | _ -> failwith ("Type of non-terminal "^nt^" does not match with the number of specified parameters.")
+        in 
+        get_param_type parms (nonterminal_type rs nt)
+   with Not_found -> failwith ("get_parameter_type: formal parameter '"^x^"' not used in the recursion scheme.")
+;;
+
+
 (* For the creation of fresh variables *)
 let freshvar = ref 0;;
 let new_freshvar() = incr(freshvar); string_of_int !freshvar; ;;
@@ -283,11 +303,15 @@ let new_freshvar() = incr(freshvar); string_of_int !freshvar; ;;
 (* [rule_to_lnf rs rule] converts a grammar rule into LNF
    @param rs is the recursion scheme
    @param rule is the rule to be converted
+   @return (nt,lnfrule),vartypes 
+    where nt is the nonterminal, lnfrule is the applicative term in LNF,
+    and vartypes is an association list mapping variables to their types (with possibly new fresh variables
+    introduced during the eta-expansion
 *)
 let rule_to_lnf rs (nt,param,rhs) = 
   (* create the association list mapping parameters' name to their type *)
-  let fvtypes = create_paramtyplist nt param (nonterminal_type rs nt)
-  in
+  let fvtypes = create_paramtyplist nt param (nonterminal_type rs nt) in
+  let newvarstypes = ref [] in
   let rec lnf appterm = lnf_aux (appterm_type rs fvtypes appterm) appterm
   and lnf_aux typ appterm =     
     let op,operands = appterm_operator_operands appterm in
@@ -299,13 +323,15 @@ let rule_to_lnf rs (nt,param,rhs) =
     and lnfoperands = List.map lnf operands in
       (* add 'lnf(Phi_1) ... lnf(Phi_n)'  to the list of operands *)    
     let lnfoperands_ext = lnfoperands@(List.map (function (v,t) -> lnf_aux t (Var(v))) absvars_types) in
+      newvarstypes := !newvarstypes@absvars_types; (* accumulates the list of created fresh variables *)
       match op with
           Tm(t)  -> absvars, LnfAppTm(t, lnfoperands_ext)
-	| Var(v) -> absvars, LnfAppVar(v, lnfoperands_ext)
-	| Nt(nt) -> absvars, LnfAppNt(nt, lnfoperands_ext)
-	| App(_) -> failwith "eq_to_lnf: appterm_operator_operands returned wrong operator."
+	    | Var(v) -> absvars, LnfAppVar(v, lnfoperands_ext)
+	    | Nt(nt) -> absvars, LnfAppNt(nt, lnfoperands_ext)
+	    | App(_) -> failwith "eq_to_lnf: appterm_operator_operands returned wrong operator."
   in  
-    nt,(param, (snd (lnf rhs))) (* the first element of the pair returned by 'lnf appterm' (the list of abstracted variables)  must be empty since the rhs of the rule is of order 0 *) 
+    (nt, (param, (snd (lnf rhs)))),(* the first element of the pair returned by 'lnf appterm' (the list of abstracted variables)  must be empty since the rhs of the rule is of order 0 *) 
+    fvtypes@(!newvarstypes)  (* the association list mapping variables to their type *)
 ;;
 
 let lnf_to_string (rs:recscheme) ((nt,lnfrhs):lnfrule) =
@@ -320,9 +346,17 @@ let lnf_to_string (rs:recscheme) ((nt,lnfrhs):lnfrule) =
     nt^" = "^(rhs_to_string lnfrhs)
 ;;
 
+(** Convert a recscheme to lnf.
+    @return (lnfrules,vartypes) where lnfrules is a list of rules in lnf and
+    vartypes is an association list mapping variables to their type. *)
 let rs_to_lnf rs = 
-  freshvar := 0;
-  List.map (rule_to_lnf rs) rs.rules;;
+  let vartypes = ref [] in
+  freshvar := 0; (* reinit the counter for the creation of fresh variables *)
+  (List.map (function rule -> let lnfrule,vtypes = rule_to_lnf rs rule in
+                             vartypes := !vartypes@vtypes;
+                             lnfrule ) rs.rules
+  ) , !vartypes
+;;
 
 
 

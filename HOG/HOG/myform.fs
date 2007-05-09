@@ -73,21 +73,23 @@ let IdNodeContentMaps : Map.ProviderUntagged<string,nodecontent> =  Map.Make(Ign
 (** Convert a HORS to a CPDA. 
     @param hors the HO recursion scheme
     @param graph the computation graph of the HORS
-    @param created_nodes map from node id to node contents
+    @param vartypes an association list mapping variables names to their type
+    @param nodes_content a map from nodes id to node contents
     @return the corresponding CPDA
 *)
-let hors_to_cpda hors (graph:Microsoft.Glee.Drawing.Graph) (nodes_content: Tagged.Map<string,nodecontent,System.Collections.Generic.IComparer<string>>) =
+let hors_to_cpda hors (graph:Microsoft.Glee.Drawing.Graph) vartypes (nodes_content: Tagged.Map<string,nodecontent,System.Collections.Generic.IComparer<string>>) =
     (* compute the order of the grammar *)
     let order = List.fold_left max 0 (List.map (function nt,t -> typeorder t) hors.nonterminals) in 
     
     (* compute the stack alphabet (i.e. the set of nodes of the graph) *)
-    let stkalphabet = ref ([] :stackelement list) in
+    (*let stkalphabet = ref ([] :stackelement list) in
     let iter = graph.Nodes.GetEnumerator() in
     while iter.MoveNext() do
         let node = (iter.Current :?> Microsoft.Glee.Drawing.Node) in
         stkalphabet := (node.Id)::(!stkalphabet);
-    done;
-    
+    done;*)
+    let stkalphabet  = List.map (function (n:Microsoft.Glee.Drawing.Node) ->n.Id)
+                                (IEnumerable.untyped_to_list (graph.Nodes)) in
     let child nodeid edgelabel = 
        let iter = graph.Edges.GetEnumerator()
        and child = ref "" in
@@ -101,25 +103,43 @@ let hors_to_cpda hors (graph:Microsoft.Glee.Drawing.Graph) (nodes_content: Tagge
         !child        
     in
     
+    let compute_span var = 0
+    
+    in
+    
     (* [build_node_procedure nodeid] build the procedure associated to the node [nodeid] of the graph
         @param nodeid is the identifier of the graph node 
         @returns a list of instructions. *)
     let build_node_procedure nodeid =
         let nd = graph.FindNode nodeid in
             match IdNodeContentMaps.find nodeid nodes_content with
-              NCntApp -> [HliLabel(nodeid);HliPush1((child nodeid "0"),(1,1))]
-            | NCntAbs(_) -> [HliLabel(nodeid);HliPush1((child nodeid ""),(1,1))]
-            | NCntVar(x)-> [HliLabel(nodeid);]
-            | NCntTm(f) -> [HliLabel(nodeid);HliEmit(f,[])]
+              NCntApp -> [HliLabel(nodeid);HliPush1((child nodeid "0"),(1,1));HliGoto("Start")]
+            | NCntAbs(_) -> [HliLabel(nodeid);HliPush1((child nodeid ""),(1,1));HliGoto("Start")]
+            | NCntTm(f) -> let ar = typearity (terminal_type hors f) in
+                           (* [param_label i] returns the label f_i *)
+                           let param_label i = nodeid^"."^(string_of_int i) in
+                           (* Create the label f_1 ... f_ar(f) *)
+                           let switchlabels =  Array.to_list (Array.init ar (function i -> param_label (i+1))) in
+                           let rec gencode_params = function
+                               | 0 -> []
+                               | n -> (gencode_params (n-1))@
+                                       [HliLabel( (param_label n));
+                                        HliPush1((child nodeid (string_of_int n)),(0,0));
+                                        HliGoto("Start")]
+                           in
+                            [HliLabel(nodeid);HliEmit(f,switchlabels)]@(gencode_params ar)
+            | NCntVar(x)-> let l = typeorder (List.assoc x vartypes ) in
+                            [HliLabel(nodeid);HliPushn(order-l+1);HliGoto("Start")];
     in
     (* The first instructions are responsible of jumping to the procedure
        associated to the node of the graph read from the top-1 stack. *)
-    let switchingtable = List.map (function name -> HliGotoIfTop0(name,name)) !stkalphabet in
-    let procedures_code = List.flatten (List.map build_node_procedure !stkalphabet) in
+    (* let switchingtable = List.map (function name -> HliGotoIfTop0(name,name)) stkalphabet in *)
+    let switchingtable = List.map (function a -> (a,a)) stkalphabet in
+    let procedures_code = List.flatten (List.map build_node_procedure stkalphabet) in
         {   n = order;
             terminals_alphabet = hors.sigma;
-            stack_alphabet = !stkalphabet;
-            code = hlicode_to_cpdacode (switchingtable@procedures_code); (** compile the higher-level code to low-level code *)
+            stack_alphabet = stkalphabet;
+            code = hlicode_to_cpdacode (HliLabel("Start")::HliCaseTop0(switchingtable)::procedures_code); (** compile the higher-level code to low-level code *)
         }
 ;;
 
@@ -137,9 +157,11 @@ let horcs_to_graph rcs lnfrules =
     // list of created nodes
     let created_nodes = ref (IdNodeContentMaps.empty) in
     
-    let colornode (node:Microsoft.Glee.Drawing.INode) = function
+    let set_nodestyle (node:Microsoft.Glee.Drawing.INode) = function
       LnfAppVar(_) -> node.NodeAttribute.Fillcolor <- Microsoft.Glee.Drawing.Color.Green;
     | LnfAppTm(_) -> node.NodeAttribute.Fillcolor <- Microsoft.Glee.Drawing.Color.Salmon;
+                     node.NodeAttribute.Shape <- Microsoft.Glee.Drawing.Shape.Box;
+                     node.NodeAttribute.LabelMargin <- 10;
     | LnfAppNt(_) -> ();
     in            
     let rec create_nt_subgraph (nt,lnfrhs) =
@@ -174,7 +196,7 @@ let horcs_to_graph rcs lnfrules =
                                     ) 
                                   !created_nodes;
             
-            colornode appnode app_part;
+            set_nodestyle appnode app_part;
 
             let iparam = ref 1 in
             List.iter (function u -> let n = aux (string_of_int (graph.NodeCount+1)) u in                                     
@@ -501,7 +523,7 @@ type MyForm =
         this.cpdaButton.Text <- "Build CPDA";
         this.cpdaButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
         this.cpdaButton.Click.Add( fun e -> //create the cpda form
-                                            let cpda = (hors_to_cpda this.hors this.graph this.gr_nodes)
+                                            let cpda = (hors_to_cpda this.hors this.graph this.vartypes this.gr_nodes)
                                             let initconf = State(0),(push1 cpda (empty_hostack cpda.n) "S" (0,0) )
                                             let form = new Cpdaform.CpdaForm("CPDA", cpda, initconf) in
                                             ignore(form.Show());
@@ -622,6 +644,7 @@ type MyForm =
     val mutable codeRichTextBox : System.Windows.Forms.RichTextBox;
     val mutable hors : recscheme;
     val mutable lnfrules : lnfrule list;
+    val mutable vartypes : (ident*typ) list;
     val mutable graph : Microsoft.Glee.Drawing.Graph;
     val mutable gr_nodes : Tagged.Map<string,nodecontent,System.Collections.Generic.IComparer<string>>;
 
@@ -643,6 +666,7 @@ type MyForm =
          components = null;
          hors = newhors;
          lnfrules = [];
+         vartypes = [];
          graph = null; 
          gr_nodes = IdNodeContentMaps.empty
          }
@@ -657,7 +681,9 @@ type MyForm =
         rootNode.Expand();
       
         // convert the rules to LNF
-        this.lnfrules <- rs_to_lnf this.hors;
+        let r,v = rs_to_lnf this.hors in
+        this.lnfrules <- r;
+        this.vartypes <- v;
         
         // create the computation graph from the HO recursion scheme
         let gr,nodes = horcs_to_graph this.hors this.lnfrules in

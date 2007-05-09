@@ -24,15 +24,24 @@ type operation =
     (** Collapse the stack to the prefix stack determined by the pointer associated to the top 0-element. *)
     
     | Goto of state
-    (** Goto(q) will jump to instruction 'q' *)
+    (** Goto(q) jumps to instruction 'q' *)
     
-    | GotoIfTop0 of state * terminal
-    (** GotoIfTop0(q,f) will jump to instruction 'q' if the top 0-element in the stack is 'f' *)
+    | GotoIfTop0 of state * stackelement
+    (** GotoIfTop0(q,f) jumps to instruction 'q' if the top 0-element in the stack is 'f'. Otherwise
+    continues with the following instruction of the CPDA. *)
+
+    | CaseTop0 of (stackelement * state) list
+    (** CaseTop0([a0,q0; ... ; an,qn]) jumps to instruction 'q_i' if the top 0-element in the stack is equal to 'a_i'.
+    If the top 0-element is not among [a1; an] then the execution continues with the following instruction. *)
+
     
     | Emit of terminal * state list
      (** Emit(f,[q_1;  ;q_ar(f)]) will emit the non-terminal f and then perform a Goto to 
         one of the state q_1 ... q_ar(f) chosen non-deterministically. 
      *)
+     
+    | Halt 
+    (** halt the CPDA *)
 
 type hostack = El of stackelement * link | Stack of hostack list
 
@@ -181,8 +190,12 @@ let hocpda_step cpda genconf =
                                 (mk_state cpda q),stk
                               else 
                                 (mk_nextstate cpda ip),stk
+        | CaseTop0(cases) -> (try 
+                                (mk_state cpda (List.assoc (fst (top0 cpda stk)) cases)),stk
+                             with Not_found -> (mk_nextstate cpda ip),stk)
         | Goto(q) -> (mk_state cpda q),stk
         | Emit(t,ql) -> TmState(t,ql),stk
+        | Halt -> raise CpdaHalt
       in
         execute cpda.code.(ip)
 ;;
@@ -215,8 +228,11 @@ let string_of_hocpda cpda =
         | Pushn(j) -> "PUSH"^(string_of_int j)
         | Collapse -> "COLLAPSE"
         | GotoIfTop0(q, t) -> "GOTO "^(string_of_int q)^" IF TOP1="^t
+        | CaseTop0(cases) -> "CASETOP0 "^(String.concat " " (List.map (function a,q -> a^"->"^(string_of_int q)) cases))
         | Goto(q) -> "GOTO "^(string_of_int q)
+        | Emit(t,[]) -> "EMIT "^t^" // after this instruction the machine halts."; (*the terminal is of ground-type therefore the machine necessarily blocks after emitting the terminal. *)
         | Emit(t,ql) -> "EMIT "^t^" "^(String.concat "," (List.map string_of_int ql));
+        | Halt -> "HALT"
     in
       for i = 0 to (Array.length cpda.code)-1 do
         ret := !ret^(string_of_int i)^":"^(string_of_instr cpda.code.(i))^"\n"
@@ -288,9 +304,12 @@ type hlinstr =    HliLabel of hli_labelident
                 | HliPushn of int
                 | HliCollapse
                 | HliGoto of hli_labelident
-                | HliGotoIfTop0 of hli_labelident * terminal
-                | HliEmit of terminal * state list
-                | HliNop;;
+                | HliGotoIfTop0 of hli_labelident * stackelement
+                | HliCaseTop0 of (stackelement * hli_labelident) list
+                | HliEmit of terminal * hli_labelident list
+                | HliNop
+                | HliHalt
+                ;;
 
 (** Convert higher-level code to low-level CPDA code.
     [hlicode_to_cpdacode hlicode]
@@ -307,10 +326,16 @@ let hlicode_to_cpdacode hlicode =
                                             | HliCollapse
                                             | HliGoto(_)
                                             | HliGotoIfTop0(_,_)
-                                            | HliEmit(_,_) -> s+1,labmap
+                                            | HliCaseTop0(_)
+                                            | HliEmit(_,_)
+                                            | HliHalt -> s+1,labmap
                                             | HliNop -> s,labmap
                                        ) (0,[]) hlicode in
     
+    let ip_from_label label = 
+        try List.assoc label label2ip
+        with Not_found -> failwith "The high-level source code contains references to undefined labels!"
+    in
     let code = Array.create size (Goto(0)) in  
     let curip = ref 0 in
     let gen_instruction = function 
@@ -319,9 +344,11 @@ let hlicode_to_cpdacode hlicode =
         | HliPush1(a,l) -> code.(!curip) <- Push1(a,l); incr(curip);
         | HliPushn(n) -> code.(!curip) <- Pushn(n); incr(curip);
         | HliCollapse-> code.(!curip) <- Collapse; incr(curip);
-        | HliGoto(label) -> code.(!curip) <- Goto(List.assoc label label2ip) ; incr(curip);
-        | HliGotoIfTop0(label,f) -> code.(!curip) <- GotoIfTop0((List.assoc label label2ip), f) ; incr(curip);
-        | HliEmit(t,slst) -> code.(!curip) <- Emit(t,slst); incr(curip);
+        | HliGoto(label) -> code.(!curip) <- Goto(ip_from_label label) ; incr(curip);
+        | HliGotoIfTop0(label,a) -> code.(!curip) <- GotoIfTop0((ip_from_label label), a) ; incr(curip);
+        | HliCaseTop0(cases) -> code.(!curip) <- CaseTop0( (List.map (function a,l -> a,(ip_from_label l)) cases)) ; incr(curip);
+        | HliEmit(t,slst) -> code.(!curip) <- Emit(t,(List.map ip_from_label slst)); incr(curip);
+        | HliHalt -> code.(!curip) <- Halt ; incr(curip);
         | HliNop -> ();
     in
     List.iter gen_instruction hlicode;

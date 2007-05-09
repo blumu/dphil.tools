@@ -4,11 +4,13 @@
 type typ = Gr | Ar of typ * typ ;;
 
 val typeorder : typ -> int
+val typearity : typ -> int
 
 type ident = string;;
 type alphabet = (ident * typ) list;;
 type terminal = ident;;
 type nonterminal = ident;;
+
 
 (* applicative term *)
 type appterm = Nt of nonterminal | Tm of terminal | Var of ident | App of appterm * appterm;;
@@ -17,6 +19,9 @@ type rule = nonterminal * ident list * appterm;;
 type recscheme = { nonterminals : alphabet;
 				   sigma : alphabet;
 				   rules : rule list } ;;
+
+val terminal_type : recscheme -> terminal -> typ
+val get_parameter_type : recscheme -> ident -> typ
 
 val string_of_alphabet : alphabet -> string
 val string_of_appterm : appterm -> string
@@ -37,5 +42,5 @@ and lnfapplicativepart =
 type lnfrule = nonterminal * lnfrhs ;;
 
 val lnf_to_string : recscheme -> lnfrule -> string
-val rule_to_lnf : recscheme -> rule -> lnfrule
-val rs_to_lnf : recscheme -> lnfrule list
+val rule_to_lnf : recscheme -> rule -> lnfrule * (ident*typ) list
+val rs_to_lnf : recscheme -> (lnfrule list) * (ident*typ) list
