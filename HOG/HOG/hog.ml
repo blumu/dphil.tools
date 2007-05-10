@@ -1,6 +1,6 @@
 (* namespace Comlab.Hogrammar *)
 
-(****** Data-types *)
+(****** Data-types ******)
 
 type typ = Gr | Ar of typ * typ ;;
 type ident = string;;
@@ -21,7 +21,7 @@ type recscheme = { nonterminals : alphabet;
 let rec typeorder = function  Gr ->  0 | Ar(a,b) -> max (1+ typeorder a) (typeorder b) ;;
 let rec typearity = function  Gr ->  0 | Ar(_,b) -> 1+ (typearity b) ;;
 
- 
+
 let rec string_of_type = function
     Gr -> "o"
   | Ar(Ar(_) as a, b) -> "("^(string_of_type a)^") -> "^(string_of_type b)
@@ -162,9 +162,9 @@ in
 ;;
 
 
-(* Retrieve the operator and the operands from an applicative term.
+(** Retrieve the operator and the operands from an applicative term.
    @return a pair (op,operands) where op is the operator (a terminal, variable or non-terminal) and
-   operands is the list of operands terms. *)
+   operands is the list of operands terms. **)
 let rec appterm_operator_operands t = match t with
  Tm(_) | Var(_) | Nt(_) -> t,[]
  | App(a,b) -> let op,oper = appterm_operator_operands a in op,oper@[b]
@@ -243,10 +243,10 @@ let oi_derivation rs =
     done;
 ;;
 
-(* Return the type of an applicative term (assume that the term is well-typed) 
+(** Return the type of an applicative term (assume that the term is well-typed) 
    @param fvtypes gives the types of the free variable in the term:
    it is a list of pair (var,typ) where 'typ' is the type of the variable 'var'.
-*)
+**)
 let rec appterm_type rs fvtypes = function
     Tm(f) -> terminal_type rs f
   | Nt(nt) -> nonterminal_type rs nt
@@ -261,7 +261,7 @@ let appterm_order rs fvtypes t = typeorder (appterm_type rs fvtypes t);;
 
 
 
-(** Long normal form (lnf) *)
+(** Long normal form (lnf) **)
 
 (* We define the type of the right-hand side of a rule in lnf that we call RHS for short. It is given by:
    - the top abstraction: a list of abstracted variables,
@@ -279,7 +279,7 @@ type lnfrule = nonterminal * lnfrhs ;;
 
 (** [get_parameter_type rs x] returns the type of the formal parameter [x].
     (Recall that the formal parameter names of the grammar equation are required to be disjoint,
-    hence there is at most one equation that uses a given parameter) *)
+    hence there is at most one equation that uses a given parameter) **)
 let get_parameter_type rs x = 
   (* find the equation that uses the parameter x *)
   try 
@@ -300,14 +300,14 @@ let get_parameter_type rs x =
 let freshvar = ref 0;;
 let new_freshvar() = incr(freshvar); string_of_int !freshvar; ;;
 
-(* [rule_to_lnf rs rule] converts a grammar rule into LNF
+(** [rule_to_lnf rs rule] converts a grammar rule into LNF
    @param rs is the recursion scheme
    @param rule is the rule to be converted
    @return (nt,lnfrule),vartypes 
     where nt is the nonterminal, lnfrule is the applicative term in LNF,
     and vartypes is an association list mapping variables to their types (with possibly new fresh variables
     introduced during the eta-expansion
-*)
+**)
 let rule_to_lnf rs (nt,param,rhs) = 
   (* create the association list mapping parameters' name to their type *)
   let fvtypes = create_paramtyplist nt param (nonterminal_type rs nt) in
@@ -348,7 +348,7 @@ let lnf_to_string (rs:recscheme) ((nt,lnfrhs):lnfrule) =
 
 (** Convert a recscheme to lnf.
     @return (lnfrules,vartypes) where lnfrules is a list of rules in lnf and
-    vartypes is an association list mapping variables to their type. *)
+    vartypes is an association list mapping variables to their type. **)
 let rs_to_lnf rs = 
   let vartypes = ref [] in
   freshvar := 0; (* reinit the counter for the creation of fresh variables *)
@@ -361,7 +361,7 @@ let rs_to_lnf rs =
 
 
 
-(**** Tests *)
+(**** Tests **)
 
 (* example of recursion scheme *)
 let rs : recscheme = {
@@ -384,4 +384,145 @@ let rs : recscheme = {
 (* print_rs rs;; *)
 (* rs_check rs;; *)
 (* oi_derivation rs; *)
+
+
+
+
+
+
+(****************************
+ **** Computation graph
+ *****)
+
+(** Content of the node of the graph **)
+type nodecontent = 
+    NCntApp
+  | NCntAbs of ident * ident list (* NCntAbsNt(nt,absvars) **)
+  | NCntVar of ident
+  | NCntTm of terminal
+;;
+
+(** The set of nodes is represented by an array of node contents **)
+type cg_nodes = nodecontent array;;
+
+(*IF-OCAML*) 
+module NodeEdgeMap = Map.Make(struct type t = int let compare = Pervasives.compare end) 
+
+(** The set of edges is represented by a map from node to an array of target nodes id **)
+type cg_edges = (int array) NodeEdgeMap.t;;
+
+(*ENDIF-OCAML*)
+(*F# 
+(** The set of nodes is represented by a map from node id to node content **)
+//type cg_nodes = Tagged.Map<string,nodecontent,System.Collections.Generic.IComparer<string>>;;
+
+let NodeEdgeMap = Map.Make((Pervasives.compare : int -> int -> int))
+
+(** The set of edges is represented by a map from node to an array of target nodes id **)
+type cg_edges = Tagged.Map<int,int array,System.Collections.Generic.IComparer<int>>;;
+F#*)
+
+(** The type of a computation graph **)
+type computation_graph = cg_nodes * cg_edges;;
+
+
+(** [graph_addedge edges src tar] adds an edge going from [src] to [tar] in the graph [gr].
+    @param edges is the reference to a Map from node id to array of edges
+    @param src is the source of the new edge
+    @param tar is the target of the new edge
+    **)
+let graph_addedge (edges: cg_edges ref) source target =
+    edges :=  NodeEdgeMap.add source (Array.append (try NodeEdgeMap.find source !edges
+                                                    with Not_found -> [||])
+                                                   [|target|]) !edges;
+;;
+
+(** [graph_childnode edges nodeid i] returns the i^th child of node [nodeid]**)
+let graph_childnode edges nodeid i =
+    (try 
+        NodeEdgeMap.find nodeid edges
+    with Not_found -> failwith "function child: the node does not exist or does not have any child!" ).(i)
+;;
+
+
+(** [graph_n_children edges nodeid] returns the number of children of the node [nodeid]**)
+let graph_n_children edges nodeid =
+    try  Array.length (NodeEdgeMap.find nodeid edges)
+    with Not_found -> 0
+;;
+
+
+(** [hors_to_graph rs lnfrules] converts the recursion scheme [rs] into a computation graph.
+    @param rs recursion scheme
+    @param lnfrules the rules of the recursion scheme in LNF
+    @return the compuation graph (nodes,edges)
+**)
+let hors_to_graph (rs:recscheme) lnfrules =
+    (* The list of created nodes *)
+    let nodes = ref [] in
+    (* The edges: a map from node ids to array of edges *)
+    let edges = ref (NodeEdgeMap.empty) in
+    
+   
+    (* number of nodes created *)
+    let nnodes = ref 0 in
+
+    (* The first nodes of the graph are the non-terminal nodes.
+       Create them and return an association list mapping non-terminal to their corresponding nodeid.
+     *)
+    let nt_nodeid = List.map (function nt,(abs_part,_) -> 
+                                incr(nnodes);
+                                nodes := (NCntAbs(nt, abs_part))::!nodes;
+                                nt,(!nnodes-1) ) lnfrules in
+    
+    (* [create_subgraph nt rhs] creates the subgraph corresponding to the
+       lnf term [rhs]. When set to a value different from "", the parameter [nt] specifies that 
+       the subgraph to be created corresponds to the non-terminal [nt]. In such case, the root node is
+       marked with [nt]. 
+       Return the id of the root of the created subgraph. *)
+    let rec create_subgraph nt (abs_part,app_part) =
+        match app_part with
+          (* If it's a non-terminal of ground type then there is no need to create an extra abstraction node,
+             just fetch the nodeid from the association table *)
+          LnfAppNt(nt, []) -> List.assoc nt nt_nodeid;
+        | LnfAppVar(x, operands) | LnfAppTm(x, operands) | LnfAppNt(x, operands) ->
+            let absnode_id = 
+                if nt = "" then 
+                begin
+                    incr(nnodes);
+                    nodes := (NCntAbs(nt, abs_part))::!nodes;
+                    !nnodes-1;
+                end
+                else
+                begin
+                    List.assoc nt nt_nodeid
+                end
+            in
+             
+            
+            let appnode_id = !nnodes in
+            incr(nnodes);
+            nodes := (match app_part with
+                          LnfAppNt(_,_) -> NCntApp
+                        | LnfAppTm(tm,_) -> NCntTm(tm)
+                        | LnfAppVar(x,_) -> NCntVar(x)
+                        )::(!nodes);
+
+            graph_addedge edges absnode_id appnode_id;
+            
+            (* If it is an @ node then add the edge pointing to the operator *)
+            (match app_part with LnfAppNt(_) -> 
+                graph_addedge edges appnode_id (List.assoc x nt_nodeid);
+             | _ -> ());
+
+            List.iter (function u -> graph_addedge edges appnode_id (create_subgraph "" u)) operands;
+            absnode_id
+    in
+
+    (* create the subgraph of each non-terminal *)
+    List.iter (function nt,rhs -> let _ = create_subgraph nt rhs in ()) lnfrules;
+    (Array.of_list (List.rev !nodes)),!edges
+;;
+
+
 

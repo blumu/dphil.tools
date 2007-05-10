@@ -22,6 +22,34 @@ type CpdaForm =
         if (disposing && (match this.components with null -> false | _ -> true)) then
           this.components.Dispose();
         base.Dispose(disposing)
+        
+    member this.expand_selected_treeviewconfiguration (node:TreeNode) =
+        let conf = (node.Tag:?>gen_configuration)
+        try 
+              let newconf = hocpda_step this.cpda conf
+              this.outputTextBox.Text <- string_of_genconfiguration newconf;
+              match newconf with 
+                State(ip),stk ->  node.Tag <- newconf;
+                                  node.Text <- string_of_int ip;
+                                  false;
+              | TmState(f,ql),stk ->  node.Text <- f;
+                                      node.ImageKey <- "BookClosed";
+                                      node.SelectedImageKey <- "BookClosed";
+                                      node.Tag <- null;
+                                      List.iter (function ip -> let newNode = new TreeNode((string_of_int ip), ImageKey = "Help", SelectedImageKey = "Help")
+                                                                let conf = State(ip),stk
+                                                                newNode.Tag <- conf;
+                                                                ignore(node.Nodes.Add(newNode));
+                                                                ) ql;
+                                      node.Expand();
+                                      true;
+              
+        with CpdaHalt -> node.Tag <- null;
+                         node.Text <- "halted";
+                         node.ImageKey <- "BookClosed";
+                         node.SelectedImageKey <- "BookClosed";
+                         false;
+
 
     member this.InitializeComponent() =
         this.components <- new System.ComponentModel.Container();
@@ -91,28 +119,7 @@ type CpdaForm =
         this.samplesTreeView.add_NodeMouseDoubleClick(fun  _ e -> 
               match e.Node.Level with 
               | 0  -> ()
-              | _ when (e.Node.Tag<> null) -> let conf = (e.Node.Tag:?>gen_configuration)
-                                              try 
-                                                  let newconf = hocpda_step this.cpda conf
-                                                  this.outputTextBox.Text <- string_of_genconfiguration newconf;
-                                                  match newconf with 
-                                                    State(ip),stk ->  e.Node.Tag <- newconf;
-                                                                      e.Node.Text <- string_of_int ip;
-                                                  | TmState(f,ql),stk ->  e.Node.Text <- f;
-                                                                          e.Node.ImageKey <- "BookClosed";
-                                                                          e.Node.SelectedImageKey <- "BookClosed";
-                                                                          e.Node.Tag <- null;
-                                                                          List.iter (function ip -> let newNode = new TreeNode((string_of_int ip), ImageKey = "Help", SelectedImageKey = "Help")
-                                                                                                    let conf = State(ip),stk
-                                                                                                    newNode.Tag <- conf;
-                                                                                                    ignore(e.Node.Nodes.Add(newNode));
-                                                                                                    ) ql;
-                                                                          e.Node.Expand();
-                                                  
-                                              with CpdaHalt -> e.Node.Tag <- null;
-                                                               e.Node.Text <- "halted";
-                                                               e.Node.ImageKey <- "BookClosed";
-                                                               e.Node.SelectedImageKey <- "BookClosed";
+              | _ when (e.Node.Tag<> null) -> ignore(this.expand_selected_treeviewconfiguration e.Node)
               | _ -> ();
               );
               
@@ -125,9 +132,9 @@ type CpdaForm =
             
         this.samplesTreeView.add_AfterSelect(fun _ e -> 
             let currentNode = this.samplesTreeView.SelectedNode  
+            this.runButton.Enabled <- (currentNode.Tag<>null);
             match currentNode.Tag with 
-            | null -> 
-                this.runButton.Enabled <- false;
+            | null ->                                 
                 this.descriptionTextBox.Text <- "Double-click on a node of the treeview to execute the corresponding transition of the CPDA.";
                 this.outputTextBox.Clear();
                 if (e.Action <> TreeViewAction.Collapse && e.Action <> TreeViewAction.Unknown) then
@@ -268,18 +275,21 @@ type CpdaForm =
         // 
         // runButton
         // 
-        this.runButton.Enabled <- false;
+        this.runButton.Enabled <- true;
         this.runButton.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
         this.runButton.ImageAlign <- System.Drawing.ContentAlignment.MiddleRight;
         this.runButton.ImageKey <- "Run";
         this.runButton.ImageList <- this.imageList;
         this.runButton.Location <- new System.Drawing.Point(0, -1);
         this.runButton.Name <- "runButton";
-        this.runButton.Size <- new System.Drawing.Size(119, 27);
+        this.runButton.Size <- new System.Drawing.Size(100, 27);
         this.runButton.TabIndex <- 0;
-        this.runButton.Text <- " Run Sample!";
+        this.runButton.Text <- " Run!";
         this.runButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
-        this.runButton.Click.Add(fun e -> (););
+        this.runButton.Click.Add(fun e -> let node = this.samplesTreeView.SelectedNode
+                                          if node.Tag<> null then
+                                             while not (this.expand_selected_treeviewconfiguration node) do () done;
+        );        
          (*
               this.UseWaitCursor <- true;
               try 
