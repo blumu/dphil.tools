@@ -13,6 +13,54 @@ open Hocpda
 
 
 #light;;
+
+let RichTextbox_SelectLine cum (rtb:RichTextBox) line  = 
+  if line < Array.length cum then
+    begin
+      ignore(rtb.Select( cum.(line) + rtb.Lines.(line).Length , -rtb.Lines.(line).Length ));
+    end
+;;
+
+let RichTextBox_CumulLinesLength (rtb:RichTextBox) = 
+    let cum = Array.create rtb.Lines.Length 0 in
+    for i = 0 to rtb.Lines.Length -2 do
+        cum .(i+1) <- cum .(i) + rtb.Lines.(i).Length + 1;
+    done;
+    cum
+;;
+(** The Tag field of the Treeview nodes are of the form [(alive,hist)] where
+    [alive] tells whether the CPDA is still running at that node (i.e. has not halted nor has emitted any constant)
+    and [hist] contains the history of all visited configurations.
+    (stored as a list of gen_configuration, the head of the list being the current configuration). **)
+let cpda_confhistory_from_treeviewnode (node:TreeNode) = snd (node.Tag:?>(bool * gen_configuration list)) ;;
+
+let cpda_conf_from_treeviewnode (node:TreeNode) = 
+    try List.hd (snd (node.Tag:?>bool * gen_configuration list))
+    with Failure("hd") -> failwith "wrong treeviewnode tag"
+    ;;
+
+let is_cpda_alive_at_treeviewnode (node:TreeNode) = 
+    (node.Tag<>null) && (fst (node.Tag:?>bool * gen_configuration list)) ;;
+
+let is_configuration_treeviewnode (node:TreeNode) = node.Tag<>null;;
+
+(* Add a configuration to the history.
+   When consecutive configurations share the same stack, only the last one is kept in the history.
+   Also terminal configurastion are not added to the history. *)
+let add_conf_to_treeviewnode_history (node:TreeNode) (state,stk as newconf :gen_configuration)  = 
+  let _,history = node.Tag:?>bool * gen_configuration list
+  node.Tag <- match state with
+                TmState(_) -> false, history
+                | _ ->  true,(match history with
+                               (_,prevstk)::q when prevstk = stk -> newconf::q
+                                 | _ ->  newconf::history
+                             )
+;;
+
+let init_treeviewnode_history (node:TreeNode) (newconf:gen_configuration) = 
+   let tag = true,[newconf]
+   node.Tag <- tag;;
+
 type CpdaForm = 
   class
     inherit Form as base
@@ -23,41 +71,51 @@ type CpdaForm =
           this.components.Dispose();
         base.Dispose(disposing)
         
+    member this.selectTreeViewNodeSourceline() =
+      let node = this.valueTreeView.SelectedNode
+      if is_configuration_treeviewnode node then
+          match cpda_conf_from_treeviewnode node with 
+              TmState(_),_ -> ();
+            | State(ip),_ -> RichTextbox_SelectLine this.cumul_linelength this.codeRichTextBox (ip+this.codestartline);
+        
     member this.expand_selected_treeviewconfiguration (node:TreeNode) =
-        let conf = (node.Tag:?>gen_configuration)
+        let conf = cpda_conf_from_treeviewnode node
         try 
               let newconf = hocpda_step this.cpda conf
-              this.outputTextBox.Text <- string_of_genconfiguration newconf;
+              add_conf_to_treeviewnode_history node newconf;
+              this.confhistoryTextBox.Text <- String.concat "\n\n" (List.map string_of_genconfiguration (cpda_confhistory_from_treeviewnode node));
               match newconf with 
-                State(ip),stk ->  node.Tag <- newconf;
-                                  node.Text <- string_of_int ip;
+                State(ip),stk ->  node.Text <- string_of_int ip;
                                   false;
               | TmState(f,ql),stk ->  node.Text <- f;
                                       node.ImageKey <- "BookClosed";
                                       node.SelectedImageKey <- "BookClosed";
-                                      node.Tag <- null;
-                                      List.iter (function ip -> let newNode = new TreeNode((string_of_int ip), ImageKey = "Help", SelectedImageKey = "Help")
-                                                                let conf = State(ip),stk
-                                                                newNode.Tag <- conf;
-                                                                ignore(node.Nodes.Add(newNode));
-                                                                ) ql;
+                                      List.iter (function ip_param -> let newNode = new TreeNode((string_of_int ip_param), ImageKey = "Help", SelectedImageKey = "Help")
+                                                                      let conf = State(ip_param),stk
+                                                                      init_treeviewnode_history newNode conf;
+                                                                      ignore(node.Nodes.Add(newNode));
+                                                ) ql;
                                       node.Expand();
+                                      this.runButton.Enabled <- is_cpda_alive_at_treeviewnode node;
+                                      this.stepButton.Enabled <- is_cpda_alive_at_treeviewnode node;
+                                      this.descriptionTextBox.Text <- node.FullPath;
                                       true;
               
         with CpdaHalt -> node.Tag <- null;
                          node.Text <- "halted";
                          node.ImageKey <- "BookClosed";
                          node.SelectedImageKey <- "BookClosed";
+                         this.descriptionTextBox.Text <- node.FullPath;
                          false;
-
+        
 
     member this.InitializeComponent() =
         this.components <- new System.ComponentModel.Container();
         let resources = new System.ComponentModel.ComponentResourceManager((type CpdaForm)) 
         this.outerSplitContainer <- new System.Windows.Forms.SplitContainer();
-        this.samplesTreeView <- new System.Windows.Forms.TreeView();
+        this.valueTreeView <- new System.Windows.Forms.TreeView();
         this.imageList <- new System.Windows.Forms.ImageList(this.components);
-        this.samplesLabel <- new System.Windows.Forms.Label();
+        this.treeviewheadLabel <- new System.Windows.Forms.Label();
         this.rightContainer <- new System.Windows.Forms.SplitContainer();
         this.rightUpperSplitContainer <- new System.Windows.Forms.SplitContainer();
         this.descriptionTextBox <- new System.Windows.Forms.TextBox();
@@ -65,7 +123,8 @@ type CpdaForm =
         this.codeRichTextBox <- new System.Windows.Forms.RichTextBox();
         this.codeLabel <- new System.Windows.Forms.Label();
         this.runButton <- new System.Windows.Forms.Button();
-        this.outputTextBox <- new System.Windows.Forms.RichTextBox();
+        this.stepButton <- new System.Windows.Forms.Button();
+        this.confhistoryTextBox <- new System.Windows.Forms.RichTextBox();
         this.outputLabel <- new System.Windows.Forms.Label();
         this.outerSplitContainer.Panel1.SuspendLayout();
         this.outerSplitContainer.Panel2.SuspendLayout();
@@ -87,8 +146,8 @@ type CpdaForm =
         // 
         // outerSplitContainer.Panel1
         // 
-        this.outerSplitContainer.Panel1.Controls.Add(this.samplesTreeView);
-        this.outerSplitContainer.Panel1.Controls.Add(this.samplesLabel);
+        this.outerSplitContainer.Panel1.Controls.Add(this.valueTreeView);
+        this.outerSplitContainer.Panel1.Controls.Add(this.treeviewheadLabel);
         // 
         // outerSplitContainer.Panel2
         // 
@@ -97,61 +156,59 @@ type CpdaForm =
         this.outerSplitContainer.SplitterDistance <- 268;
         this.outerSplitContainer.TabIndex <- 0;
         // 
-        // samplesTreeView
+        // valueTreeView
         // 
-        this.samplesTreeView.Anchor <- 
+        this.valueTreeView.Anchor <- 
           Enum.combine [ System.Windows.Forms.AnchorStyles.Top; 
                         System.Windows.Forms.AnchorStyles.Bottom;
                         System.Windows.Forms.AnchorStyles.Left;
                         System.Windows.Forms.AnchorStyles.Right];
-        this.samplesTreeView.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
-        this.samplesTreeView.HideSelection <- false;
-        this.samplesTreeView.ImageKey <- "";
-        this.samplesTreeView.SelectedImageKey <- "";
-        this.samplesTreeView.ImageList <- this.imageList;
-        this.samplesTreeView.Location <- new System.Drawing.Point(0, 28);
-        this.samplesTreeView.Name <- "samplesTreeView";
-        this.samplesTreeView.ShowNodeToolTips <- true;
-        this.samplesTreeView.ShowRootLines <- false;
-        this.samplesTreeView.Size <- new System.Drawing.Size(266, 654);
-        this.samplesTreeView.TabIndex <- 1;
-        //this.samplesTreeView.add_AfterExpand(fun _ e -> 
-        this.samplesTreeView.add_NodeMouseDoubleClick(fun  _ e -> 
-              match e.Node.Level with 
-              | 0  -> ()
-              | _ when (e.Node.Tag<> null) -> ignore(this.expand_selected_treeviewconfiguration e.Node)
-              | _ -> ();
+        this.valueTreeView.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
+        this.valueTreeView.HideSelection <- false;
+        this.valueTreeView.ImageKey <- "";
+        this.valueTreeView.SelectedImageKey <- "";
+        this.valueTreeView.ImageList <- this.imageList;
+        this.valueTreeView.Location <- new System.Drawing.Point(0, 28);
+        this.valueTreeView.Name <- "valueTreeView";
+        this.valueTreeView.PathSeparator <- " ";
+        this.valueTreeView.ShowNodeToolTips <- true;
+        this.valueTreeView.ShowRootLines <- false;
+        this.valueTreeView.Size <- new System.Drawing.Size(266, 654);
+        this.valueTreeView.TabIndex <- 1;
+        this.valueTreeView.add_KeyPress(fun  _ k ->  let node = this.valueTreeView.SelectedNode
+                                                     if (is_cpda_alive_at_treeviewnode node) && (k.KeyChar = ' ') then 
+                                                         begin
+                                                            ignore(this.expand_selected_treeviewconfiguration node)
+                                                            this.selectTreeViewNodeSourceline();
+                                                         end
+                                           );
+        this.valueTreeView.add_NodeMouseDoubleClick(fun  _ e -> 
+              if is_cpda_alive_at_treeviewnode e.Node then 
+                begin
+                  ignore(this.expand_selected_treeviewconfiguration e.Node);
+                  this.selectTreeViewNodeSourceline();
+                end
               );
-              
-                        
-        this.samplesTreeView.add_BeforeCollapse(fun _ e -> 
+        this.valueTreeView.add_GotFocus(fun  _ _ -> 
+               this.selectTreeViewNodeSourceline();
+              );
+        this.valueTreeView.add_BeforeCollapse(fun _ e -> 
               match e.Node.Level with 
-              | 0 -> 
-                e.Cancel <- true;
+              | 0 -> e.Cancel <- true;
               | _ -> ());
-            
-        this.samplesTreeView.add_AfterSelect(fun _ e -> 
-            let currentNode = this.samplesTreeView.SelectedNode  
-            this.runButton.Enabled <- (currentNode.Tag<>null);
-            match currentNode.Tag with 
-            | null ->                                 
-                this.descriptionTextBox.Text <- "Double-click on a node of the treeview to execute the corresponding transition of the CPDA.";
-                this.outputTextBox.Clear();
-                if (e.Action <> TreeViewAction.Collapse && e.Action <> TreeViewAction.Unknown) then
-                    e.Node.Expand();
-            | _ ->  this.outputTextBox.Text <- (string_of_genconfiguration (e.Node.Tag:?>gen_configuration));
+
+        this.valueTreeView.add_AfterSelect(fun _ e -> 
+            let currentNode = this.valueTreeView.SelectedNode  
+            this.runButton.Enabled <- is_cpda_alive_at_treeviewnode currentNode;
+            this.stepButton.Enabled <- is_cpda_alive_at_treeviewnode currentNode;
+            this.descriptionTextBox.Text <- currentNode.FullPath;
+            this.selectTreeViewNodeSourceline();
+            if is_configuration_treeviewnode currentNode then
+                this.confhistoryTextBox.Text <- String.concat "\n\n" (List.map string_of_genconfiguration (cpda_confhistory_from_treeviewnode e.Node));
+            else
+                this.confhistoryTextBox.Clear();
             );
               
-     (*   this.samplesTreeView.add_AfterCollapse(fun _ e -> 
-          match e.Node.Level with 
-          | 1 -> 
-            e.Node.ImageKey <- "BookStack";
-            e.Node.SelectedImageKey <- "BookStack";
-          |  2 ->
-            e.Node.ImageKey <- "BookClosed";
-            e.Node.SelectedImageKey <- "BookClosed"
-          | _ -> ());
-*)
         // 
         // imageList
         // 
@@ -165,15 +222,15 @@ type CpdaForm =
         this.imageList.Images.SetKeyName(5, "Run");
         
         // 
-        // samplesLabel
+        // treeviewheadLabel
         // 
-        this.samplesLabel.AutoSize <- true;
-        this.samplesLabel.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
-        this.samplesLabel.Location <- new System.Drawing.Point(3, 9);
-        this.samplesLabel.Name <- "samplesLabel";
-        this.samplesLabel.Size <- new System.Drawing.Size(58, 16);
-        this.samplesLabel.TabIndex <- 0;
-        this.samplesLabel.Text <- "Value tree:";
+        this.treeviewheadLabel.AutoSize <- true;
+        this.treeviewheadLabel.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
+        this.treeviewheadLabel.Location <- new System.Drawing.Point(3, 9);
+        this.treeviewheadLabel.Name <- "treeviewheadLabel";
+        this.treeviewheadLabel.Size <- new System.Drawing.Size(58, 16);
+        this.treeviewheadLabel.TabIndex <- 0;
+        this.treeviewheadLabel.Text <- "Value tree:";
         // 
         // rightContainer
         // 
@@ -189,10 +246,11 @@ type CpdaForm =
         // rightContainer.Panel2
         // 
         this.rightContainer.Panel2.Controls.Add(this.runButton);
-        this.rightContainer.Panel2.Controls.Add(this.outputTextBox);
+        this.rightContainer.Panel2.Controls.Add(this.stepButton);
+        this.rightContainer.Panel2.Controls.Add(this.confhistoryTextBox);
         this.rightContainer.Panel2.Controls.Add(this.outputLabel);
         this.rightContainer.Size <- new System.Drawing.Size(680, 682);
-        this.rightContainer.SplitterDistance <- 357;
+        this.rightContainer.SplitterDistance <- 550;
         this.rightContainer.TabIndex <- 0;
         // 
         // rightUpperSplitContainer
@@ -213,7 +271,7 @@ type CpdaForm =
         this.rightUpperSplitContainer.Panel2.Controls.Add(this.codeRichTextBox);
         this.rightUpperSplitContainer.Panel2.Controls.Add(this.codeLabel);
         this.rightUpperSplitContainer.Size <- new System.Drawing.Size(680, 357);
-        this.rightUpperSplitContainer.SplitterDistance <- 95;
+        this.rightUpperSplitContainer.SplitterDistance <- 50;
         this.rightUpperSplitContainer.TabIndex <- 0;
         // 
         // descriptionTextBox
@@ -230,8 +288,9 @@ type CpdaForm =
         this.descriptionTextBox.Name <- "descriptionTextBox";
         this.descriptionTextBox.ReadOnly <- true;
         this.descriptionTextBox.ScrollBars <- System.Windows.Forms.ScrollBars.Vertical;
-        this.descriptionTextBox.Size <- new System.Drawing.Size(680, 67);
+        this.descriptionTextBox.Size <- new System.Drawing.Size(680, 30);
         this.descriptionTextBox.TabIndex <- 1;
+        this.descriptionTextBox.Text <- "Double-click on a node of the treeview to execute the corresponding transition of the CPDA.";
         // 
         // descriptionLabel
         // 
@@ -241,7 +300,7 @@ type CpdaForm =
         this.descriptionLabel.Name <- "descriptionLabel";
         this.descriptionLabel.Size <- new System.Drawing.Size(72, 16);
         this.descriptionLabel.TabIndex <- 0;
-        this.descriptionLabel.Text <- "Tip:";
+        this.descriptionLabel.Text <- "Path in the value tree:";
         // 
         // codeRichTextBox
         // 
@@ -257,11 +316,16 @@ type CpdaForm =
         this.codeRichTextBox.Location <- new System.Drawing.Point(0, 18);
         this.codeRichTextBox.Name <- "codeRichTextBox";
         this.codeRichTextBox.ReadOnly <- true;
-        this.codeRichTextBox.Size <- new System.Drawing.Size(680, 240);
+        this.codeRichTextBox.Size <- new System.Drawing.Size(680, 500);
         this.codeRichTextBox.TabIndex <- 1;
         this.codeRichTextBox.Text <- string_of_hocpda this.cpda ;
-        //this.codeRichTextBox.Dock <- DockStyle.Fill;
+        this.codeRichTextBox.Dock <- DockStyle.Fill;
         this.codeRichTextBox.WordWrap <- false;
+        this.codeRichTextBox.HideSelection <- false;
+        // compute lines length and the position where the code dump start
+        this.cumul_linelength <- (RichTextBox_CumulLinesLength this.codeRichTextBox);
+        this.codestartline <- 2+this.codeRichTextBox.GetLineFromCharIndex(this.codeRichTextBox.Find("Code:"))
+        
         // 
         // codeLabel
         // 
@@ -286,39 +350,49 @@ type CpdaForm =
         this.runButton.TabIndex <- 0;
         this.runButton.Text <- " Run!";
         this.runButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
-        this.runButton.Click.Add(fun e -> let node = this.samplesTreeView.SelectedNode
-                                          if node.Tag<> null then
+        this.runButton.Click.Add(fun e -> let node = this.valueTreeView.SelectedNode
+                                          if is_cpda_alive_at_treeviewnode node then
                                              while not (this.expand_selected_treeviewconfiguration node) do () done;
         );        
-         (*
-              this.UseWaitCursor <- true;
-              try 
-                this.outputTextBox.Text <- "";
-                let stream = new MemoryStream()  
-                let writer = new StreamWriter(stream)  
-                stream.SetLength(0L);
-                writer.Flush();
-                this.outputTextBox.Text <- this.outputTextBox.Text + writer.Encoding.GetString(stream.ToArray());
-              finally
-                this.UseWaitCursor <- false);  *)
+         
+
         // 
-        // outputTextBox
+        // stepButton
         // 
-        this.outputTextBox.Anchor <- 
+        this.stepButton.Enabled <- true;
+        this.stepButton.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
+        this.stepButton.ImageAlign <- System.Drawing.ContentAlignment.MiddleRight;
+        this.stepButton.ImageKey <- "Run";
+        this.stepButton.ImageList <- this.imageList;
+        this.stepButton.Location <- new System.Drawing.Point(110, -1);
+        this.stepButton.Name <- "runButton";
+        this.stepButton.Size <- new System.Drawing.Size(100, 27);
+        this.stepButton.TabIndex <- 0;
+        this.stepButton.Text <- " Step";
+        this.stepButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
+        this.stepButton.Click.Add(fun e -> let node = this.valueTreeView.SelectedNode
+                                           if is_cpda_alive_at_treeviewnode node then
+                                             ignore(this.expand_selected_treeviewconfiguration node);
+        );        
+
+        // 
+        // confhistoryTextBox
+        // 
+        this.confhistoryTextBox.Anchor <- 
           Enum.combine [ System.Windows.Forms.AnchorStyles.Top;
                     System.Windows.Forms.AnchorStyles.Bottom;
                     System.Windows.Forms.AnchorStyles.Left;
                     System.Windows.Forms.AnchorStyles.Right ];
-        this.outputTextBox.BackColor <- System.Drawing.SystemColors.ControlLight;
-        this.outputTextBox.Font <- new System.Drawing.Font("Lucida Console", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
-        this.outputTextBox.Location <- new System.Drawing.Point(0, 48);
-        this.outputTextBox.Multiline <- true;
-        this.outputTextBox.Name <- "outputTextBox";
-        this.outputTextBox.ReadOnly <- true;
-        this.outputTextBox.ScrollBars <- System.Windows.Forms.RichTextBoxScrollBars.Both;
-        this.outputTextBox.Size <- new System.Drawing.Size(680, 273);
-        this.outputTextBox.TabIndex <- 2;
-        this.outputTextBox.WordWrap <- false;
+        this.confhistoryTextBox.BackColor <- System.Drawing.SystemColors.ControlLight;
+        this.confhistoryTextBox.Font <- new System.Drawing.Font("Lucida Console", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
+        this.confhistoryTextBox.Location <- new System.Drawing.Point(0, 48);
+        this.confhistoryTextBox.Multiline <- true;
+        this.confhistoryTextBox.Name <- "confhistoryTextBox";
+        this.confhistoryTextBox.ReadOnly <- true;
+        this.confhistoryTextBox.ScrollBars <- System.Windows.Forms.RichTextBoxScrollBars.Both;
+        this.confhistoryTextBox.Size <- new System.Drawing.Size(680, 70);
+        this.confhistoryTextBox.TabIndex <- 2;
+        this.confhistoryTextBox.WordWrap <- true;
         // 
         // outputLabel
         // 
@@ -358,36 +432,42 @@ type CpdaForm =
 
 
     val mutable outerSplitContainer : System.Windows.Forms.SplitContainer;
-    val mutable samplesLabel : System.Windows.Forms.Label;
+    val mutable treeviewheadLabel : System.Windows.Forms.Label;
     val mutable rightContainer : System.Windows.Forms.SplitContainer;
-    val mutable outputTextBox : System.Windows.Forms.RichTextBox;
+    val mutable confhistoryTextBox : System.Windows.Forms.RichTextBox;
     val mutable outputLabel : System.Windows.Forms.Label;
     val mutable runButton : System.Windows.Forms.Button;
+    val mutable stepButton : System.Windows.Forms.Button;
     val mutable rightUpperSplitContainer : System.Windows.Forms.SplitContainer;
     val mutable descriptionTextBox : System.Windows.Forms.TextBox;
     val mutable descriptionLabel : System.Windows.Forms.Label;
     val mutable codeLabel : System.Windows.Forms.Label;
-    val mutable samplesTreeView : System.Windows.Forms.TreeView;
+    val mutable valueTreeView : System.Windows.Forms.TreeView;
     val mutable imageList : System.Windows.Forms.ImageList;
     val mutable codeRichTextBox : System.Windows.Forms.RichTextBox
     val mutable cpda : Hocpda.hocpda
+    val mutable codestartline : int
+    val mutable cumul_linelength : int array
 
     new (title, newcpda, initconf:gen_configuration) as this =
        { outerSplitContainer = null;
-         samplesLabel = null;
+         treeviewheadLabel = null;
          rightContainer = null;
-         outputTextBox = null;
+         confhistoryTextBox = null;
          outputLabel =null;
          runButton =null;
+         stepButton =null;
          rightUpperSplitContainer =null;
          descriptionTextBox =null;
          descriptionLabel = null;
          codeLabel = null;
-         samplesTreeView = null;
+         valueTreeView = null;
          imageList = null;
          codeRichTextBox = null;
          components = null;
          cpda = newcpda;
+         codestartline = 0;
+         cumul_linelength = [||];
        }
        
        then 
@@ -395,14 +475,14 @@ type CpdaForm =
         this.Text <- title;
 
         let rootNode = new TreeNode(title, Tag = (null : obj), ImageKey = "BookStack", SelectedImageKey = "BookStack")
-        ignore(this.samplesTreeView.Nodes.Add(rootNode));
+        ignore(this.valueTreeView.Nodes.Add(rootNode));
         rootNode.Expand();
       
 
         let SNode = new TreeNode("0")
         SNode.ImageKey <- "Help";
         SNode.SelectedImageKey <- "Help";
-        SNode.Tag <- initconf;
+        init_treeviewnode_history SNode initconf;
         ignore(rootNode.Nodes.Add(SNode));
   end
   

@@ -52,7 +52,7 @@ val rs_to_lnf : recscheme -> (lnfrule list) * (ident*typ) list
 (** Content of the node of the graph *)
 type nodecontent = 
     NCntApp
-  | NCntAbs of ident * ident list (* NCntAbsNt(nt,absvars) *)
+  | NCntAbs of ident * ident list
   | NCntVar of ident
   | NCntTm of terminal
 ;;
@@ -98,4 +98,5 @@ type computation_graph = cg_nodes * cg_edges;;
 
 val graph_childnode : cg_edges -> int -> int -> int 
 val graph_n_children : cg_edges -> int -> int 
+val graph_node_type : (ident*typ) list -> nodecontent -> typ
 val hors_to_graph : recscheme -> lnfrule list -> computation_graph

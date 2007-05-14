@@ -5,12 +5,13 @@ open Hog
 type state = int
 
 type ident = string
+type labelident = string
 type terminal = ident
 
 type stackelement = ident
 type link = int  * int (* A link is specified by a pair j,k. The stack pointed to by this link is obtained
                           by perfoming k iterations of the 'pop_j' operation **)
-type operation = 
+type instruction = 
       Popn of int
     (** Popn(n) removes the top (n-1)-stack from the stack. **)
 
@@ -22,29 +23,44 @@ type operation =
     
     | Collapse
     (** Collapse the stack to the prefix stack determined by the pointer associated to the top 0-element. **)
+      
+    | Goto of labelident
+    (** Goto(l) jumps to the position labelled with 'l' **)
     
-    | Goto of state
-    (** Goto(q) jumps to instruction 'q' **)
-    
-    | GotoIfTop0 of state * stackelement
+    | GotoIfTop0 of labelident * stackelement
     (** GotoIfTop0(q,f) jumps to instruction 'q' if the top 0-element in the stack is 'f'. Otherwise
     continues with the following instruction of the CPDA. **)
 
-    | CaseTop0 of (stackelement * state) list
-    (** CaseTop0([a0,q0; ... ; an,qn]) jumps to instruction 'q_i' if the top 0-element in the stack is equal to 'a_i'.
-    If the top 0-element is not among [a1; an] then the execution continues with the following instruction. **)
+    | CaseTop0 of (stackelement list * labelident) list
+    (** CaseTop0([stackelements_0,l0; ... ; stackelements_n,ln]) jumps to instruction labelled with [l_i] if the top 0-element in the stack belongs to [stackelements_i].
+    If top0 matches several cases then the branching corresponding to the first matching one is taken.
+    If top0 does not match any of the cases then the execution continues with the following instruction. **)
 
+    | CaseTop0Do of (stackelement list * instruction) list
+    (** CaseTop0Do([stackelements_0,l0; ... ; stackelements_n,ln]) executes instruction [I_i] if the top 0-element in the stack belongs to [stackelements_i].
+    If top0 matches several cases then the instruction corresponding to the first matching one is executed.
+    If top0 does not match any of the cases then the execution continues with the following instruction. **)
     
-    | Emit of terminal * state list
-     (** Emit(f,[q_1;  ;q_ar(f)]) will emit the non-terminal f and then perform a Goto to 
-        one of the state q_1 ... q_ar(f) chosen non-deterministically. 
+    | Emit of terminal * labelident list
+     (** Emit(f,[l_1;  ;l_ar(f)]) emits the non-terminal f and then perform a Goto to 
+        one of the label l_1 ... l_ar(f) chosen non-deterministically. 
      **)
      
+    | Repeat of int * instruction
+    (** Repeat(k,ins) executes k times the instruction ins **)
+
+    | Label of labelident
+    (** insert a label in the code of the CPDA **)
+    
     | Halt 
     (** halt the CPDA **)
     
     | Failwith of string
     (** raise a CPDA-exception with an error message **)
+
+    | Comment of string
+    (** source code commentary **)
+    
 
 type hostack = El of stackelement * link | Stack of hostack list
 
@@ -58,9 +74,10 @@ type hostack = El of stackelement * link | Stack of hostack list
 type hocpda = 
 {   
   n : int;                             (** Order of the CPDA, **)
-  terminals_alphabet : alphabet;       (** this corresponds to Sigma in the formal definition, **)
-  stack_alphabet : stackelement list; (** this is Gamma in the formal definition, **)
-  code : operation array;              (** the code of the CPDA stored as an array of instructions. **)
+  terminals_alphabet : alphabet;       (** This corresponds to Sigma in the formal definition, **)
+  stack_alphabet : stackelement list;  (** This is Gamma in the formal definition, **)
+  code : instruction array;            (** The code of the CPDA stored as an array of instructions. **)
+  labels : (ident * int) list          (** Association list mapping a label to the corresponding code address **)
 }
 
 (** A generalized state is either a state (i.e. instruction pointer) 
@@ -74,21 +91,22 @@ type gen_state = State of state | TmState of terminal * state list;;
 type gen_configuration = gen_state * hostack;;
 
 
+(** Exception raised when the CPDA itself raises an exception with the Failwith CPDA instruction.
+    The parameter contains the message given in the Failiwith CPDA instruction **)
+exception Cpda_exception of string;;
+
+(** Exception raised when the execution of a CPDA instruction failed.
+    The first parameter is the instruction name and the second parameter
+    is a description of the problem. **)
+exception Cpda_execution_failed of string * string;;
+
+
+
 (** [empty_hostack n] constructs an empty stack of order n for n>=1 **)
 let rec empty_hostack = function 
     1 -> Stack([])
   | n -> Stack([empty_hostack (n-1)])
 ;;
-
-let test = { n = 5;
-	     terminals_alphabet = ["f",Gr];
-	     stack_alphabet = ["e1";"e2"];
-	     code = [|Push1("e1",(0,0)); GotoIfTop0(1,"e2"); Push1("e1",(0,0)); Collapse|];
-};;
-
-let conf = (0, Stack([Stack([Stack([Stack([Stack([El("e1",(0,0))])])])])]))
-;;
-
 
 exception EmptyHOStack;;
 exception BadHOStackStructure;;
@@ -107,7 +125,7 @@ let top0 cpda stk =
 
 (** [popn j cpda stk] performs an order j pop on the stack [stk], with j>=1. **)
 let popn j cpda stk =
-  if j = 0 then failwith "Instruction pop0 undefined!";
+  if j = 0 then raise (Cpda_execution_failed("POPN","Instruction pop0 undefined!"));
   let rec aux k stk = 
     match k,stk with
        0,_ | _,El(_) -> raise BadHOStackStructure
@@ -159,11 +177,14 @@ exception JumpToInexistingCode;;
 (** [mk_nextstate cpda ip] creates a state corresponding to the instruciton [ip+1]
     if it exists.
     @raise CpdaHalt if the end of the CPDA code is reached. **)
-let mk_nextstate cpda ip = 
+let rec mk_nextstate cpda ip = 
     if ip+1 >= Array.length cpda.code then
       raise CpdaHalt
     else
-      State(ip+1)
+        (* skip commentaries and labels *)
+        match cpda.code.(ip+1) with
+        | Comment(_) | Label(_) -> mk_nextstate cpda (ip+1)
+        | _ -> State(ip+1)
 ;;
 
 (** [mk_state cpda i] creates a state corresponding to the instruciton [i].
@@ -176,32 +197,72 @@ let mk_state cpda i =
       State(i)
 ;;
 
+(** [hocpda_label_to_address cpda lab] returns the address corresponding to label lab. **)
+let hocpda_label_to_address cpda lab =
+    try  List.assoc lab cpda.labels 
+    with Not_found -> raise (Cpda_execution_failed("(label referencing)","The code of the HOCPDA contains references to undefined labels!"))
+;;
+
+
+(** [execute cpda ip stk ins] execute the instruction [ins] of the CPDA with stack [stk] and current state [ip].
+    @param cpda is the CPDA
+    @param ip is the current instruction pointer of the CPDA
+    @param stk current CPDA stack.
+    @param ins is the instruction to execute.
+    @return a generalized configuration corresponding to the new state of the CPDA.
+    **)
+let rec execute cpda ip stk =
+    function
+      Popn(n) -> (mk_nextstate cpda ip), (popn n cpda stk)
+    | Push1(a,l) -> (mk_nextstate cpda ip), (push1 cpda stk a l) 
+    | Pushn(j) -> (mk_nextstate cpda ip), (pushj j cpda stk);
+    | Collapse -> (mk_nextstate cpda ip), (collapse cpda stk);
+    | GotoIfTop0(q, t) -> if fst (top0 cpda stk) = t then 
+                            (mk_state cpda (hocpda_label_to_address cpda q)),stk
+                          else 
+                            (mk_nextstate cpda ip),stk
+    | CaseTop0(cases) -> (try 
+                            let top0elem = fst (top0 cpda stk) in
+                            let _, lab = List.find (function stkelems, _ -> List.mem top0elem stkelems) cases in
+                            (mk_state cpda (hocpda_label_to_address cpda lab)),stk
+                            (* (mk_state cpda (hocpda_label_to_address cpda (List.assoc (fst (top0 cpda stk)) cases))),stk *)
+                         with Not_found -> (mk_nextstate cpda ip),stk)
+    | CaseTop0Do(cases) -> (try 
+                              let top0elem = fst (top0 cpda stk) in
+                              let _, ins = List.find (function stkelems, _ -> List.mem top0elem stkelems) cases in
+                              execute cpda ip stk ins
+                            with Not_found -> (mk_nextstate cpda ip),stk)
+                         
+                         
+    | Goto(l) -> (mk_state cpda (hocpda_label_to_address cpda l)),stk
+    | Emit(t,ql) -> TmState(t,(List.map (hocpda_label_to_address cpda) ql)),stk
+    | Halt -> raise CpdaHalt
+    | Failwith(msg) -> raise (Cpda_exception(msg))
+    | Label(_)  -> raise (Cpda_execution_failed("LABEL", "The CPDA code contains unresolved labels!"))
+    | Comment(_) -> raise (Cpda_execution_failed("COMMENT", "Trying to execute a commentary!"))
+    | Repeat(k,ins) -> (* Execute k times the instruction ins *)
+                       let conf = ref (State(ip),stk) in
+                       for i = 0 to k-1 do
+                         match !conf with
+                              (* A terminal is emitted: abort the iteration. (we are 
+                                dealing with an instruction of the form REPEAT k TIMES EMIT f ...) *)
+                              TmState(_),_ -> ()
+                           | State(_),newstk -> conf := execute cpda ip newstk ins
+                       done; !conf
+;;
+
 (** [hopcpda_step cpda genconf] performs a transition of the cpda.
     @param cpda is the CPDA
     @param genconf is a generalized configuration of the CPDA.
+    @return a generalized configuration corresponding to the new state of the CPDA.
     **)
 let hocpda_step cpda genconf =
-    match genconf with
-    | TmState(_),_ -> failwith "The current configuration is a terminal! The CPDA cannot perform a transition until the opponent decides which parameter to follow."
-    | State(ip),stk ->
-      let execute = function
-          Popn(n) -> (mk_nextstate cpda ip), (popn n cpda stk)
-        | Push1(a,l) -> (mk_nextstate cpda ip), (push1 cpda stk a l) 
-        | Pushn(j) -> (mk_nextstate cpda ip), (pushj j cpda stk);
-        | Collapse -> (mk_nextstate cpda ip), (collapse cpda stk);
-        | GotoIfTop0(q, t) -> if fst (top0 cpda stk) = t then 
-                                (mk_state cpda q),stk
-                              else 
-                                (mk_nextstate cpda ip),stk
-        | CaseTop0(cases) -> (try 
-                                (mk_state cpda (List.assoc (fst (top0 cpda stk)) cases)),stk
-                             with Not_found -> (mk_nextstate cpda ip),stk)
-        | Goto(q) -> (mk_state cpda q),stk
-        | Emit(t,ql) -> TmState(t,ql),stk
-        | Halt -> raise CpdaHalt
-        | Failwith(msg) -> failwith ("CPDA-exception raised!\n"^msg)
-      in
-        execute cpda.code.(ip)
+    try 
+        match genconf with
+          TmState(_),_ -> failwith "The CPDA has just emitted a terminal and therefore has halted. You need to choose a terminal parameter in order to spawn the CPDA."
+        | State(ip),stk -> execute cpda ip stk cpda.code.(ip)
+    with   Cpda_execution_failed(ins,msg) -> failwith ("The execution of a CPDA instruction failed!\nInstruction: "^ins^"\nDescription:"^msg)
+         | Cpda_exception(msg) -> failwith ("CPDA exception raised!\nDescription: "^msg)
 ;;
 
 (** Create the initial configuration of a CPDA. **)
@@ -224,33 +285,52 @@ let string_of_genconfiguration = function
 ;;
 
 (** pretty-printer for hocpda **)
+let cLABEL_COLUMN_WITDH = 15;;
+let cLINE_COLUMN_WITDH = 5;;
 let string_of_hocpda cpda = 
+    (* Prepare an array containing the lines to be marked with a label *)
+    let labs = Array.of_list (List.rev cpda.labels) (* reverse the list so the labels occur by order of appearance in the code. *)
+    in
     let ret = ref "" in
-    let string_of_instr = function
+    let rec string_of_instr = function
           Popn(n) -> "POP"^(string_of_int n)
         | Push1(a,(j,k)) -> "PUSH1 "^a^" ("^(string_of_int j)^","^(string_of_int k)^")"
         | Pushn(j) -> "PUSH"^(string_of_int j)
         | Collapse -> "COLLAPSE"
-        | GotoIfTop0(q, t) -> "GOTO "^(string_of_int q)^" IF TOP1="^t
-        | CaseTop0(cases) -> "CASETOP0 "^(String.concat " " (List.map (function a,q -> a^"->"^(string_of_int q)) cases))
-        | Goto(q) -> "GOTO "^(string_of_int q)
+        | GotoIfTop0(q, t) -> "GOTO "^q^" IF TOP1="^t
+        | CaseTop0(cases) -> "CASETOP0 "^(String.concat " " (List.map (function a,q -> (String.concat " " a)^"->"^q) cases))
+        | CaseTop0Do(cases) -> "CASETOP0DO "^(String.concat "  |  " (List.map (function a,i -> (String.concat " " a)^"->"^(string_of_instr i)) cases))
+        | Goto(l) -> "GOTO "^l
         | Emit(t,[]) -> "EMIT "^t^" // after this instruction the machine halts."; (*the terminal is of ground-type therefore the machine necessarily blocks after emitting the terminal. *)
-        | Emit(t,ql) -> "EMIT "^t^" "^(String.concat "," (List.map string_of_int ql));
+        | Emit(t,ql) -> "EMIT "^t^" "^(String.concat "," ql)
+        | Repeat(k,ins) -> "REPEAT "^(string_of_int k)^" TIMES "^(string_of_instr ins)
         | Halt -> "HALT"
-        | Failwith(msg) -> "FAILWITH ("^msg^")"
+        | Failwith(msg) -> "FAILWITH \""^msg^"\""
+        | Comment(com) -> "// "^com
+        | Label(lab)  -> lab^":"
     in
+      let nextlab = ref 0 in
       for i = 0 to (Array.length cpda.code)-1 do
-        ret := !ret^(string_of_int i)^":"^(string_of_instr cpda.code.(i))^"\n"
+        let pad_right s n = 
+            if String.length s >= n then s
+            else String.sub (s^(String.make n ' ')) 0 n in
+        let pad_left s n = 
+            if String.length s >= n then s
+            else let tmp = (String.make n ' ')^s in String.sub tmp ((String.length tmp)-n) n in
+        
+        if !nextlab < Array.length labs && i = (snd labs.(!nextlab))  then
+        begin
+            ret := !ret^(pad_left (string_of_int i) cLINE_COLUMN_WITDH)^" "^(pad_right (fst labs.(!nextlab)) cLABEL_COLUMN_WITDH )^":  "^ (string_of_instr cpda.code.(i))^"\n";
+            incr(nextlab); 
+        end
+        else
+            ret := !ret^(pad_left (string_of_int i) cLINE_COLUMN_WITDH)^" "^(String.make cLABEL_COLUMN_WITDH  ' ')^"   "^(string_of_instr cpda.code.(i))^"\n"
       done;
     "Order: "^(string_of_int cpda.n)
     ^"\n\nTerminals:\n"^(string_of_alphabet cpda.terminals_alphabet)
     ^"\nStack alphabet: "^(String.concat " " cpda.stack_alphabet)
-    ^"\n\nCode:\n"^(!ret)
+    ^"\n\nCode:\n\n"^(!ret)
 ;;
-
-hocpda_step test (hocpda_initconf test);; 
-
-
 
 
 
@@ -300,6 +380,33 @@ let opp_strategy a q =
 
 
 
+
+(** Remove the labels from a CPDA code and compute the adresses of the labels.
+    [unlabel_code code]
+    @param code a list of CPDA instructions
+    @return (unlabelled_code,labels) where  [labels] is a mapping from labels to instruction addresses
+    and [unlabelled_code] is an array containing the code with the labels removed.
+**)
+let unlabel_code code =
+    (* - size is the size of the code to be generated,
+       - label2ip is an association list mapping labels to their corresponding instruction pointer *)
+    let size,label2ip = List.fold_left (function (s,labmap) -> function
+                                              Label(label) -> s,(label,s)::labmap
+                                            | Popn(_) | Push1(_,_)
+                                            | Pushn(_) | Collapse
+                                            | Goto(_) | GotoIfTop0(_,_)
+                                            | CaseTop0(_) | CaseTop0Do(_) | Emit(_,_)
+                                            | Repeat(_,_)  | Comment(_)
+                                            | Failwith(_) | Halt (* | Nop *)
+                                                    -> s+1,labmap
+                                       ) (0,[]) code in
+    (Array.of_list (List.filter (function Label(_) -> false | _ -> true ) code)), label2ip 
+;;
+
+
+
+(*
+
 (** Type for higher-level instructions. 
     It is used for generating intermediate code containing labels. **)
 type hli_labelident = string;;
@@ -316,6 +423,7 @@ type hlinstr =    HliLabel of hli_labelident
                 | HliHalt
                 | HliIter of int * hlinstr
                 | HliFailwith of string
+                | HliComment of string
                 ;;
 
 (** Convert higher-level code to low-level CPDA code.
@@ -335,10 +443,11 @@ let hlicode_to_cpdacode hlicode =
                                             | HliGotoIfTop0(_,_)
                                             | HliCaseTop0(_)
                                             | HliEmit(_,_)
+                                            | HliComment(_)
                                             | HliFailwith(_) | HliHalt -> s+1,labmap
                                             | HliIter(k,_) when k>=0 -> s+k,labmap
                                             | HliIter(_,_) -> failwith "Wrong number of iterations in HliIter."
-                                            | HliNop -> s,labmap
+                                            | HliNop -> s,labmap                                             
                                        ) (0,[]) hlicode in
     
     let ip_from_label label = 
@@ -357,6 +466,7 @@ let hlicode_to_cpdacode hlicode =
         | HliGotoIfTop0(label,a) -> code.(!curip) <- GotoIfTop0((ip_from_label label), a) ; incr(curip);
         | HliCaseTop0(cases) -> code.(!curip) <- CaseTop0( (List.map (function a,l -> a,(ip_from_label l)) cases)) ; incr(curip);
         | HliEmit(t,slst) -> code.(!curip) <- Emit(t,(List.map ip_from_label slst)); incr(curip);
+        | HliComment(com) -> code.(!curip) <- Comment(com); incr(curip);
         | HliHalt -> code.(!curip) <- Halt ; incr(curip);
         | HliFailwith(msg) -> code.(!curip) <- Failwith(msg) ; incr(curip);
         | HliIter(k,ins) -> for i = 1 to k do
@@ -368,10 +478,7 @@ let hlicode_to_cpdacode hlicode =
     code
 ;;
 
-
-
-
-
+*)
 
 
 
@@ -380,34 +487,41 @@ let hlicode_to_cpdacode hlicode =
  *)
 
 
-(** [hors_to_cpda hors graph] converts a HORS to a CPDA. 
+(** [hors_to_cpda colapsesim hors graph] converts a HORS to a CPDA. 
+    @param colapsesim (experimental) if set to true then the generate CPDA will be in fact a PDA. i.e.
+    it will simulate the Collapse instruction using my unpublished (and unproved) algorithm. 
     @param hors the HO recursion scheme
     @param graph the computation graph of the HORS
-    @param vartypes an association list mapping variables names to their type
+    @param vartmtypes an association list mapping variable and terminal names to their type
     @return the corresponding CPDA
         
     @note See details of the algorithm in the STOC paper, Hague et al.
 **)
-let hors_to_cpda hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartypes =
+let hors_to_cpda colapsesim hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartmtypes =
     (* compute the order of the grammar *)
     let order = List.fold_left max 0 (List.map (function nt,t -> typeorder t) hors.nonterminals) in 
     
-    (* Compute the tuple (b,p,i,j) for each variable node x of the computation graph where
+    (* Compute an array [varsinfo] of 4-tuples given information about each node of the computation graph.
+       For a variable node x the tuple is (b,p,i,j) where:
         - b is the nodeid of the binder of x
         - p is the span of the variable x (distance between x and its binder in the path to the root)
         - i is the parameter index (the variable position in the list of variables abstracted by its binder)
         - j is the child-index of the binder node of x i.e. binder(x) is a j-child node.
-        
-       The information is stored in the array [varsinfo]. For nodes that are not variable nodes, 
-       the corresponding entry of varsinfo is set to (-1,-1,-1,-1).
+       
+       For a lambda-node different from the root the tuple is (p,j,-1,-1) :
+        - p is the node id of the parent of the node
+        - j is the child-index of the lambda-node
+
+       For application-nodes or the root node the tuple is (-1,-1,-1,-1)
     *)
-    let varsinfo = Array.create (Array.length nodes_content) (-1,-1,-1,-1) in    
+    let nodesinfo = Array.create (Array.length nodes_content) (-1,-1,-1,-1) in    
     let rec compute_varinfo curnodeid path = 
         (match nodes_content.(curnodeid) with
              (* The current node is a variable: compute its span (p), paramindex(i) and binder child index(j) by following the path to the root until reaching its binder. *)
-             NCntVar(x) ->  let rec List_memi i = function [] -> raise Not_found
-                                                        | t::q when t=x -> i
-                                                        | t::q -> List_memi (i+1) q
+             NCntVar(x) -> let rec List_memi i = function [] -> raise Not_found
+                                                        | t::_ when t=x -> i
+                                                        | _::q -> List_memi (i+1) q
+                            
                             in
                             let rec find_binder p = function 
                                  [] -> failwith "(hors_to_cpda) Error: the computation tree contains a free variable!"
@@ -419,7 +533,10 @@ let hors_to_cpda hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartypes =
                                                         with Not_found -> find_binder (p+1) q)
                                                 | _ -> find_binder (p+1) q
                             in 
-                            varsinfo.(curnodeid) <- find_binder 1 path;
+                            nodesinfo.(curnodeid) <- find_binder 1 path;
+            | NCntAbs(_,_) -> (match path with
+                                (p,_)::(_,j)::_ -> nodesinfo.(curnodeid) <- p,j,-1,-1
+                                | _ -> ())
             | _ -> ();
         );
         
@@ -431,86 +548,160 @@ let hors_to_cpda hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartypes =
                             | _ ->  compute_varinfo nodeid ((curnodeid,childindex)::path))
                     (try NodeEdgeMap.find curnodeid edges with Not_found -> [||]);
     in
-    (* Explore the sub-**tree** rooted at each non-terminal node *)
-    Array.iteri (function inode -> (function NCntAbs(nt,_) when nt<>"" -> compute_varinfo inode []; | _ -> ()) ) nodes_content;
+        (* Explore the sub-**tree** rooted at each non-terminal node *)
+        Array.iteri (function inode -> (function NCntAbs(nt,_) when nt<>"" -> compute_varinfo inode []; | _ -> ()) ) nodes_content;
     
 
-  
+    (* make a stack element out of a node id *)
+    let stackelement_of_nodeid = string_of_int in
+
+    (* build an array containing the type of each node
+       and one containing the order. *)
+    let nodes_type = Array.map (graph_node_type vartmtypes) nodes_content in
+    let nodes_order = Array.map typeorder nodes_type in
+
+    (* Experimental simulation of Collapse with pops. *)
+    let primeCollapse =
+        (* Compute a mapping that associate to each node [node] a number [n] such that
+           if the top 0-element of the stack is [node], then the COLLAPSE instruction will be simulated by Popn(n).
+           It is not necessary to consider non-lambda nodes since no COLLAPSE can ever happen at such nodes.
+        *)
+        let nodes_pushorder = Hashtbl.create (1+order) in        
+            Array.iteri (function inode -> function ord -> 
+                        match nodes_content.(inode) with
+                        (* If it is an abstraction node that does not correspond to a non-terminal then
+                           it is a j child with j>0 *)
+                         NCntAbs("",_) ->  Hashtbl.add nodes_pushorder 
+                                                (if ord = 0 then 1(* perform a pop1 *)
+                                                    else order-ord+1) (* perform a pop{order-ord+1} *) 
+                                                inode
+                        (* If it is an abstraction node corresponding to a non-terminal then it is a 0-child node. *)
+                        | NCntAbs(_,_) -> Hashtbl.add nodes_pushorder 1 inode
+                        
+                        | _ -> ()
+                    ) nodes_order;
+        
+        (* build the cases *)                    
+        let cases = ref [] in
+        for ord = 0 to order do        
+            let nodes = Hashtbl.find_all nodes_pushorder ord in
+            if nodes <> [] then
+            cases := ((List.map stackelement_of_nodeid nodes),Popn(ord))::!cases
+        done; 
+        CaseTop0Do( !cases )        
+    in
+
+
+
+    let make_nodeproc_label nodei = "NODE"^(string_of_int nodei) in
+    
     
     (* [build_node_procedure nodeid] build the procedure associated to the node [nodeid] of the graph
         @param nodeid is the identifier of the graph node 
         @returns a list of instructions. *)
     let build_node_procedure nodeid nodecontent =
         let child = graph_childnode edges nodeid in
-        let startlabel = string_of_int nodeid in
+        let startlabel = make_nodeproc_label nodeid in
             match nodecontent with
-              NCntApp -> [HliLabel(startlabel);HliPush1(string_of_int (child 0),(1,1));HliGoto("Start")]
-            | NCntAbs(_) -> [HliLabel(startlabel);HliPush1(string_of_int (child 0),(1,1));HliGoto("Start")]
+              NCntApp -> [Label(startlabel);Push1(string_of_int (child 0),(1,1));Goto("start")]
+            | NCntAbs(_) -> [Label(startlabel);Push1(string_of_int (child 0),(1,1));Goto("start")]
             | NCntTm(f) -> let ar = typearity (terminal_type hors f) in
                            (* [param_label i] returns the label f_i *)
-                           let param_label i = startlabel^"."^(string_of_int i) in
+                           let param_label i = startlabel^"_"^(string_of_int i) in
                            (* Create the label f_1 ... f_ar(f) *)
                            let switchlabels =  Array.to_list (Array.init ar (function i -> param_label (i+1))) in
                            let rec gencode_params = function
                                | 0 -> []
                                | k -> (gencode_params (k-1))@
-                                       [HliLabel(param_label k);
-                                        HliPush1(string_of_int (child (k-1)),(0,0));
-                                        HliGoto("Start")]
+                                       [Label(param_label k);
+                                        Push1(string_of_int (child (k-1)),(0,0));
+                                        Goto("start")]
                            in
-                            [HliLabel(startlabel);HliEmit(f,switchlabels)]@(gencode_params ar)
-            | NCntVar(x) -> let l = typeorder (List.assoc x vartypes) in
-                            let b,p,i,j = varsinfo.(nodeid) in
+                            [Label(startlabel);Emit(f,switchlabels)]@(gencode_params ar)
+            | NCntVar(x) -> let l = typeorder (List.assoc x vartmtypes) in
+                            let b,p,i,j = nodesinfo.(nodeid) in
                             (* generate the instructions simulating push1^{Ei(top1),k} (see details in the STOC paper, Hague et al.) *)
                             let push1_Ei_top1() = 
                                 
                                 (* Generate the code that performs a case analysis on the top 0-element. *)
                                 let switchingtable = ref [] in
                                 let make_case_label nodei = 
-                                    let label = startlabel^"."^(string_of_int nodei) in
-                                    switchingtable := ((string_of_int nodei), label)::!switchingtable;
+                                    let label = startlabel^"_"^(string_of_int nodei) in
+                                    switchingtable := ([string_of_int nodei], label)::!switchingtable;
                                     label
                                 in        
                                 let build_case top1_nodeid top1_nodecontent = 
                                     (match top1_nodecontent with
-                                       (* If j>0, we generate a case only for variable nodes of the tree with at least i children.
-                                         (In fact we could restict further to variable nodes of the correct type (i.e. the type of the binder of x)
-                                         
-                                         If j=0 then we generate a case only for application nodes of the tree whose first edge points to the binder of x.
-                                       *)                                           
+                                       (* If j=0 then we generate a case only for application nodes of the tree whose first edge points to the binder of x. *)                                           
                                            NCntApp when j=0 && (graph_childnode edges top1_nodeid 0) = b ->
-                                            [HliLabel(make_case_label top1_nodeid);
-                                                HliPush1(string_of_int (graph_childnode edges top1_nodeid i),(order-l+1,1));
-                                                HliGoto("Start")]
-                                         | NCntVar(_) when j>0 && (graph_n_children edges top1_nodeid) >= i -> 
-                                            [HliLabel(make_case_label top1_nodeid);
-                                                HliPush1(string_of_int (graph_childnode edges top1_nodeid (i-1)),(order-l+1,1));
-                                                HliGoto("Start")]
+                                            [Label(make_case_label top1_nodeid);
+                                                Push1(string_of_int (graph_childnode edges top1_nodeid i),(order-l+1,1));
+                                                Goto("start")]
+                                        (* If j>0, we generate a case only for variable nodes of the correct type 
+                                           i.e. the type of the binder of x. *)
+                                         | NCntVar(_) when j>0 && nodes_type.(b) = nodes_type.(top1_nodeid) -> 
+                                            [Label(make_case_label top1_nodeid);
+                                                Push1(string_of_int (graph_childnode edges top1_nodeid (i-1)),(order-l+1,1));
+                                                Goto("start")]
                                          | _ -> []
                                     ) in
                                 let cases_code = List.flatten (Array.mapi build_case nodes_content) in 
-                                HliCaseTop0(!switchingtable)::HliFailwith("Inconsistent stack: this top 0-element is unexpected!")::cases_code
+                                CaseTop0(!switchingtable)::Failwith("Unexpected top 0-element!")::cases_code
                             in
-                            if l = 0 then 
-                                [HliLabel(startlabel);HliIter(p,HliPopn(1));HliCollapse]@push1_Ei_top1()
-                                    @[HliFailwith("The CPDA code is not correctly generated!")] (* push1_Ei_top1 is responsible of jumping to 'Start'.*)
-                            else (* l>=1 *) 
-                                [HliLabel(startlabel);HliPushn(order-l+1);HliIter(p,HliPopn(1));HliCollapse]
-                                @push1_Ei_top1()
-                                    @[HliFailwith("The CPDA code is not correctly generated!")]
+                            Label(startlabel)::
+                            (
+                                (* are we generating the experimental (unproved) cpda that tries
+                                   to simulate the Collapse instruction using Pops? *)
+                                if colapsesim then
+                                    (if l>=1 then [Pushn(order-l+1)] else [] )
+                                        @[Repeat(p,Popn(1));primeCollapse]
+
+                                    (* let whilelab = startlabel^".while"
+                                    and donelab = startlabel^".done" in
+                                      (if l>=1 then [Pushn(order-l+1)] else [] )
+                                      @[Popn(1);
+                                        Label(whilelab);
+                                          GotoIfTop0(donelab, (stackelement_of_nodeid b));
+                                          primeCollapse;
+                                          Popn(1);
+                                        Goto(whilelab);                                        
+                                        Label(donelab);
+                                        primeCollapse] *)
+                                else
+                                    (if l>=1 then [Pushn(order-l+1)] else [] )
+                                        @[Repeat(p,Popn(1));Collapse]
+                            )@push1_Ei_top1() (* the code in push1_Ei_top1 is responsible of jumping to 'Start'.*)
     in
     
-    (* the stack alphabet is the set of nodes of the graph *) 
-    let stkalphabet = Array.to_list (Array.init (Array.length nodes_content) (function i -> string_of_int i)) in 
-
     (* The first instructions are responsible of jumping to the procedure
        associated to the node of the graph that is read from the top-1 stack.
        The following is a table of labels used to perform the case analysis. *)
-    let switchingtable = List.map (function a -> a,a) stkalphabet in
+    let switchingtable = Array.to_list (Array.init (Array.length nodes_content)
+                                        (function i -> [stackelement_of_nodeid i],(make_nodeproc_label i)) ) in
     let procedures_code = List.flatten (Array.mapi build_node_procedure nodes_content) in
+    let entirecode = Label("start")::CaseTop0(switchingtable)::procedures_code in
+    let unlabelledcode, labels = unlabel_code entirecode in
         {   n = order;
             terminals_alphabet = hors.sigma;
-            stack_alphabet = stkalphabet;
-            code = hlicode_to_cpdacode (HliLabel("Start")::HliCaseTop0(switchingtable)::procedures_code); (** compile the higher-level code to low-level code *)
+            (* the stack alphabet is the set of nodes of the graph *) 
+            stack_alphabet = Array.to_list (Array.init (Array.length nodes_content) stackelement_of_nodeid);
+            code = unlabelledcode;
+            labels = labels
         }
 ;;
+
+
+
+(***** Tests ****)
+
+let test = { n = 5;
+	     terminals_alphabet = ["f",Gr];
+	     stack_alphabet = ["e1";"e2"];
+	     code = [|Push1("e1",(0,0)); GotoIfTop0("toto","e2"); Push1("e1",(0,0)); Collapse|];
+	     labels = ["toto",1];
+};;
+
+let conf = (0, Stack([Stack([Stack([Stack([Stack([El("e1",(0,0))])])])])]))
+;;
+
+hocpda_step test (hocpda_initconf test);; 

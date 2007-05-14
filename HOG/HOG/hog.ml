@@ -1,5 +1,6 @@
 (* namespace Comlab.Hogrammar *)
 
+
 (****** Data-types ******)
 
 type typ = Gr | Ar of typ * typ ;;
@@ -298,15 +299,15 @@ let get_parameter_type rs x =
 
 (* For the creation of fresh variables *)
 let freshvar = ref 0;;
-let new_freshvar() = incr(freshvar); string_of_int !freshvar; ;;
+let new_freshvar() = incr(freshvar); "#"^(string_of_int !freshvar) ;;
 
 (** [rule_to_lnf rs rule] converts a grammar rule into LNF
    @param rs is the recursion scheme
    @param rule is the rule to be converted
    @return (nt,lnfrule),vartypes 
-    where nt is the nonterminal, lnfrule is the applicative term in LNF,
-    and vartypes is an association list mapping variables to their types (with possibly new fresh variables
-    introduced during the eta-expansion
+    where [nt] is the nonterminal, lnfrule is the applicative term in LNF,
+    and [vartypes] is an association list mapping variable names to their type
+    (possibly containing new fresh variables introduced during the eta-expansion
 **)
 let rule_to_lnf rs (nt,param,rhs) = 
   (* create the association list mapping parameters' name to their type *)
@@ -347,57 +348,26 @@ let lnf_to_string (rs:recscheme) ((nt,lnfrhs):lnfrule) =
 ;;
 
 (** Convert a recscheme to lnf.
-    @return (lnfrules,vartypes) where lnfrules is a list of rules in lnf and
-    vartypes is an association list mapping variables to their type. **)
+    @return (lnfrules,vartm_types) where 
+    [lnfrules] is a list of rules in lnf and
+    [vartm_types] is an association list mapping variable and terminal names to their type. **)
 let rs_to_lnf rs = 
   let vartypes = ref [] in
   freshvar := 0; (* reinit the counter for the creation of fresh variables *)
-  (List.map (function rule -> let lnfrule,vtypes = rule_to_lnf rs rule in
-                             vartypes := !vartypes@vtypes;
+  (List.map (function rule -> let lnfrule,newvtypes = rule_to_lnf rs rule in
+                             vartypes := !vartypes@newvtypes;
                              lnfrule ) rs.rules
-  ) , !vartypes
+  ) , !vartypes@rs.sigma
 ;;
 
 
+(****** Computation graphs *****)
 
-
-(**** Tests **)
-
-(* example of recursion scheme *)
-let rs : recscheme = {
-  nonterminals = [ "S", Gr;
-                   "F", Ar(Gr,Ar(Gr,Gr)) ;
-                   "G", Ar(Ar(Gr,Gr),Ar(Gr,Gr)) ];
-  sigma = [ "f", Ar(Gr,Ar(Gr,Gr));
-            "g", Ar(Gr,Gr);
-            "t", Ar(Gr,Ar(Gr,Gr)) ;
-            "e", Gr ];
-  rules = [ "S",[],App(App(Tm("f"), Tm("e")),Tm("e"));
-            "F",["x";"y"],App(App(Tm("f"), Var("x")), Var("y"));
-            "G",["phi";"x"],App(Tm("g"), App(Tm("g"), Var("x")));
-          ]
-} ;;
-
-
-(* string_of_type (Ar(Gr,Ar(Gr,Gr)));; *)
-(* print_alphabet rs.sigma;; *)
-(* print_rs rs;; *)
-(* rs_check rs;; *)
-(* oi_derivation rs; *)
-
-
-
-
-
-
-(****************************
- **** Computation graph
- *****)
 
 (** Content of the node of the graph **)
 type nodecontent = 
     NCntApp
-  | NCntAbs of ident * ident list (* NCntAbsNt(nt,absvars) **)
+  | NCntAbs of ident * ident list
   | NCntVar of ident
   | NCntTm of terminal
 ;;
@@ -405,22 +375,16 @@ type nodecontent =
 (** The set of nodes is represented by an array of node contents **)
 type cg_nodes = nodecontent array;;
 
-(*IF-OCAML*) 
-module NodeEdgeMap = Map.Make(struct type t = int let compare = Pervasives.compare end) 
 
 (** The set of edges is represented by a map from node to an array of target nodes id **)
-type cg_edges = (int array) NodeEdgeMap.t;;
-
-(*ENDIF-OCAML*)
-(*F# 
-(** The set of nodes is represented by a map from node id to node content **)
-//type cg_nodes = Tagged.Map<string,nodecontent,System.Collections.Generic.IComparer<string>>;;
-
-let NodeEdgeMap = Map.Make((Pervasives.compare : int -> int -> int))
-
-(** The set of edges is represented by a map from node to an array of target nodes id **)
-type cg_edges = Tagged.Map<int,int array,System.Collections.Generic.IComparer<int>>;;
-F#*)
+    (*IF-OCAML*) 
+    module NodeEdgeMap = Map.Make(struct type t = int let compare = Pervasives.compare end) 
+    type cg_edges = (int array) NodeEdgeMap.t;;
+    (*ENDIF-OCAML*)
+    (*F# 
+    let NodeEdgeMap = Map.Make((Pervasives.compare : int -> int -> int))
+    type cg_edges = Tagged.Map<int,int array,System.Collections.Generic.IComparer<int>>;;
+    F#*)
 
 (** The type of a computation graph **)
 type computation_graph = cg_nodes * cg_edges;;
@@ -449,6 +413,23 @@ let graph_childnode edges nodeid i =
 let graph_n_children edges nodeid =
     try  Array.length (NodeEdgeMap.find nodeid edges)
     with Not_found -> 0
+;;
+
+
+(** [graph_node_type varstype node] returns the type of node [node]
+    @param vartm_types is an association list mapping variable and terminal names to types
+    @param node is the requested node
+    @return the type of the node    
+    @note The type of a node is defined as follows:
+        - type( @ ) is the ground type 
+        - type( x:A ) = A where x is a variable or a terminal
+        - type( \lambda x_1:A_1 ... x_n:A_n ) = A_1 -> ... -> A_n -> o
+        **)
+let rec graph_node_type vartm_types = function 
+        NCntApp -> Gr
+      | NCntVar(x) | NCntTm(x)  -> List.assoc x vartm_types
+      | NCntAbs(_,[]) -> Gr
+      | NCntAbs(_,x::vars) ->  Ar((List.assoc x vartm_types), (graph_node_type vartm_types (NCntAbs("",vars))))
 ;;
 
 
@@ -526,3 +507,33 @@ let hors_to_graph (rs:recscheme) lnfrules =
 
 
 
+
+
+
+
+
+
+(**** Tests **)
+
+(* example of recursion scheme *)
+(*
+let rs : recscheme = {
+  nonterminals = [ "S", Gr;
+                   "F", Ar(Gr,Ar(Gr,Gr)) ;
+                   "G", Ar(Ar(Gr,Gr),Ar(Gr,Gr)) ];
+  sigma = [ "f", Ar(Gr,Ar(Gr,Gr));
+            "g", Ar(Gr,Gr);
+            "t", Ar(Gr,Ar(Gr,Gr)) ;
+            "e", Gr ];
+  rules = [ "S",[],App(App(Tm("f"), Tm("e")),Tm("e"));
+            "F",["x";"y"],App(App(Tm("f"), Var("x")), Var("y"));
+            "G",["phi";"x"],App(Tm("g"), App(Tm("g"), Var("x")));
+          ]
+} ;;
+*)
+
+(* string_of_type (Ar(Gr,Ar(Gr,Gr)));; *)
+(* print_alphabet rs.sigma;; *)
+(* print_rs rs;; *)
+(* rs_check rs;; *)
+(* oi_derivation rs; *)

@@ -61,7 +61,7 @@ let testcpda = {    n = 5;
     @param lnfrules the rules of the recursion scheme in lnf
     @return the compuation graph
 **)
-let compgraph_to_graphview rs (nodes_content:cg_nodes,edges:cg_edges) vartypes =
+let compgraph_to_graphview rs (nodes_content:cg_nodes,edges:cg_edges) vartmtypes =
     (* create a graph object *)
     let graph = new Microsoft.Glee.Drawing.Graph("graph") in
     
@@ -193,7 +193,7 @@ type MyForm =
         this.components <- new System.ComponentModel.Container();
         let resources = new System.ComponentModel.ComponentResourceManager((type MyForm)) 
         this.outerSplitContainer <- new System.Windows.Forms.SplitContainer();
-        this.samplesTreeView <- new System.Windows.Forms.TreeView();
+        this.valueTreeView <- new System.Windows.Forms.TreeView();
         this.imageList <- new System.Windows.Forms.ImageList(this.components);
         this.samplesLabel <- new System.Windows.Forms.Label();
         this.rightContainer <- new System.Windows.Forms.SplitContainer();
@@ -205,6 +205,7 @@ type MyForm =
         this.runButton <- new System.Windows.Forms.Button();
         this.graphButton <- new System.Windows.Forms.Button();
         this.cpdaButton <- new System.Windows.Forms.Button();
+        this.pdaButton <- new System.Windows.Forms.Button();
         this.outputTextBox <- new System.Windows.Forms.RichTextBox();
         this.outputLabel <- new System.Windows.Forms.Label();
         this.outerSplitContainer.Panel1.SuspendLayout();
@@ -227,7 +228,7 @@ type MyForm =
         // 
         // outerSplitContainer.Panel1
         // 
-        this.outerSplitContainer.Panel1.Controls.Add(this.samplesTreeView);
+        this.outerSplitContainer.Panel1.Controls.Add(this.valueTreeView);
         this.outerSplitContainer.Panel1.Controls.Add(this.samplesLabel);
         // 
         // outerSplitContainer.Panel2
@@ -237,40 +238,40 @@ type MyForm =
         this.outerSplitContainer.SplitterDistance <- 450;
         this.outerSplitContainer.TabIndex <- 0;
         // 
-        // samplesTreeView
+        // valueTreeView
         // 
-        this.samplesTreeView.Anchor <- 
+        this.valueTreeView.Anchor <- 
           Enum.combine [ System.Windows.Forms.AnchorStyles.Top; 
                         System.Windows.Forms.AnchorStyles.Bottom;
                         System.Windows.Forms.AnchorStyles.Left;
                         System.Windows.Forms.AnchorStyles.Right];
-        this.samplesTreeView.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
-        this.samplesTreeView.HideSelection <- false;
-        this.samplesTreeView.ImageKey <- "";
-        this.samplesTreeView.SelectedImageKey <- "";
-        this.samplesTreeView.ImageList <- this.imageList;
-        this.samplesTreeView.Location <- new System.Drawing.Point(0, 28);
-        this.samplesTreeView.Name <- "samplesTreeView";
-        this.samplesTreeView.ShowNodeToolTips <- true;
-        this.samplesTreeView.ShowRootLines <- false;
-        this.samplesTreeView.Size <- new System.Drawing.Size(450, 654);
-        this.samplesTreeView.TabIndex <- 1;
-        //this.samplesTreeView.add_AfterExpand(fun _ e -> 
-        this.samplesTreeView.add_NodeMouseDoubleClick(fun  _ e -> 
+        this.valueTreeView.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
+        this.valueTreeView.HideSelection <- false;
+        this.valueTreeView.ImageKey <- "";
+        this.valueTreeView.SelectedImageKey <- "";
+        this.valueTreeView.ImageList <- this.imageList;
+        this.valueTreeView.Location <- new System.Drawing.Point(0, 28);
+        this.valueTreeView.Name <- "valueTreeView";
+        this.valueTreeView.ShowNodeToolTips <- true;
+        this.valueTreeView.ShowRootLines <- false;
+        this.valueTreeView.Size <- new System.Drawing.Size(450, 654);
+        this.valueTreeView.TabIndex <- 1;
+        //this.valueTreeView.add_AfterExpand(fun _ e -> 
+        this.valueTreeView.add_NodeMouseDoubleClick(fun  _ e -> 
               match e.Node.Level with 
               | 0  -> ()
               | _ when (e.Node.Tag<> null) -> ignore(expand_term_in_treeview this.hors e.Node);
               | _ -> ();
               );
                         
-          this.samplesTreeView.add_BeforeCollapse(fun _ e -> 
-              match e.Node.Level with 
-              | 0 -> 
-                e.Cancel <- true;
-              | _ -> ());
+        this.valueTreeView.add_BeforeCollapse(fun _ e -> 
+          match e.Node.Level with 
+          | 0 -> 
+            e.Cancel <- true;
+          | _ -> ());
             
-        this.samplesTreeView.add_AfterSelect(fun _ e -> 
-            let currentNode = this.samplesTreeView.SelectedNode  
+        this.valueTreeView.add_AfterSelect(fun _ e -> 
+            let currentNode = this.valueTreeView.SelectedNode  
             this.runButton.Enabled <- (currentNode.Tag<>null);
             match currentNode.Tag with 
             | null -> 
@@ -281,7 +282,7 @@ type MyForm =
                     e.Node.Expand();
             | _ -> ());
               
-     (*   this.samplesTreeView.add_AfterCollapse(fun _ e -> 
+     (*   this.valueTreeView.add_AfterCollapse(fun _ e -> 
           match e.Node.Level with 
           | 1 -> 
             e.Node.ImageKey <- "BookStack";
@@ -330,6 +331,7 @@ type MyForm =
         this.rightContainer.Panel2.Controls.Add(this.runButton);        
         this.rightContainer.Panel2.Controls.Add(this.graphButton);
         this.rightContainer.Panel2.Controls.Add(this.cpdaButton);
+        this.rightContainer.Panel2.Controls.Add(this.pdaButton);
         this.rightContainer.Panel2.Controls.Add(this.outputTextBox);
         this.rightContainer.Panel2.Controls.Add(this.outputLabel);
         this.rightContainer.Size <- new System.Drawing.Size(680, 682);
@@ -413,27 +415,6 @@ type MyForm =
         this.codeLabel.Size <- new System.Drawing.Size(100, 16);
         this.codeLabel.TabIndex <- 0;
         this.codeLabel.Text <- "Description of the recursion scheme:";
-        //
-        // cpdaButton
-        //
-        this.cpdaButton.Enabled <- true;
-        this.cpdaButton.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
-        this.cpdaButton.ImageAlign <- System.Drawing.ContentAlignment.MiddleRight;
-        this.cpdaButton.ImageKey <- "Run";
-        this.cpdaButton.ImageList <- this.imageList;
-        this.cpdaButton.Location <- new System.Drawing.Point(200, -1);
-        this.cpdaButton.Name <- "cpdaButton";
-        this.cpdaButton.Size <- new System.Drawing.Size(159, 27);
-        this.cpdaButton.TabIndex <- 0;
-        this.cpdaButton.Text <- "Build CPDA";
-        this.cpdaButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
-        this.cpdaButton.Click.Add( fun e -> //create the cpda form
-                                            let cpda = (Hocpda.hors_to_cpda this.hors this.compgraph this.vartypes)
-                                            let initconf = State(0),(push1 cpda (empty_hostack cpda.n) "S" (0,0) )
-                                            let form = new Cpdaform.CpdaForm("CPDA", cpda, initconf)
-                                            ignore(form.Show());
-                                 );
-            
         // 
         // graphButton
         // 
@@ -444,7 +425,7 @@ type MyForm =
         this.graphButton.ImageList <- this.imageList;
         this.graphButton.Location <- new System.Drawing.Point(0, -1);
         this.graphButton.Name <- "graphButton";
-        this.graphButton.Size <- new System.Drawing.Size(159, 27);
+        this.graphButton.Size <- new System.Drawing.Size(160, 27);
         this.graphButton.TabIndex <- 0;
         this.graphButton.Text <- "Computation graph";
         this.graphButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
@@ -456,7 +437,7 @@ type MyForm =
             let viewer = new Microsoft.Glee.GraphViewerGdi.GViewer()
             this.outputTextBox.Text <- "Rules in eta-long normal form:\n"^(String.concat "\n" (List.map (lnf_to_string this.hors) this.lnfrules));
             // bind the graph to the viewer
-            viewer.Graph <- compgraph_to_graphview this.hors this.compgraph this.vartypes;
+            viewer.Graph <- compgraph_to_graphview this.hors this.compgraph this.vartmtypes;
 
             //associate the viewer with the form
             form.SuspendLayout();
@@ -468,6 +449,50 @@ type MyForm =
             ignore(form.Show()); 
         );
         
+        //
+        // cpdaButton
+        //
+        this.cpdaButton.Enabled <- true;
+        this.cpdaButton.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
+        this.cpdaButton.ImageAlign <- System.Drawing.ContentAlignment.MiddleRight;
+        this.cpdaButton.ImageKey <- "Run";
+        this.cpdaButton.ImageList <- this.imageList;
+        this.cpdaButton.Location <- new System.Drawing.Point(170, -1);
+        this.cpdaButton.Name <- "cpdaButton";
+        this.cpdaButton.Size <- new System.Drawing.Size(100, 27);
+        this.cpdaButton.TabIndex <- 0;
+        this.cpdaButton.Text <- "Build CPDA";
+        this.cpdaButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
+        this.cpdaButton.Click.Add( fun e -> //create the cpda form
+                                            let cpda = (Hocpda.hors_to_cpda false this.hors this.compgraph this.vartmtypes)
+                                            let initconf = State(0),(push1 cpda (empty_hostack cpda.n) "S" (0,0) )
+                                            let form = new Cpdaform.CpdaForm("CPDA", cpda, initconf)
+                                            ignore(form.Show());
+                                 );
+
+        //
+        // pdaButton
+        //
+        this.pdaButton.Enabled <- true;
+        this.pdaButton.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
+        this.pdaButton.ImageAlign <- System.Drawing.ContentAlignment.MiddleRight;
+        this.pdaButton.ImageKey <- "Run";
+        this.pdaButton.ImageList <- this.imageList;
+        this.pdaButton.Location <- new System.Drawing.Point(280, -1);
+        this.pdaButton.Name <- "pdaButton";
+        this.pdaButton.Size <- new System.Drawing.Size(100, 27);
+        this.pdaButton.TabIndex <- 0;
+        this.pdaButton.Text <- "Build PDA";
+        this.pdaButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
+        this.pdaButton.Click.Add( fun e -> //create the pda
+                                            let pda = (Hocpda.hors_to_cpda true this.hors this.compgraph this.vartmtypes)
+                                            let initconf = State(0),(push1 pda (empty_hostack pda.n) "S" (0,0) )
+                                            let form = new Cpdaform.CpdaForm("PDA", pda, initconf)
+                                            ignore(form.Show());
+                                 );
+            
+        
+        
         // 
         // runButton
         // 
@@ -476,13 +501,13 @@ type MyForm =
         this.runButton.ImageAlign <- System.Drawing.ContentAlignment.MiddleRight;
         this.runButton.ImageKey <- "Run";
         this.runButton.ImageList <- this.imageList;
-        this.runButton.Location <- new System.Drawing.Point(400, -1);
+        this.runButton.Location <- new System.Drawing.Point(390, -1);
         this.runButton.Name <- "runButton";
         this.runButton.Size <- new System.Drawing.Size(100, 27);
         this.runButton.TabIndex <- 0;
         this.runButton.Text <- "Run";
         this.runButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
-        this.runButton.Click.Add(fun e -> let node = this.samplesTreeView.SelectedNode
+        this.runButton.Click.Add(fun e -> let node = this.valueTreeView.SelectedNode
                                           if node.Tag<> null then
                                              while not (expand_term_in_treeview this.hors node) do () done;
         );
@@ -561,16 +586,17 @@ type MyForm =
     val mutable runButton : System.Windows.Forms.Button;
     val mutable graphButton : System.Windows.Forms.Button;
     val mutable cpdaButton : System.Windows.Forms.Button;
+    val mutable pdaButton : System.Windows.Forms.Button;
     val mutable rightUpperSplitContainer : System.Windows.Forms.SplitContainer;
     val mutable descriptionTextBox : System.Windows.Forms.TextBox;
     val mutable descriptionLabel : System.Windows.Forms.Label;
     val mutable codeLabel : System.Windows.Forms.Label;
-    val mutable samplesTreeView : System.Windows.Forms.TreeView;
+    val mutable valueTreeView : System.Windows.Forms.TreeView;
     val mutable imageList : System.Windows.Forms.ImageList;
     val mutable codeRichTextBox : System.Windows.Forms.RichTextBox;
     val mutable hors : recscheme;
     val mutable lnfrules : lnfrule list;
-    val mutable vartypes : (ident*typ) list;
+    val mutable vartmtypes : (ident*typ) list;
     val mutable compgraph : computation_graph;
 
     new (title,newhors) as this =
@@ -580,19 +606,20 @@ type MyForm =
          outputTextBox = null;
          outputLabel =null;
          cpdaButton = null;
+         pdaButton = null;
          graphButton = null;
          runButton =null;
          rightUpperSplitContainer =null;
          descriptionTextBox =null;
          descriptionLabel = null;
          codeLabel = null;
-         samplesTreeView = null;
+         valueTreeView = null;
          imageList = null;
          codeRichTextBox = null;
          components = null;
          hors = newhors;
          lnfrules = [];
-         vartypes = [];
+         vartmtypes = [];
          compgraph = [||],NodeEdgeMap.empty;
          }
        
@@ -602,13 +629,13 @@ type MyForm =
         this.Text <- "Higher-order recursion scheme tool";
 
         let rootNode = new TreeNode(title, Tag = (null : obj), ImageKey = "BookStack", SelectedImageKey = "BookStack")
-        ignore(this.samplesTreeView.Nodes.Add(rootNode));
+        ignore(this.valueTreeView.Nodes.Add(rootNode));
         rootNode.Expand();
       
         // convert the rules to LNF
         let r,v = rs_to_lnf this.hors in
         this.lnfrules <- r;
-        this.vartypes <- v;
+        this.vartmtypes <- v;
         
         // create the computation graph from the HO recursion scheme
         this.compgraph <- hors_to_graph this.hors this.lnfrules;
