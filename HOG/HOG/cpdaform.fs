@@ -42,6 +42,13 @@ let cpda_conf_from_treeviewnode (node:TreeNode) =
 let is_cpda_alive_at_treeviewnode (node:TreeNode) = 
     (node.Tag<>null) && (fst (node.Tag:?>bool * gen_configuration list)) ;;
 
+let is_cpda_emitting_at_treeviewnode (node:TreeNode) = 
+    (node.Tag<>null) && ( match (node.Tag:?>bool * gen_configuration list) with 
+                                  _,(TmState(_),_)::q -> true
+                                | _ -> false
+                        ) ;;
+
+
 let is_configuration_treeviewnode (node:TreeNode) = node.Tag<>null;;
 
 (* Add a configuration to the history.
@@ -77,36 +84,74 @@ type CpdaForm =
           match cpda_conf_from_treeviewnode node with 
               TmState(_),_ -> ();
             | State(ip),_ -> RichTextbox_SelectLine this.cumul_linelength this.codeRichTextBox (ip+this.codestartline);
-        
+
+    member this.get_path (node:TreeNode) =
+       let rec aux (node:TreeNode) = 
+         if node.Level = 0 then
+           []
+         else 
+           (aux node.Parent)@[node]
+       in
+         aux node
+       
+    
+    member this.validate_valuetree_path (node:TreeNode) =
+      if is_configuration_treeviewnode node then
+          let nodepath = this.get_path (if is_cpda_alive_at_treeviewnode node then node.Parent else node)
+          let path = List.map (function (n:TreeNode) -> n.Text) nodepath
+          //let root = this.valueTreeView.Nodes.Item(0)
+          //let rootlablen = String.length (root.Text)
+          //let path = String.sub fullpath rootlablen ((String.length fullpath)-rootlablen)
+          let v,c = this.cpda.cpda_path_validator path
+          let path_text = String.concat " " path
+          if v then
+            begin
+              this.pathTextBox.Text <- c^": "^path_text;
+              this.pathTextBox.ForeColor <- System.Drawing.Color.Green
+            end
+          else
+            begin
+              this.pathTextBox.Text <- c^": "^path_text;
+              this.pathTextBox.ForeColor <- System.Drawing.Color.Red
+            end
+      else
+        this.pathTextBox.Clear();
+
     member this.expand_selected_treeviewconfiguration (node:TreeNode) =
-        let conf = cpda_conf_from_treeviewnode node
-        try 
-              let newconf = hocpda_step this.cpda conf
-              add_conf_to_treeviewnode_history node newconf;
-              this.confhistoryTextBox.Text <- String.concat "\n\n" (List.map string_of_genconfiguration (cpda_confhistory_from_treeviewnode node));
-              match newconf with 
-                State(ip),stk ->  node.Text <- string_of_int ip;
-                                  false;
-              | TmState(f,ql),stk ->  node.Text <- f;
-                                      node.ImageKey <- "BookClosed";
-                                      node.SelectedImageKey <- "BookClosed";
-                                      List.iter (function ip_param -> let newNode = new TreeNode((string_of_int ip_param), ImageKey = "Help", SelectedImageKey = "Help")
-                                                                      let conf = State(ip_param),stk
-                                                                      init_treeviewnode_history newNode conf;
-                                                                      ignore(node.Nodes.Add(newNode));
-                                                ) ql;
-                                      node.Expand();
-                                      this.runButton.Enabled <- is_cpda_alive_at_treeviewnode node;
-                                      this.stepButton.Enabled <- is_cpda_alive_at_treeviewnode node;
-                                      this.descriptionTextBox.Text <- node.FullPath;
+        if  is_cpda_alive_at_treeviewnode node then 
+            let conf = cpda_conf_from_treeviewnode node
+            try 
+                  let newconf = hocpda_step this.cpda conf
+                  add_conf_to_treeviewnode_history node newconf;
+                  this.selectTreeViewNodeSourceline();
+                  this.confhistoryTextBox.Text <- String.concat "\n\n" (List.map string_of_genconfiguration (cpda_confhistory_from_treeviewnode node));                  
+                  match newconf with 
+                    State(ip),stk ->  node.Text <- string_of_int ip;
+                                      this.validate_valuetree_path node;
                                       true;
-              
-        with CpdaHalt -> node.Tag <- null;
-                         node.Text <- "halted";
-                         node.ImageKey <- "BookClosed";
-                         node.SelectedImageKey <- "BookClosed";
-                         this.descriptionTextBox.Text <- node.FullPath;
-                         false;
+                  | TmState(f,ql),stk ->  node.Text <- f;
+                                          node.ImageKey <- "BookClosed";
+                                          node.SelectedImageKey <- "BookClosed";
+                                          List.iter (function ip_param -> let newNode = new TreeNode((string_of_int ip_param), ImageKey = "Help", SelectedImageKey = "Help")
+                                                                          let conf = State(ip_param),stk
+                                                                          init_treeviewnode_history newNode conf;
+                                                                          ignore(node.Nodes.Add(newNode));
+                                                    ) ql;
+                                          node.Expand();
+                                          this.validate_valuetree_path node;
+                                          this.runButton.Enabled <- is_cpda_alive_at_treeviewnode node;
+                                          this.stepButton.Enabled <- is_cpda_alive_at_treeviewnode node;                                          
+                                          false;
+                  
+            with CpdaHalt -> node.Tag <- null;
+                             node.Text <- "halted";
+                             node.ImageKey <- "BookClosed";
+                             node.SelectedImageKey <- "BookClosed";
+                             this.validate_valuetree_path node;
+                             this.selectTreeViewNodeSourceline();
+                             false;
+        else
+          false;
         
 
     member this.InitializeComponent() =
@@ -118,8 +163,8 @@ type CpdaForm =
         this.treeviewheadLabel <- new System.Windows.Forms.Label();
         this.rightContainer <- new System.Windows.Forms.SplitContainer();
         this.rightUpperSplitContainer <- new System.Windows.Forms.SplitContainer();
-        this.descriptionTextBox <- new System.Windows.Forms.TextBox();
-        this.descriptionLabel <- new System.Windows.Forms.Label();
+        this.pathTextBox <- new System.Windows.Forms.TextBox();
+        this.pathLabel <- new System.Windows.Forms.Label();
         this.codeRichTextBox <- new System.Windows.Forms.RichTextBox();
         this.codeLabel <- new System.Windows.Forms.Label();
         this.runButton <- new System.Windows.Forms.Button();
@@ -175,19 +220,11 @@ type CpdaForm =
         this.valueTreeView.ShowRootLines <- false;
         this.valueTreeView.Size <- new System.Drawing.Size(266, 654);
         this.valueTreeView.TabIndex <- 1;
-        this.valueTreeView.add_KeyPress(fun  _ k ->  let node = this.valueTreeView.SelectedNode
-                                                     if (is_cpda_alive_at_treeviewnode node) && (k.KeyChar = ' ') then 
-                                                         begin
-                                                            ignore(this.expand_selected_treeviewconfiguration node)
-                                                            this.selectTreeViewNodeSourceline();
-                                                         end
-                                           );
-        this.valueTreeView.add_NodeMouseDoubleClick(fun  _ e -> 
-              if is_cpda_alive_at_treeviewnode e.Node then 
-                begin
-                  ignore(this.expand_selected_treeviewconfiguration e.Node);
-                  this.selectTreeViewNodeSourceline();
-                end
+        this.valueTreeView.add_KeyPress(fun  _ k ->  if k.KeyChar = ' ' then 
+                                                        ignore(this.expand_selected_treeviewconfiguration this.valueTreeView.SelectedNode)
+                                       );
+        this.valueTreeView.add_NodeMouseDoubleClick(fun  _ e ->
+                ignore(this.expand_selected_treeviewconfiguration e.Node);
               );
         this.valueTreeView.add_GotFocus(fun  _ _ -> 
                this.selectTreeViewNodeSourceline();
@@ -201,7 +238,7 @@ type CpdaForm =
             let currentNode = this.valueTreeView.SelectedNode  
             this.runButton.Enabled <- is_cpda_alive_at_treeviewnode currentNode;
             this.stepButton.Enabled <- is_cpda_alive_at_treeviewnode currentNode;
-            this.descriptionTextBox.Text <- currentNode.FullPath;
+            this.validate_valuetree_path currentNode;
             this.selectTreeViewNodeSourceline();
             if is_configuration_treeviewnode currentNode then
                 this.confhistoryTextBox.Text <- String.concat "\n\n" (List.map string_of_genconfiguration (cpda_confhistory_from_treeviewnode e.Node));
@@ -263,8 +300,8 @@ type CpdaForm =
         // 
         // rightUpperSplitContainer.Panel1
         // 
-        this.rightUpperSplitContainer.Panel1.Controls.Add(this.descriptionTextBox);
-        this.rightUpperSplitContainer.Panel1.Controls.Add(this.descriptionLabel);
+        this.rightUpperSplitContainer.Panel1.Controls.Add(this.pathTextBox);
+        this.rightUpperSplitContainer.Panel1.Controls.Add(this.pathLabel);
         // 
         // rightUpperSplitContainer.Panel2
         // 
@@ -274,33 +311,34 @@ type CpdaForm =
         this.rightUpperSplitContainer.SplitterDistance <- 50;
         this.rightUpperSplitContainer.TabIndex <- 0;
         // 
-        // descriptionTextBox
+        // pathTextBox
         // 
-        this.descriptionTextBox.Anchor<- 
+        this.pathTextBox.Anchor<- 
           Enum.combine [ System.Windows.Forms.AnchorStyles.Top;
                     System.Windows.Forms.AnchorStyles.Bottom;
                     System.Windows.Forms.AnchorStyles.Left;
                     System.Windows.Forms.AnchorStyles.Right ];
-        this.descriptionTextBox.BackColor <- System.Drawing.SystemColors.ControlLight;
-        this.descriptionTextBox.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
-        this.descriptionTextBox.Location <- new System.Drawing.Point(0, 28);
-        this.descriptionTextBox.Multiline <- true;
-        this.descriptionTextBox.Name <- "descriptionTextBox";
-        this.descriptionTextBox.ReadOnly <- true;
-        this.descriptionTextBox.ScrollBars <- System.Windows.Forms.ScrollBars.Vertical;
-        this.descriptionTextBox.Size <- new System.Drawing.Size(680, 30);
-        this.descriptionTextBox.TabIndex <- 1;
-        this.descriptionTextBox.Text <- "Double-click on a node of the treeview to execute the corresponding transition of the CPDA.";
+        this.pathTextBox.BackColor <- System.Drawing.SystemColors.ControlLight;
+        this.pathTextBox.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
+        this.pathTextBox.Location <- new System.Drawing.Point(0, 28);
+        this.pathTextBox.Multiline <- true;
+        this.pathTextBox.Name <- "pathTextBox";
+        this.pathTextBox.ReadOnly <- true;
+        this.pathTextBox.ScrollBars <- System.Windows.Forms.ScrollBars.Vertical;
+        this.pathTextBox.Size <- new System.Drawing.Size(150, 25);
+        this.pathTextBox.TabIndex <- 1;
+        this.pathTextBox.WordWrap <- true;
+        //this.pathTextBox.Text <- "Double-click on a node of the treeview to execute the corresponding transition of the CPDA.";
         // 
-        // descriptionLabel
+        // pathLabel
         // 
-        this.descriptionLabel.AutoSize <- true;
-        this.descriptionLabel.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
-        this.descriptionLabel.Location <- new System.Drawing.Point(3, 9);
-        this.descriptionLabel.Name <- "descriptionLabel";
-        this.descriptionLabel.Size <- new System.Drawing.Size(72, 16);
-        this.descriptionLabel.TabIndex <- 0;
-        this.descriptionLabel.Text <- "Path in the value tree:";
+        this.pathLabel.AutoSize <- true;
+        this.pathLabel.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
+        this.pathLabel.Location <- new System.Drawing.Point(3, 9);
+        this.pathLabel.Name <- "pathLabel";
+        this.pathLabel.Size <- new System.Drawing.Size(72, 16);
+        this.pathLabel.TabIndex <- 0;
+        this.pathLabel.Text <- "Result of the value tree path validation:";
         // 
         // codeRichTextBox
         // 
@@ -351,8 +389,7 @@ type CpdaForm =
         this.runButton.Text <- " Run!";
         this.runButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
         this.runButton.Click.Add(fun e -> let node = this.valueTreeView.SelectedNode
-                                          if is_cpda_alive_at_treeviewnode node then
-                                             while not (this.expand_selected_treeviewconfiguration node) do () done;
+                                          while this.expand_selected_treeviewconfiguration node do () done;
         );        
          
 
@@ -371,8 +408,7 @@ type CpdaForm =
         this.stepButton.Text <- " Step";
         this.stepButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
         this.stepButton.Click.Add(fun e -> let node = this.valueTreeView.SelectedNode
-                                           if is_cpda_alive_at_treeviewnode node then
-                                             ignore(this.expand_selected_treeviewconfiguration node);
+                                           ignore(this.expand_selected_treeviewconfiguration node);
         );        
 
         // 
@@ -439,8 +475,8 @@ type CpdaForm =
     val mutable runButton : System.Windows.Forms.Button;
     val mutable stepButton : System.Windows.Forms.Button;
     val mutable rightUpperSplitContainer : System.Windows.Forms.SplitContainer;
-    val mutable descriptionTextBox : System.Windows.Forms.TextBox;
-    val mutable descriptionLabel : System.Windows.Forms.Label;
+    val mutable pathTextBox : System.Windows.Forms.TextBox;
+    val mutable pathLabel : System.Windows.Forms.Label;
     val mutable codeLabel : System.Windows.Forms.Label;
     val mutable valueTreeView : System.Windows.Forms.TreeView;
     val mutable imageList : System.Windows.Forms.ImageList;
@@ -458,8 +494,8 @@ type CpdaForm =
          runButton =null;
          stepButton =null;
          rightUpperSplitContainer =null;
-         descriptionTextBox =null;
-         descriptionLabel = null;
+         pathTextBox =null;
+         pathLabel = null;
          codeLabel = null;
          valueTreeView = null;
          imageList = null;

@@ -11,6 +11,7 @@ open Hog
 open Hocpda
 
 (* HORS producing the Urzyczyn's tree *)
+exception Validation_failed;;
 let urz = {
     nonterminals = [ "S", Gr;
                      "D", Ar(Ar(Gr,Ar(Gr,Gr)), Ar(Gr,Ar(Gr,Ar(Gr,Gr)))) ;
@@ -42,7 +43,78 @@ let urz = {
                 "F",["x"],App(Tm("*"),Var("x"));
                 "E",[],Tm("e");
                 "G",["u";"v"],Tm("r");
-        ]
+        ];
+        
+    rs_path_validator = (function path ->   let s = Array.of_list path in
+                                            let f = ref 0 in
+                                            let b = ref ((Array.length s)-1) in
+                                            (* accepts the empty string *)
+                                            if !b = -1 then true,""
+                                            else
+                                                try
+                                                   let read_forward ident = if s.(!f) = ident then incr(f) else raise Validation_failed in
+                                                   let read_backward ident = if s.(!b) = ident then decr(b) else raise Validation_failed in
+                                                   (* a function that checks for a well-bracketed sequence starting at f and finishing at e *)
+                                                   let well_bracketed e =
+                                                     let level = ref 0 in
+                                                     while !f <= e do
+                                                       (match s.(!f) with
+                                                         "[" -> incr level
+                                                        | "]" when !level > 0 -> decr level;
+                                                        | _ -> raise Validation_failed);
+                                                        incr f;
+                                                        if !f < e then read_forward "3";                                                       
+                                                     done;
+                                                     !level
+                                                   in                                                            
+                                                   match s.(!b) with
+                                                    "e" ->
+                                                       begin
+                                                         decr(b);
+                                                         (* for each star read at the end, look for an opening-bracket
+                                                            at the beginning *)
+                                                         while s.(!b) = "*" do
+                                                           (* look for an opening bracket *)
+                                                           while s.(!f) <> "[" do
+                                                             read_forward "]";
+                                                             read_forward "3";
+                                                           done;
+                                                           incr f;
+                                                           read_forward "3";
+                                                           decr b;
+                                                         done;
+                                                         read_backward "3";
+                                                         
+                                                         (* Skip all the closing brackets *)
+                                                         while s.(!f) = "]" do
+                                                           incr(f);
+                                                           read_forward "3";
+                                                         done;
+                                                                                                                  
+                                                         (* Check for a well-bracketed sequence from !f to !b *)                                                         
+                                                         if well_bracketed !b = 0 then
+                                                           true,"Valid maximal path"
+                                                         else
+                                                           false,"Invalid maximal path"
+                                                       end
+                                                    | "r" -> 
+                                                         (* Check for a well-bracketed sequence from !f to !b-1 *)
+                                                         if well_bracketed (!b-1) = 0 then
+                                                           true,"Valid maximal path"
+                                                         else
+                                                           false,"Invalid maximal path"
+
+                                                    | "[" | "]" -> ignore(well_bracketed !b); true,"Valid path"
+                                                    | "3" -> ignore(well_bracketed (!b-1)); true,"Valid path"
+                                                    | "*" -> (* look for the first occurrence of the terminal '*'  *)
+                                                             while s.(!b) = "*" do 
+                                                               read_backward "*"
+                                                             done;
+                                                             read_backward "3";
+                                                             ignore(well_bracketed !b); true,"Valid path"
+                                                    | _ -> false,"Invalid path containing undefined terminals"
+                                                with Validation_failed -> false,"Invalid path, unexpected terminal symbol")
+                        
  };;
 
 rs_check urz;;
@@ -420,9 +492,9 @@ type MyForm =
         // 
         this.graphButton.Enabled <- true;
         this.graphButton.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
-        this.graphButton.ImageAlign <- System.Drawing.ContentAlignment.MiddleRight;
-        this.graphButton.ImageKey <- "Run";
-        this.graphButton.ImageList <- this.imageList;
+        //this.graphButton.ImageAlign <- System.Drawing.ContentAlignment.MiddleRight;
+        //this.graphButton.ImageKey <- "Run";
+        //this.graphButton.ImageList <- this.imageList;
         this.graphButton.Location <- new System.Drawing.Point(0, -1);
         this.graphButton.Name <- "graphButton";
         this.graphButton.Size <- new System.Drawing.Size(160, 27);
@@ -454,9 +526,9 @@ type MyForm =
         //
         this.cpdaButton.Enabled <- true;
         this.cpdaButton.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
-        this.cpdaButton.ImageAlign <- System.Drawing.ContentAlignment.MiddleRight;
-        this.cpdaButton.ImageKey <- "Run";
-        this.cpdaButton.ImageList <- this.imageList;
+        //this.cpdaButton.ImageAlign <- System.Drawing.ContentAlignment.MiddleRight;
+        //this.cpdaButton.ImageKey <- "Run";
+        //this.cpdaButton.ImageList <- this.imageList;
         this.cpdaButton.Location <- new System.Drawing.Point(170, -1);
         this.cpdaButton.Name <- "cpdaButton";
         this.cpdaButton.Size <- new System.Drawing.Size(100, 27);
@@ -475,9 +547,9 @@ type MyForm =
         //
         this.pdaButton.Enabled <- true;
         this.pdaButton.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
-        this.pdaButton.ImageAlign <- System.Drawing.ContentAlignment.MiddleRight;
-        this.pdaButton.ImageKey <- "Run";
-        this.pdaButton.ImageList <- this.imageList;
+        //this.pdaButton.ImageAlign <- System.Drawing.ContentAlignment.MiddleRight;
+        //this.pdaButton.ImageKey <- "Run";
+        //this.pdaButton.ImageList <- this.imageList;
         this.pdaButton.Location <- new System.Drawing.Point(280, -1);
         this.pdaButton.Name <- "pdaButton";
         this.pdaButton.Size <- new System.Drawing.Size(100, 27);

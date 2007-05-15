@@ -18,7 +18,9 @@ type appterm = Nt of nonterminal | Tm of terminal | Var of ident | App of appter
 type rule = nonterminal * ident list * appterm;;
 type recscheme = { nonterminals : alphabet;
 				   sigma : alphabet;
-				   rules : rule list } ;;
+				   rules : rule list;
+				   rs_path_validator : terminal list -> bool * string } ;;
+
 
 val terminal_type : recscheme -> terminal -> typ
 val get_parameter_type : recscheme -> ident -> typ
