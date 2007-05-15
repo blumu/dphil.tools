@@ -68,6 +68,17 @@ let init_treeviewnode_history (node:TreeNode) (newconf:gen_configuration) =
    let tag = true,[newconf]
    node.Tag <- tag;;
 
+
+let TreeNode_get_path (node:TreeNode) =
+   let rec aux (node:TreeNode) = 
+     if node.Level = 0 then
+       []
+     else 
+       (aux node.Parent)@[node]
+   in
+     aux node
+;;
+         
 type CpdaForm = 
   class
     inherit Form as base
@@ -83,25 +94,12 @@ type CpdaForm =
       if is_configuration_treeviewnode node then
           match cpda_conf_from_treeviewnode node with 
               TmState(_),_ -> ();
-            | State(ip),_ -> RichTextbox_SelectLine this.cumul_linelength this.codeRichTextBox (ip+this.codestartline);
-
-    member this.get_path (node:TreeNode) =
-       let rec aux (node:TreeNode) = 
-         if node.Level = 0 then
-           []
-         else 
-           (aux node.Parent)@[node]
-       in
-         aux node
-       
+            | State(ip),_ -> RichTextbox_SelectLine this.cumul_linelength this.codeRichTextBox (ip+this.codestartline);      
     
     member this.validate_valuetree_path (node:TreeNode) =
       if is_configuration_treeviewnode node then
-          let nodepath = this.get_path (if is_cpda_alive_at_treeviewnode node then node.Parent else node)
+          let nodepath = TreeNode_get_path (if is_cpda_alive_at_treeviewnode node then node.Parent else node)
           let path = List.map (function (n:TreeNode) -> n.Text) nodepath
-          //let root = this.valueTreeView.Nodes.Item(0)
-          //let rootlablen = String.length (root.Text)
-          //let path = String.sub fullpath rootlablen ((String.length fullpath)-rootlablen)
           let v,c = this.cpda.cpda_path_validator path
           let path_text = String.concat " " path
           if v then

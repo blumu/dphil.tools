@@ -177,6 +177,9 @@ let push1 cpda stk a l =
 let collapse cpda stk =
   let ret = ref stk in
   let a,(j,k) = top0 cpda stk in
+  (*for debugging purpose *)
+  (*if k > 1 then failwith ("The CPDA is executing a COLLAPSE on a ("^(string_of_int j)^","^(string_of_int k)^")link");
+    *)
   for i = 1 to k do
     ret := popn j cpda !ret;
   done;

@@ -11,7 +11,7 @@ open Hog
 open Hocpda
 
 (* HORS producing the Urzyczyn's tree *)
-exception Validation_failed;;
+exception InvalidPath of string;;
 let urz = {
     nonterminals = [ "S", Gr;
                      "D", Ar(Ar(Gr,Ar(Gr,Gr)), Ar(Gr,Ar(Gr,Ar(Gr,Gr)))) ;
@@ -45,75 +45,101 @@ let urz = {
                 "G",["u";"v"],Tm("r");
         ];
         
-    rs_path_validator = (function path ->   let s = Array.of_list path in
-                                            let f = ref 0 in
-                                            let b = ref ((Array.length s)-1) in
-                                            (* accepts the empty string *)
-                                            if !b = -1 then true,""
-                                            else
-                                                try
-                                                   let read_forward ident = if s.(!f) = ident then incr(f) else raise Validation_failed in
-                                                   let read_backward ident = if s.(!b) = ident then decr(b) else raise Validation_failed in
-                                                   (* a function that checks for a well-bracketed sequence starting at f and finishing at e *)
-                                                   let well_bracketed e =
-                                                     let level = ref 0 in
-                                                     while !f <= e do
-                                                       (match s.(!f) with
-                                                         "[" -> incr level
-                                                        | "]" when !level > 0 -> decr level;
-                                                        | _ -> raise Validation_failed);
-                                                        incr f;
-                                                        if !f < e then read_forward "3";                                                       
-                                                     done;
-                                                     !level
-                                                   in                                                            
-                                                   match s.(!b) with
-                                                    "e" ->
-                                                       begin
-                                                         decr(b);
-                                                         (* for each star read at the end, look for an opening-bracket
-                                                            at the beginning *)
-                                                         while s.(!b) = "*" do
-                                                           (* look for an opening bracket *)
-                                                           while s.(!f) <> "[" do
-                                                             read_forward "]";
-                                                             read_forward "3";
-                                                           done;
-                                                           incr f;
-                                                           read_forward "3";
-                                                           decr b;
-                                                         done;
-                                                         read_backward "3";
-                                                         
-                                                         (* Skip all the closing brackets *)
-                                                         while s.(!f) = "]" do
-                                                           incr(f);
-                                                           read_forward "3";
-                                                         done;
-                                                                                                                  
-                                                         (* Check for a well-bracketed sequence from !f to !b *)                                                         
-                                                         if well_bracketed !b = 0 then
-                                                           true,"Valid maximal path"
-                                                         else
-                                                           false,"Invalid maximal path"
-                                                       end
-                                                    | "r" -> 
-                                                         (* Check for a well-bracketed sequence from !f to !b-1 *)
-                                                         if well_bracketed (!b-1) = 0 then
-                                                           true,"Valid maximal path"
-                                                         else
-                                                           false,"Invalid maximal path"
+    rs_path_validator = (function path ->  let s = Array.of_list path in
+                                           let f = ref 0 in
+                                           let b = ref ((Array.length s)-1) in
+                                           let read_forward ident = if s.(!f) = ident then incr(f) else raise (InvalidPath "unexpected terminal symbol") in
+                                           let read_backward ident = if s.(!b) = ident then decr(b) else raise (InvalidPath "unexpected terminal symbol") in
+                                           (* A function that checks for a prefix of a well-bracketed sequence starting at !f and finishing at e.
+                                              It returns (lev,nopen) where level is the nesting level (0 for a well-bracketed sequence) at !f
+                                              and nopen is the number of occurrences of the opening bracket '['. *)
+                                           let well_bracketed_prefix e =
+                                             let level = ref 0 in
+                                             let nopen = ref 0 in
+                                             while !f <= e do
+                                               (match s.(!f) with
+                                                 "[" -> incr nopen; incr level
+                                                | "]" when !level > 0 -> decr level;
+                                                | _ -> raise (InvalidPath "unexpected terminal symbol"));
+                                                incr f;
+                                                if !f < e then read_forward "3";                                                       
+                                             done;
+                                             !level,!nopen
+                                           in
+                                           (* a function that checks read the longest well-bracketed sequence ending
+                                              at b *)
+                                           let read_backward_longest_well_bracketed () =
+                                             let level = ref 0 and cont = ref true in
+                                             while !cont && !b >= 0 do
+                                               (match s.(!b) with
+                                                 "]" -> incr level;
+                                                        read_backward "]";
+                                                        if !b > 0 then read_backward "3";
+                                                | "[" when !level >0 -> decr level;
+                                                                        read_backward "[";
+                                                                        if !b > 0 then read_backward "3";
+                                                | "[" -> cont:= false;
+                                                | _ -> raise (InvalidPath "unexpected terminal symbol") );
+                                             done;
+                                             (* If the whole sequence has been read then it must be completely well-bracketed *)
+                                             if !cont && !level <> 0 then
+                                               raise (InvalidPath "not a prefix of a well-bracketed sequence.") 
+                                           in
+                                           (* Check de Miranda's decomposition of the Urzyczin word. 
+                                              returns nstars,nopen where nstars is the number of stars at the end of the sequence,
+                                              and nopen is the number of opening brackets in the first part of the 
+                                              de Miranda's decomposition. *)
+                                           let demiranda_decompos() =
+                                                (* We first proceed by reading the sequence backwards: *)
+                                                (* 1 - counts the number of stars at the end of the sequence  *)
+                                                let nbstars = ref 0 in
+                                                while s.(!b) = "*" do 
+                                                read_backward "*";
+                                                incr nbstars;                                                               
+                                                done;
+                                                read_backward "3";
+                                                (* 2 - read backwards the longest well-bracketed sequence *)
+                                                read_backward_longest_well_bracketed();
 
-                                                    | "[" | "]" -> ignore(well_bracketed !b); true,"Valid path"
-                                                    | "3" -> ignore(well_bracketed (!b-1)); true,"Valid path"
-                                                    | "*" -> (* look for the first occurrence of the terminal '*'  *)
-                                                             while s.(!b) = "*" do 
-                                                               read_backward "*"
-                                                             done;
-                                                             read_backward "3";
-                                                             ignore(well_bracketed !b); true,"Valid path"
+                                                (* 3 - read forwards the remaining part of the sequence (the beginning), checking
+                                                that it is a prefix of a well-bracketed sequence and counting the number of 
+                                                occurrences of opening bracket '['. *)
+                                                let level,nbopening = well_bracketed_prefix !b in
+                                                
+                                                !nbstars,nbopening
+                                            in
+                                            (* accepts the empty string *)
+                                            if !b = -1 then true,"Empty path"
+                                            else
+                                                try                                                         
+                                                   match s.(!b) with
+                                                    "e" -> decr b; (* skip the 'e' at the end *)
+                                                           let nbstars,nbopening = demiranda_decompos() in
+                                                           (* Check that the number of star is equal to the number of '[' *)
+                                                           if nbstars = nbopening then
+                                                             true,"Valid maximal path"
+                                                           else
+                                                             false,"Invalid maximal path"
+
+                                                    | "r" ->  (* Check for a well-bracketed sequence from !f to !b-1 *)
+                                                              if fst (well_bracketed_prefix (!b-1)) = 0 then
+                                                                true,"Valid maximal path"
+                                                              else
+                                                                false,"Invalid maximal path"
+
+                                                    | "[" | "]" -> ignore(well_bracketed_prefix !b); true,"Valid prefix path"
+
+                                                    | "3" -> ignore(well_bracketed_prefix (!b-1)); true,"Valid prefix path"
+                                                    
+                                                    | "*" -> let nbstars,nbopening = demiranda_decompos() in
+                                                             (* Check that the number of star is <= than the number of '[' *)
+                                                             if nbstars <= nbopening then
+                                                               true,"Valid prefix path"
+                                                             else
+                                                               false,"Invalid prefix path"
+                                                               
                                                     | _ -> false,"Invalid path containing undefined terminals"
-                                                with Validation_failed -> false,"Invalid path, unexpected terminal symbol")
+                                                with InvalidPath(msg) -> false, "Invalid path, "^msg )
                         
  };;
 
@@ -174,6 +200,19 @@ let compgraph_to_graphview rs (nodes_content:cg_nodes,edges:cg_edges) vartmtypes
 ;;
 
 
+let appterm_of_treeviewnode (node:TreeNode) =
+  node.Tag:?>appterm
+;;
+
+let is_terminal_treeviewnode (node:TreeNode) =
+  node.Tag <> null &&  (match appterm_operator_operands (appterm_of_treeviewnode node) with Tm(_),_ -> true  | _ -> false)
+;;
+
+let is_expandable_treeviewnode (node:TreeNode) =
+  node.Tag <> null && (match appterm_operator_operands (appterm_of_treeviewnode node) with Tm(_),_ -> false  | _ -> true)
+;;
+
+
 (* Expand the node of the treeview by performing one step of the CPDA.
    Return true if the CPDA has emitted a terminal, false otherwise. *)
 let expand_term_in_treeview hors (treeview_node:TreeNode) =
@@ -183,7 +222,7 @@ let expand_term_in_treeview hors (treeview_node:TreeNode) =
         Tm(f) -> rootnode.Text <- f;
                  rootnode.ImageKey <- "BookClosed";
                  rootnode.SelectedImageKey <- "BookClosed";
-                 rootnode.Tag <- null;
+                 rootnode.Tag <- t;
                  List.iter (function operand -> let newNode = new TreeNode((string_of_appterm operand), ImageKey = "Help", SelectedImageKey = "Help") in
                                                   newNode.Tag <- operand;
                                                   ignore(rootnode.Nodes.Add(newNode));
@@ -198,7 +237,7 @@ let expand_term_in_treeview hors (treeview_node:TreeNode) =
                    false;
        | _ -> failwith "bug in appterm_operator_operands!";
     in
-    let _,redterm = step_reduce hors (treeview_node.Tag:?>appterm) in
+    let _,redterm = step_reduce hors (appterm_of_treeviewnode treeview_node) in
     expand_term_in_treeview_aux treeview_node redterm;
 ;;
 
@@ -261,17 +300,36 @@ type MyForm =
           this.components.Dispose();
         base.Dispose(disposing)
 
+    member this.validate_valuetree_path (node:TreeNode) =
+      if node.Tag <> null then
+          let nodepath = Cpdaform.TreeNode_get_path (if is_terminal_treeviewnode node then node else node.Parent)
+          let path = List.map (function (n:TreeNode) -> n.Text) nodepath
+          let v,c = this.hors.rs_path_validator path
+          let path_text = String.concat " " path
+          if v then
+            begin
+              this.pathTextBox.Text <- c^": "^path_text;
+              this.pathTextBox.ForeColor <- System.Drawing.Color.Green
+            end
+          else
+            begin
+              this.pathTextBox.Text <- c^": "^path_text;
+              this.pathTextBox.ForeColor <- System.Drawing.Color.Red
+            end
+      else
+        this.pathTextBox.Clear();
+
     member this.InitializeComponent() =
         this.components <- new System.ComponentModel.Container();
         let resources = new System.ComponentModel.ComponentResourceManager((type MyForm)) 
         this.outerSplitContainer <- new System.Windows.Forms.SplitContainer();
         this.valueTreeView <- new System.Windows.Forms.TreeView();
         this.imageList <- new System.Windows.Forms.ImageList(this.components);
-        this.samplesLabel <- new System.Windows.Forms.Label();
+        this.treeviewLabel <- new System.Windows.Forms.Label();
         this.rightContainer <- new System.Windows.Forms.SplitContainer();
         this.rightUpperSplitContainer <- new System.Windows.Forms.SplitContainer();
-        this.descriptionTextBox <- new System.Windows.Forms.TextBox();
-        this.descriptionLabel <- new System.Windows.Forms.Label();
+        this.pathTextBox <- new System.Windows.Forms.TextBox();
+        this.pathLabel <- new System.Windows.Forms.Label();
         this.codeRichTextBox <- new System.Windows.Forms.RichTextBox();
         this.codeLabel <- new System.Windows.Forms.Label();
         this.runButton <- new System.Windows.Forms.Button();
@@ -301,7 +359,7 @@ type MyForm =
         // outerSplitContainer.Panel1
         // 
         this.outerSplitContainer.Panel1.Controls.Add(this.valueTreeView);
-        this.outerSplitContainer.Panel1.Controls.Add(this.samplesLabel);
+        this.outerSplitContainer.Panel1.Controls.Add(this.treeviewLabel);
         // 
         // outerSplitContainer.Panel2
         // 
@@ -328,12 +386,12 @@ type MyForm =
         this.valueTreeView.ShowRootLines <- false;
         this.valueTreeView.Size <- new System.Drawing.Size(450, 654);
         this.valueTreeView.TabIndex <- 1;
-        //this.valueTreeView.add_AfterExpand(fun _ e -> 
         this.valueTreeView.add_NodeMouseDoubleClick(fun  _ e -> 
-              match e.Node.Level with 
-              | 0  -> ()
-              | _ when (e.Node.Tag<> null) -> ignore(expand_term_in_treeview this.hors e.Node);
-              | _ -> ();
+                if is_expandable_treeviewnode e.Node then
+                  begin
+                    ignore(expand_term_in_treeview this.hors e.Node);
+                    this.validate_valuetree_path e.Node;
+                  end
               );
                         
         this.valueTreeView.add_BeforeCollapse(fun _ e -> 
@@ -344,26 +402,10 @@ type MyForm =
             
         this.valueTreeView.add_AfterSelect(fun _ e -> 
             let currentNode = this.valueTreeView.SelectedNode  
-            this.runButton.Enabled <- (currentNode.Tag<>null);
-            match currentNode.Tag with 
-            | null -> 
-                this.descriptionTextBox.Text <- "You can double-click on the item labelled with a question mark in the treeview. This will perform the reduction of the corresponding rule of the recursion scheme.";
-                //this.codeRichTextBox.Clear();
-                this.outputTextBox.Clear();
-                if (e.Action <> TreeViewAction.Collapse && e.Action <> TreeViewAction.Unknown) then
-                    e.Node.Expand();
-            | _ -> ());
-              
-     (*   this.valueTreeView.add_AfterCollapse(fun _ e -> 
-          match e.Node.Level with 
-          | 1 -> 
-            e.Node.ImageKey <- "BookStack";
-            e.Node.SelectedImageKey <- "BookStack";
-          |  2 ->
-            e.Node.ImageKey <- "BookClosed";
-            e.Node.SelectedImageKey <- "BookClosed"
-          | _ -> ());
-*)
+            this.runButton.Enabled <- is_expandable_treeviewnode currentNode;
+            this.validate_valuetree_path currentNode;
+        );
+ 
         // 
         // imageList
         // 
@@ -377,15 +419,15 @@ type MyForm =
         this.imageList.Images.SetKeyName(5, "Run");
         
         // 
-        // samplesLabel
+        // treeviewLabel
         // 
-        this.samplesLabel.AutoSize <- true;
-        this.samplesLabel.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
-        this.samplesLabel.Location <- new System.Drawing.Point(3, 9);
-        this.samplesLabel.Name <- "samplesLabel";
-        this.samplesLabel.Size <- new System.Drawing.Size(58, 16);
-        this.samplesLabel.TabIndex <- 0;
-        this.samplesLabel.Text <- "The lazy value-tree:";
+        this.treeviewLabel.AutoSize <- true;
+        this.treeviewLabel.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
+        this.treeviewLabel.Location <- new System.Drawing.Point(3, 9);
+        this.treeviewLabel.Name <- "treeviewLabel";
+        this.treeviewLabel.Size <- new System.Drawing.Size(58, 16);
+        this.treeviewLabel.TabIndex <- 0;
+        this.treeviewLabel.Text <- "The lazy value-tree:";
         // 
         // rightContainer
         // 
@@ -420,8 +462,8 @@ type MyForm =
         // 
         // rightUpperSplitContainer.Panel1
         // 
-        this.rightUpperSplitContainer.Panel1.Controls.Add(this.descriptionTextBox);
-        this.rightUpperSplitContainer.Panel1.Controls.Add(this.descriptionLabel);
+        this.rightUpperSplitContainer.Panel1.Controls.Add(this.pathTextBox);
+        this.rightUpperSplitContainer.Panel1.Controls.Add(this.pathLabel);
         // 
         // rightUpperSplitContainer.Panel2
         // 
@@ -431,32 +473,32 @@ type MyForm =
         this.rightUpperSplitContainer.SplitterDistance <- 95;
         this.rightUpperSplitContainer.TabIndex <- 0;
         // 
-        // descriptionTextBox
+        // pathTextBox
         // 
-        this.descriptionTextBox.Anchor<- 
+        this.pathTextBox.Anchor<- 
           Enum.combine [ System.Windows.Forms.AnchorStyles.Top;
                     System.Windows.Forms.AnchorStyles.Bottom;
                     System.Windows.Forms.AnchorStyles.Left;
                     System.Windows.Forms.AnchorStyles.Right ];
-        this.descriptionTextBox.BackColor <- System.Drawing.SystemColors.ControlLight;
-        this.descriptionTextBox.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
-        this.descriptionTextBox.Location <- new System.Drawing.Point(0, 28);
-        this.descriptionTextBox.Multiline <- true;
-        this.descriptionTextBox.Name <- "descriptionTextBox";
-        this.descriptionTextBox.ReadOnly <- true;
-        this.descriptionTextBox.ScrollBars <- System.Windows.Forms.ScrollBars.Vertical;
-        this.descriptionTextBox.Size <- new System.Drawing.Size(680, 67);
-        this.descriptionTextBox.TabIndex <- 1;
+        this.pathTextBox.BackColor <- System.Drawing.SystemColors.ControlLight;
+        this.pathTextBox.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
+        this.pathTextBox.Location <- new System.Drawing.Point(0, 28);
+        this.pathTextBox.Multiline <- true;
+        this.pathTextBox.Name <- "pathTextBox";
+        this.pathTextBox.ReadOnly <- true;
+        this.pathTextBox.ScrollBars <- System.Windows.Forms.ScrollBars.Vertical;
+        this.pathTextBox.Size <- new System.Drawing.Size(680, 67);
+        this.pathTextBox.TabIndex <- 1;
         // 
-        // descriptionLabel
+        // pathLabel
         // 
-        this.descriptionLabel.AutoSize <- true;
-        this.descriptionLabel.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
-        this.descriptionLabel.Location <- new System.Drawing.Point(3, 9);
-        this.descriptionLabel.Name <- "descriptionLabel";
-        this.descriptionLabel.Size <- new System.Drawing.Size(72, 16);
-        this.descriptionLabel.TabIndex <- 0;
-        this.descriptionLabel.Text <- "Tip:";
+        this.pathLabel.AutoSize <- true;
+        this.pathLabel.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
+        this.pathLabel.Location <- new System.Drawing.Point(3, 9);
+        this.pathLabel.Name <- "pathLabel";
+        this.pathLabel.Size <- new System.Drawing.Size(72, 16);
+        this.pathLabel.TabIndex <- 0;
+        this.pathLabel.Text <- "Result of the value tree path validation:";
         // 
         // codeRichTextBox
         // 
@@ -580,8 +622,11 @@ type MyForm =
         this.runButton.Text <- "Run";
         this.runButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
         this.runButton.Click.Add(fun e -> let node = this.valueTreeView.SelectedNode
-                                          if node.Tag<> null then
+                                          if is_expandable_treeviewnode node then
+                                            begin
                                              while not (expand_term_in_treeview this.hors node) do () done;
+                                             this.validate_valuetree_path node;
+                                            end
         );
          (*
               this.UseWaitCursor <- true;
@@ -651,7 +696,7 @@ type MyForm =
 
 
     val mutable outerSplitContainer : System.Windows.Forms.SplitContainer;
-    val mutable samplesLabel : System.Windows.Forms.Label;
+    val mutable treeviewLabel : System.Windows.Forms.Label;
     val mutable rightContainer : System.Windows.Forms.SplitContainer;
     val mutable outputTextBox : System.Windows.Forms.RichTextBox;
     val mutable outputLabel : System.Windows.Forms.Label;
@@ -660,8 +705,8 @@ type MyForm =
     val mutable cpdaButton : System.Windows.Forms.Button;
     val mutable pdaButton : System.Windows.Forms.Button;
     val mutable rightUpperSplitContainer : System.Windows.Forms.SplitContainer;
-    val mutable descriptionTextBox : System.Windows.Forms.TextBox;
-    val mutable descriptionLabel : System.Windows.Forms.Label;
+    val mutable pathTextBox : System.Windows.Forms.TextBox;
+    val mutable pathLabel : System.Windows.Forms.Label;
     val mutable codeLabel : System.Windows.Forms.Label;
     val mutable valueTreeView : System.Windows.Forms.TreeView;
     val mutable imageList : System.Windows.Forms.ImageList;
@@ -673,7 +718,7 @@ type MyForm =
 
     new (title,newhors) as this =
        { outerSplitContainer = null;
-         samplesLabel = null;
+         treeviewLabel = null;
          rightContainer = null;
          outputTextBox = null;
          outputLabel =null;
@@ -682,8 +727,8 @@ type MyForm =
          graphButton = null;
          runButton =null;
          rightUpperSplitContainer =null;
-         descriptionTextBox =null;
-         descriptionLabel = null;
+         pathTextBox =null;
+         pathLabel = null;
          codeLabel = null;
          valueTreeView = null;
          imageList = null;
@@ -713,7 +758,6 @@ type MyForm =
         this.compgraph <- hors_to_graph this.hors this.lnfrules;
 
         let SNode = new TreeNode("S")  
-        SNode.Tag <- (null : obj);
         SNode.ImageKey <- "Help";
         SNode.SelectedImageKey <- "Help";
         SNode.Tag <- Nt("S");
