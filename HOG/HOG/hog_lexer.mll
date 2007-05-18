@@ -77,7 +77,7 @@ and linecomment = parse
 | eof              { () }
 
 and comment = parse
-  "*)"			       { colno:= !colno + 2 }
+  //"*)"			       { colno:= !colno + 2 }
 | "\n"			       { colno := 0; incr lineno; comment lexbuf }
 | _			           { colno:= !colno + (String.length (lexeme lexbuf)); comment lexbuf }
 | eof			       { () }

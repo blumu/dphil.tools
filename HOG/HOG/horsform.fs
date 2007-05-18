@@ -98,7 +98,7 @@ let expand_term_in_treeview hors (treeview_node:TreeNode) =
     expand_term_in_treeview_aux treeview_node redterm;
 ;;
 
-
+(*
 let keywords = 
    [  "abstract";"and";"as";"assert"; "asr";
       "begin"; "class"; "constructor"; "default";
@@ -146,6 +146,8 @@ let colorizeCode(rtb: # RichTextBox) =
             keywordPos <- rtb.Find(keyword, keywordPos + rtb.SelectionLength, Enum.combine[RichTextBoxFinds.MatchCase; RichTextBoxFinds.WholeWord])
     );
     rtb.Select(0, 0)
+*)
+#light
 
 type HorsForm = 
   class
@@ -403,6 +405,7 @@ type HorsForm =
         this.graphButton.Click.Add(fun e -> 
             // create a form
             let form = new System.Windows.Forms.Form()
+            form.Text <- "Computation graph of "^this.filename;
             form.Size <- Size(700,800);
             // create a viewer object
             let viewer = new Microsoft.Glee.GraphViewerGdi.GViewer()
@@ -437,7 +440,7 @@ type HorsForm =
         this.cpdaButton.Click.Add( fun e -> //create the cpda form
                                             let cpda = (Hocpda.hors_to_cpda false this.hors this.compgraph this.vartmtypes)
                                             let initconf = State(0),(push1 cpda (empty_hostack cpda.n) "S" (0,0) )
-                                            let form = new Cpdaform.CpdaForm("CPDA", cpda, initconf)
+                                            let form = new Cpdaform.CpdaForm("CPDA built from the recursion scheme "^this.filename, cpda, initconf)
                                             ignore(form.Show());
                                  );
 
@@ -458,7 +461,7 @@ type HorsForm =
         this.pdaButton.Click.Add( fun e -> //create the pda
                                             let pda = (Hocpda.hors_to_cpda true this.hors this.compgraph this.vartmtypes)
                                             let initconf = State(0),(push1 pda (empty_hostack pda.n) "S" (0,0) )
-                                            let form = new Cpdaform.CpdaForm("PDA", pda, initconf)
+                                            let form = new Cpdaform.CpdaForm("PDA built from the recursion scheme "^this.filename, pda, initconf)
                                             ignore(form.Show());
                                  );
             
@@ -572,6 +575,7 @@ type HorsForm =
     val mutable lnfrules : lnfrule list;
     val mutable vartmtypes : (ident*typ) list;
     val mutable compgraph : computation_graph;
+    val mutable filename : string;
 
     new (filename,newhors) as this =
        { outerSplitContainer = null;
@@ -595,12 +599,14 @@ type HorsForm =
          lnfrules = [];
          vartmtypes = [];
          compgraph = [||],NodeEdgeMap.empty;
+         filename = "";
          }
        
        then 
         this.InitializeComponent();
 
         this.Text <- ("Higher-order recursion scheme - "^filename);
+        this.filename <- filename;
 
         let rootNode = new TreeNode("Value tree", Tag = (null : obj), ImageKey = "BookStack", SelectedImageKey = "BookStack")
         ignore(this.valueTreeView.Nodes.Add(rootNode));
@@ -629,19 +635,3 @@ type HorsForm =
         SNode.Tag <- Nt("S");
         ignore(rootNode.Nodes.Add(SNode));       
   end
-  
-  
-
-
-(*
-/// <summary>
-/// The main entry point for the application.
-/// </summary>
-[<STAThread>]
-let main() = 
-    Application.EnableVisualStyles();
-    (* Load the urz recursion scheme *)
-    let form = new HorsForm("HOG value tree", urz) in
-    ignore(form.ShowDialog());;
-main();;
-*)
