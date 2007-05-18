@@ -31,6 +31,7 @@ val string_of_rs : recscheme -> string
 val appterm_operator_operands  : appterm -> appterm * appterm list
 val step_reduce : recscheme -> appterm -> bool * appterm
 
+exception RscheckError of string;;
 val rs_check : recscheme -> bool
 
 
@@ -102,3 +103,6 @@ val graph_childnode : cg_edges -> int -> int -> int
 val graph_n_children : cg_edges -> int -> int 
 val graph_node_type : (ident*typ) list -> nodecontent -> typ
 val hors_to_graph : recscheme -> lnfrule list -> computation_graph
+
+(** Validators *)
+val demiranda_validator :  terminal list -> bool * string

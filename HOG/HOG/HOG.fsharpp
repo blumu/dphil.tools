@@ -10,7 +10,7 @@
     "OptLevel" = "Off"
     "StrongNamingLevel" = "None"
     "OutputPath" = ""
-    "SearchPath" = "-r Microsoft.GLEE.dll -r Microsoft.GLEE.Drawing.dll -r Microsoft.GLEE.GraphViewerGDI.dll"
+    "SearchPath" = "--target-winexe -r Microsoft.GLEE.dll -r Microsoft.GLEE.Drawing.dll -r Microsoft.GLEE.GraphViewerGDI.dll"
     "StrongNameFile" = ""
     "OutputBase" = ""
     "CustomCommandLine" = ""
@@ -20,7 +20,7 @@
     "DebugStartMode" = "0"
     "StartApp" = ""
     "StartAppPath" = ""
-    "CustomStartupArguments" = ""
+    "CustomStartupArguments" = "urzyczyn.rs"
     }
     "Release|Win32"
     {
@@ -59,11 +59,11 @@
     {
     "ProjRelPath" = "T"
     }
-    "myform.fs"
+    "horsform.fs"
     {
     "ProjRelPath" = "T"
     }
-    "myform.resx"
+    "horsform.resx"
     {
     "ProjRelPath" = "T"
     }
@@ -75,7 +75,38 @@
     {
     "ProjRelPath" = "T"
     }
-
+    "parsing.ml"
+    {
+    "ProjRelPath" = "T"
+    }
+    "hog_parser.mli"
+    {
+    "ProjRelPath" = "T"
+    }
+    "hog_parser.ml"
+    {
+    "ProjRelPath" = "T"
+    }
+    "hog_lexer.ml"
+    {
+    "ProjRelPath" = "T"
+    }
+    "mainform.fs"
+    {
+    "ProjRelPath" = "T"
+    }
+    "hog_lexer.mll"
+    {
+    "ProjRelPath" = "T"
+    }
+    "hog_parser.mly"
+    {
+    "ProjRelPath" = "T"
+    }
+    "urzyczyn.rs"
+    {
+    "ProjRelPath" = "T"
+    }
 }
 "ProjStartupServices"
 {

@@ -10,149 +10,6 @@ open Printf
 open Hog
 open Hocpda
 
-(* HORS producing the Urzyczyn's tree *)
-exception InvalidPath of string;;
-let urz = {
-    nonterminals = [ "S", Gr;
-                     "D", Ar(Ar(Gr,Ar(Gr,Gr)), Ar(Gr,Ar(Gr,Ar(Gr,Gr)))) ;
-                     "F", Ar(Gr,Gr) ;
-                     "E", Gr ;
-                     "G", Ar(Gr,Ar(Gr,Gr)) ;
-                   ];
-    sigma = [   "[", Ar(Gr,Gr) ;
-                "]", Ar(Gr,Gr);
-                "*", Ar(Gr,Gr);
-                "3", Ar(Gr,Ar(Gr,Ar(Gr,Gr)));
-                "e", Gr;
-                "r", Gr;
-            ];
-    rules = [   "S",[],App(Tm("["),
-                     App(App(App(App(Nt("D"), Nt("G")),Nt("E")),Nt("E")),Nt("E"))
-                     ); 
-                "D",["phi";"x";"y";"z"],
-                    App(App(App(Tm("3"),
-                        App(Tm("["), 
-                        App(App(App(App(Nt("D"), App(App(Nt("D"), Var("phi")),Var("x"))),
-                        Var("z")
-                        ),
-                        App(Nt("F"), Var("y"))
-                        ),App(Nt("F"), Var("y")))
-                        )),
-                        App(Tm("]"), App(App(Var("phi"),Var("y")),Var("x")))),
-                        App(Tm("*"), Var("z")));
-                "F",["x"],App(Tm("*"),Var("x"));
-                "E",[],Tm("e");
-                "G",["u";"v"],Tm("r");
-        ];
-        
-    rs_path_validator = (function path ->  let s = Array.of_list path in
-                                           let f = ref 0 in
-                                           let b = ref ((Array.length s)-1) in
-                                           let read_forward ident = if s.(!f) = ident then incr(f) else raise (InvalidPath "unexpected terminal symbol") in
-                                           let read_backward ident = if s.(!b) = ident then decr(b) else raise (InvalidPath "unexpected terminal symbol") in
-                                           (* A function that checks for a prefix of a well-bracketed sequence starting at !f and finishing at e.
-                                              It returns (lev,nopen) where level is the nesting level (0 for a well-bracketed sequence) at !f
-                                              and nopen is the number of occurrences of the opening bracket '['. *)
-                                           let well_bracketed_prefix e =
-                                             let level = ref 0 in
-                                             let nopen = ref 0 in
-                                             while !f <= e do
-                                               (match s.(!f) with
-                                                 "[" -> incr nopen; incr level
-                                                | "]" when !level > 0 -> decr level;
-                                                | _ -> raise (InvalidPath "unexpected terminal symbol"));
-                                                incr f;
-                                                if !f < e then read_forward "3";                                                       
-                                             done;
-                                             !level,!nopen
-                                           in
-                                           (* a function that checks read the longest well-bracketed sequence ending
-                                              at b *)
-                                           let read_backward_longest_well_bracketed () =
-                                             let level = ref 0 and cont = ref true in
-                                             while !cont && !b >= 0 do
-                                               (match s.(!b) with
-                                                 "]" -> incr level;
-                                                        read_backward "]";
-                                                        if !b > 0 then read_backward "3";
-                                                | "[" when !level >0 -> decr level;
-                                                                        read_backward "[";
-                                                                        if !b > 0 then read_backward "3";
-                                                | "[" -> cont:= false;
-                                                | _ -> raise (InvalidPath "unexpected terminal symbol") );
-                                             done;
-                                             (* If the whole sequence has been read then it must be completely well-bracketed *)
-                                             if !cont && !level <> 0 then
-                                               raise (InvalidPath "not a prefix of a well-bracketed sequence.") 
-                                           in
-                                           (* Check de Miranda's decomposition of the Urzyczin word. 
-                                              returns nstars,nopen where nstars is the number of stars at the end of the sequence,
-                                              and nopen is the number of opening brackets in the first part of the 
-                                              de Miranda's decomposition. *)
-                                           let demiranda_decompos() =
-                                                (* We first proceed by reading the sequence backwards: *)
-                                                (* 1 - counts the number of stars at the end of the sequence  *)
-                                                let nbstars = ref 0 in
-                                                while s.(!b) = "*" do 
-                                                read_backward "*";
-                                                incr nbstars;                                                               
-                                                done;
-                                                read_backward "3";
-                                                (* 2 - read backwards the longest well-bracketed sequence *)
-                                                read_backward_longest_well_bracketed();
-
-                                                (* 3 - read forwards the remaining part of the sequence (the beginning), checking
-                                                that it is a prefix of a well-bracketed sequence and counting the number of 
-                                                occurrences of opening bracket '['. *)
-                                                let level,nbopening = well_bracketed_prefix !b in
-                                                
-                                                !nbstars,nbopening
-                                            in
-                                            (* accepts the empty string *)
-                                            if !b = -1 then true,"Empty path"
-                                            else
-                                                try                                                         
-                                                   match s.(!b) with
-                                                    "e" -> decr b; (* skip the 'e' at the end *)
-                                                           let nbstars,nbopening = demiranda_decompos() in
-                                                           (* Check that the number of star is equal to the number of '[' *)
-                                                           if nbstars = nbopening then
-                                                             true,"Valid maximal path"
-                                                           else
-                                                             false,"Invalid maximal path"
-
-                                                    | "r" ->  (* Check for a well-bracketed sequence from !f to !b-1 *)
-                                                              if fst (well_bracketed_prefix (!b-1)) = 0 then
-                                                                true,"Valid maximal path"
-                                                              else
-                                                                false,"Invalid maximal path"
-
-                                                    | "[" | "]" -> ignore(well_bracketed_prefix !b); true,"Valid prefix path"
-
-                                                    | "3" -> ignore(well_bracketed_prefix (!b-1)); true,"Valid prefix path"
-                                                    
-                                                    | "*" -> let nbstars,nbopening = demiranda_decompos() in
-                                                             (* Check that the number of star is <= than the number of '[' *)
-                                                             if nbstars <= nbopening then
-                                                               true,"Valid prefix path"
-                                                             else
-                                                               false,"Invalid prefix path"
-                                                               
-                                                    | _ -> false,"Invalid path containing undefined terminals"
-                                                with InvalidPath(msg) -> false, "Invalid path, "^msg )
-                        
- };;
-
-rs_check urz;;
-(*
-let testcpda = {    n = 5;
-                    terminals_alphabet = ["f",Gr; "g",Ar(Gr,Gr); ];
-                    stack_alphabet = ["e1";"e2"];
-                    code = [|Push1("e1",(0,0)); Emit("g",[1;2]); GotoIfTop0(1,"e2"); Push1("e1",(0,0)); Collapse|];
-               }
-*)
-
-
 
 (** Create the graph view of the computation graph
     @param rs recursion scheme
@@ -290,7 +147,7 @@ let colorizeCode(rtb: # RichTextBox) =
     );
     rtb.Select(0, 0)
 
-type MyForm = 
+type HorsForm = 
   class
     inherit Form as base
 
@@ -321,7 +178,7 @@ type MyForm =
 
     member this.InitializeComponent() =
         this.components <- new System.ComponentModel.Container();
-        let resources = new System.ComponentModel.ComponentResourceManager((type MyForm)) 
+        let resources = new System.ComponentModel.ComponentResourceManager((type HorsForm)) 
         this.outerSplitContainer <- new System.Windows.Forms.SplitContainer();
         this.valueTreeView <- new System.Windows.Forms.TreeView();
         this.imageList <- new System.Windows.Forms.ImageList(this.components);
@@ -716,7 +573,7 @@ type MyForm =
     val mutable vartmtypes : (ident*typ) list;
     val mutable compgraph : computation_graph;
 
-    new (title,newhors) as this =
+    new (filename,newhors) as this =
        { outerSplitContainer = null;
          treeviewLabel = null;
          rightContainer = null;
@@ -743,14 +600,23 @@ type MyForm =
        then 
         this.InitializeComponent();
 
-        this.Text <- "Higher-order recursion scheme tool";
+        this.Text <- ("Higher-order recursion scheme - "^filename);
 
-        let rootNode = new TreeNode(title, Tag = (null : obj), ImageKey = "BookStack", SelectedImageKey = "BookStack")
+        let rootNode = new TreeNode("Value tree", Tag = (null : obj), ImageKey = "BookStack", SelectedImageKey = "BookStack")
         ignore(this.valueTreeView.Nodes.Add(rootNode));
         rootNode.Expand();
       
         // convert the rules to LNF
         let r,v = rs_to_lnf this.hors in
+        
+        if not (rs_check this.hors) then
+          begin
+            let msg = "Inconsistent HORS definition. Check types and identifier definitions (terminals, non-terminals, variable)." in
+            //Mainform.Debug_print msg;
+            failwith msg
+          end
+          
+
         this.lnfrules <- r;
         this.vartmtypes <- v;
         
@@ -767,7 +633,7 @@ type MyForm =
   
 
 
-
+(*
 /// <summary>
 /// The main entry point for the application.
 /// </summary>
@@ -775,6 +641,7 @@ type MyForm =
 let main() = 
     Application.EnableVisualStyles();
     (* Load the urz recursion scheme *)
-    let form = new MyForm("HOG value tree", urz) in
+    let form = new HorsForm("HOG value tree", urz) in
     ignore(form.ShowDialog());;
 main();;
+*)

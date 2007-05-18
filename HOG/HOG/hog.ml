@@ -96,6 +96,7 @@ let rec create_paramtyplist nt p t = match p,t with
 ;;
 
 
+exception RscheckError of string;;
 
 (* Check that rs is a well-defined recursion scheme *)
 let rs_check rs =
@@ -127,29 +128,29 @@ let rs_check rs =
     (List.exists (function (a,t)-> 
             if a=p then
             begin
-              print_string ("Parameter name "^p^" conflicts with a terminal name in ");
-              print_rule rs eq; valid := false;
+              raise (RscheckError ("Parameter name "^p^" conflicts with a terminal name in "^(string_of_rule rs eq)));
+               valid := false;
             end;
             a=p) rs.sigma)) para in
     
     try if (typecheck_term appterm) <> Gr then
         begin
-          print_string ("RHS is not of ground type in: ");
+          raise (RscheckError "RHS is not of ground type in: ");
           print_rule rs eq; valid := false;
         end
     with 
         Wrong_variable_name(x) ->
-            print_string ("Undefined variable '"^x^"' in RHS of: ") ;
-            print_rule rs eq; valid := false;
+            raise (RscheckError ("Undefined variable '"^x^"' in RHS of: "^(string_of_rule rs eq))) ;
+            valid := false;
         | Wrong_terminal_name(x) ->
-            print_string ("Undefined terminal '"^x^"' in RHS of: ") ;
-            print_rule rs eq; valid := false;
+            raise (RscheckError ("Undefined terminal '"^x^"' in RHS of: "^(string_of_rule rs eq))) ;
+            valid := false;
         | Wrong_nonterminal_name(x) ->
-            print_string ("Undefined non-terminal '"^x^"' in RHS of: ") ;
-            print_rule rs eq; valid := false;
+            raise (RscheckError ("Undefined non-terminal '"^x^"' in RHS of: "^(string_of_rule rs eq))) ;
+            valid := false;
         | Type_check_error ->
-            print_string ("Type-checking error in RHS of: ") ;
-            print_rule rs eq; valid := false;
+            raise (RscheckError "Type-checking error in RHS of: ") ;
+            valid := false;
 in
 	(* Check all the rules *)
     List.iter check_eq rs.rules;
@@ -159,8 +160,8 @@ in
 	begin
 		match (List.hd rs.rules) with
 			_,[],_ -> ()
-		|	_ -> print_string ("The LHS of the first rule must be of ground type (i.e. no parameter)!");
-				 print_newline(); valid := false;
+		|	_ -> raise (RscheckError "The LHS of the first rule must be of ground type (i.e. no parameter)!");
+				 valid := false;
 	end;
 				 
 	!valid    
@@ -510,17 +511,118 @@ let hors_to_graph (rs:recscheme) lnfrules =
 ;;
 
 
+(**************** Validators ***********)
+
+exception InvalidPath of string;;
 
 
+(** Validator for paths of Urzyczyn's tree based on De Mirand's decomposition. *)
+let demiranda_validator path =
+   let s = Array.of_list path in
+   let f = ref 0 in
+   let b = ref ((Array.length s)-1) in
+   let read_forward ident = if s.(!f) = ident then incr(f) else raise (InvalidPath "unexpected terminal symbol") in
+   let read_backward ident = if s.(!b) = ident then decr(b) else raise (InvalidPath "unexpected terminal symbol") in
+   (* A function that checks for a prefix of a well-bracketed sequence starting at !f and finishing at e.
+      It returns (lev,nopen) where level is the nesting level (0 for a well-bracketed sequence) at !f
+      and nopen is the number of occurrences of the opening bracket '['. *)
+   let well_bracketed_prefix e =
+     let level = ref 0 in
+     let nopen = ref 0 in
+     while !f <= e do
+       (match s.(!f) with
+         "[" -> incr nopen; incr level
+        | "]" when !level > 0 -> decr level;
+        | _ -> raise (InvalidPath "unexpected terminal symbol"));
+        incr f;
+        if !f < e then read_forward "3";                                                       
+     done;
+     !level,!nopen
+   in
+   (* a function that checks read the longest well-bracketed sequence ending
+      at b *)
+   let read_backward_longest_well_bracketed () =
+     let level = ref 0 and cont = ref true in
+     while !cont && !b >= 0 do
+       (match s.(!b) with
+         "]" -> incr level;
+                read_backward "]";
+                if !b > 0 then read_backward "3";
+        | "[" when !level >0 -> decr level;
+                                read_backward "[";
+                                if !b > 0 then read_backward "3";
+        | "[" -> cont:= false;
+        | _ -> raise (InvalidPath "unexpected terminal symbol") );
+     done;
+     (* If the whole sequence has been read then it must be completely well-bracketed *)
+     if !cont && !level <> 0 then
+       raise (InvalidPath "not a prefix of a well-bracketed sequence.") 
+   in
+   (* Check de Miranda's decomposition of the Urzyczin word. 
+      returns nstars,nopen where nstars is the number of stars at the end of the sequence,
+      and nopen is the number of opening brackets in the first part of the 
+      de Miranda's decomposition. *)
+   let demiranda_decompos() =
+        (* We first proceed by reading the sequence backwards: *)
+        (* 1 - counts the number of stars at the end of the sequence  *)
+        let nbstars = ref 0 in
+        while s.(!b) = "*" do 
+        read_backward "*";
+        incr nbstars;                                                               
+        done;
+        read_backward "3";
+        (* 2 - read backwards the longest well-bracketed sequence *)
+        read_backward_longest_well_bracketed();
 
+        (* 3 - read forwards the remaining part of the sequence (the beginning), checking
+        that it is a prefix of a well-bracketed sequence and counting the number of 
+        occurrences of opening bracket '['. *)
+        let level,nbopening = well_bracketed_prefix !b in
+        
+        !nbstars,nbopening
+    in
+    (* accepts the empty string *)
+    if !b = -1 then true,"Empty path"
+    else
+        try                                                         
+           match s.(!b) with
+            "e" -> decr b; (* skip the 'e' at the end *)
+                   let nbstars,nbopening = demiranda_decompos() in
+                   (* Check that the number of star is equal to the number of '[' *)
+                   if nbstars = nbopening then
+                     true,"Valid maximal path"
+                   else
+                     false,"Invalid maximal path"
+
+            | "r" ->  (* Check for a well-bracketed sequence from !f to !b-1 *)
+                      if fst (well_bracketed_prefix (!b-1)) = 0 then
+                        true,"Valid maximal path"
+                      else
+                        false,"Invalid maximal path"
+
+            | "[" | "]" -> ignore(well_bracketed_prefix !b); true,"Valid prefix path"
+
+            | "3" -> ignore(well_bracketed_prefix (!b-1)); true,"Valid prefix path"
+            
+            | "*" -> let nbstars,nbopening = demiranda_decompos() in
+                     (* Check that the number of star is <= than the number of '[' *)
+                     if nbstars <= nbopening then
+                       true,"Valid prefix path"
+                     else
+                       false,"Invalid prefix path"
+                       
+            | _ -> false,"Invalid path containing undefined terminals"
+        with InvalidPath(msg) -> false, "Invalid path, "^msg
+;;
 
 
 
 
 (**** Tests **)
 
-(* example of recursion scheme *)
 (*
+
+(* example of recursion scheme *)
 let rs : recscheme = {
   nonterminals = [ "S", Gr;
                    "F", Ar(Gr,Ar(Gr,Gr)) ;
@@ -534,10 +636,50 @@ let rs : recscheme = {
             "G",["phi";"x"],App(Tm("g"), App(Tm("g"), Var("x")));
           ]
 } ;;
-*)
 
-(* string_of_type (Ar(Gr,Ar(Gr,Gr)));; *)
-(* print_alphabet rs.sigma;; *)
-(* print_rs rs;; *)
-(* rs_check rs;; *)
-(* oi_derivation rs; *)
+string_of_type (Ar(Gr,Ar(Gr,Gr)));;
+print_alphabet rs.sigma;;
+print_rs rs;;
+rs_check rs;;
+oi_derivation rs;
+
+
+(* HORS producing Urzyczyn's tree *)
+let urz = {
+    nonterminals = [ "S", Gr;
+                     "D", Ar(Ar(Gr,Ar(Gr,Gr)), Ar(Gr,Ar(Gr,Ar(Gr,Gr)))) ;
+                     "F", Ar(Gr,Gr) ;
+                     "E", Gr ;
+                     "G", Ar(Gr,Ar(Gr,Gr)) ;
+                   ];
+    sigma = [   "[", Ar(Gr,Gr) ;
+                "]", Ar(Gr,Gr);
+                "*", Ar(Gr,Gr);
+                "3", Ar(Gr,Ar(Gr,Ar(Gr,Gr)));
+                "e", Gr;
+                "r", Gr;
+            ];
+    rules = [   "S",[],App(Tm("["),
+                     App(App(App(App(Nt("D"), Nt("G")),Nt("E")),Nt("E")),Nt("E"))
+                     ); 
+                "D",["phi";"x";"y";"z"],
+                    App(App(App(Tm("3"),
+                        App(Tm("["), 
+                        App(App(App(App(Nt("D"), App(App(Nt("D"), Var("phi")),Var("x"))),
+                        Var("z")
+                        ),
+                        App(Nt("F"), Var("y"))
+                        ),App(Nt("F"), Var("y")))
+                        )),
+                        App(Tm("]"), App(App(Var("phi"),Var("y")),Var("x")))),
+                        App(Tm("*"), Var("z")));
+                "F",["x"],App(Tm("*"),Var("x"));
+                "E",[],Tm("e");
+                "G",["u";"v"],Tm("r");
+        ];
+        
+    rs_path_validator = Hog.demiranda_validator
+ };;
+
+
+*)

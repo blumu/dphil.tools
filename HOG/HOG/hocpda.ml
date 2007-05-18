@@ -111,7 +111,8 @@ exception Cpda_execution_failed of string * string;;
 (** [empty_hostack n] constructs an empty stack of order n for n>=1 **)
 let rec empty_hostack = function 
     1 -> Stack([])
-  | n -> Stack([empty_hostack (n-1)])
+  | n when n > 1 -> Stack([empty_hostack (n-1)])
+  | _ -> failwith "Cannot create an empty stack of order 0!"
 ;;
 
 exception EmptyHOStack;;
@@ -284,6 +285,7 @@ let hocpda_step cpda genconf =
 let hocpda_initconf cpda =
   State(0),(empty_hostack cpda.n);
 ;;
+
 
 
 (** pretty-printer for ho-stacks **)
@@ -709,6 +711,7 @@ let hors_to_cpda colapsesim hors ((nodes_content:cg_nodes),(edges:cg_edges)) var
 
 
 (***** Tests ****)
+(*
 
 let test = { n = 5;
 	     terminals_alphabet = ["f",Gr];
@@ -722,3 +725,11 @@ let conf = (0, Stack([Stack([Stack([Stack([Stack([El("e1",(0,0))])])])])]))
 ;;
 
 hocpda_step test (hocpda_initconf test);; 
+
+
+let testcpda = {    n = 5;
+                    terminals_alphabet = ["f",Gr; "g",Ar(Gr,Gr); ];
+                    stack_alphabet = ["e1";"e2"];
+                    code = [|Push1("e1",(0,0)); Emit("g",[1;2]); GotoIfTop0(1,"e2"); Push1("e1",(0,0)); Collapse|];
+               }
+*)
