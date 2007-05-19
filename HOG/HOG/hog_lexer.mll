@@ -25,59 +25,71 @@ let kwtable =
         ("non-terminals",  SEC_NONTERMINALS );
         ("rules",  SEC_RULES );
         ("none",  NONE );
-        ("demiranda_urzyczin",  DEMIRANDA );
+        ("demiranda_urzyczyn",  DEMIRANDA );
   ];
     tbl;;
 
 let lookup s = try Hashtbl.find kwtable s with Not_found -> ATOM s;;
 
-let lineno = ref 1;;
-let colno = ref 0;;
+
+(*IF-OCAML*)
+let incr_linenum lexbuf =
+	let pos = lexbuf.Lexing.lex_curr_p in
+		lexbuf.Lexing.lex_curr_p <- { 
+			pos with
+				Lexing.pos_lnum = pos.Lexing.pos_lnum + 1;
+				Lexing.pos_bol = pos.Lexing.pos_cnum;
+		}
+;;
+(*ENDIF-OCAML*)
+(*F#
+let incr_linenum (lexbuf : lexbuf) = lexbuf.EndPos <- lexbuf.EndPos.NextLine
+F#*)
+
 }
 
 rule token = parse
   //['A'-'Z' 'a'-'z' '_']
-  ['A'-'Z' 'a'-'z' '0'-'9' '_' '.' '$' '#' '-' ']' '[' '*' ]*
-			{ colno:= !colno + (String.length (lexeme lexbuf)); lookup (lexeme lexbuf) }			
-| '"' [^'"']* '"'  { ATOM(lexeme lexbuf) }
+  ['A'-'Z' 'a'-'z' '0'-'9' '_' '.' '$' '#' '-' ']' '[' '*' ]*   { lookup (lexeme lexbuf) }			
+| '"' [^'"']* '"'    { ATOM(lexeme lexbuf) }
 
-//| ['0'-'9']+	     { colno:= !colno + (String.length (lexeme lexbuf)); NUMBER (int_of_string (lexeme lexbuf)) }
+//| ['0'-'9']+	     { NUMBER (int_of_string (lexeme lexbuf)) }
 
-| [' ' '\t']+	     { incr colno; token lexbuf }
-//| "(*"			       { colno := !colno + 2; comment lexbuf; token lexbuf }
-| "//"			       { colno := !colno + 2; linecomment lexbuf; token lexbuf }
-| ['\n' '\r']		   { colno := 0; incr lineno; token lexbuf }
+| [' ' '\t']+	     { token lexbuf }
+//| "(*"			 { comment lexbuf; token lexbuf }
+| "//"			     { linecomment lexbuf; token lexbuf }
+| ('\n' | '\r' '\n') { incr_linenum lexbuf; token lexbuf }
 
-//| "|"              { incr colno; OR }
-//| "&"              { incr colno; AND }
-| "("              { incr colno; LP }
-| ")"              { incr colno; RP }
-| "{"              { incr colno; LCB }
-| "}"              { incr colno; RCB }
-| ";"              { incr colno; SEMICOLON }
-| ":"              { incr colno; COLON }
-//| "!"              { incr colno; NEG }
-| "="              { incr colno; EQUAL }
-//| "<"              { incr colno; LT }
-//| ">"              { incr colno; GT }
-| "->"             { colno := !colno +2; ARROW }
-//| "!="             { colno := !colno +2; NOTEQUAL }
-//| "<="             { colno := !colno +2; LE }
-//| ">="             { colno := !colno +2; GE }
-//| ".."             { colno := !colno +2; TWODOTS }
-//| "<->"            { colno := !colno +3; EQUIV }
+//| "|"              { OR }
+//| "&"              { AND }
+| "("                { LP }
+| ")"                { RP }
+| "{"                { LCB }
+| "}"                { RCB }
+| ";"                { SEMICOLON }
+| ":"                { COLON }
+//| "!"              { NEG }
+| "="                { EQUAL }
+//| "<"              { LT }
+//| ">"              { GT }
+| "->"               {  ARROW }
+//| "!="             {  NOTEQUAL }
+//| "<="             {  LE }
+//| ">="             {  GE }
+//| ".."             {  TWODOTS }
+//| "<->"            {  EQUIV }
         
-| eof			         { EOF }
-| _				         { BADTOK }
+| eof			     { EOF }
+| _				     { BADTOK }
 
              
 and linecomment = parse
- "\n"              { colno := 0; incr lineno; }
-| _                { colno:= !colno + (String.length (lexeme lexbuf) ); linecomment lexbuf }
-| eof              { () }
+ ('\n' | '\r' '\n')	   { incr_linenum lexbuf;  }
+| _					   { linecomment lexbuf }
+| eof				   { () }
 
 and comment = parse
-  //"*)"			       { colno:= !colno + 2 }
-| "\n"			       { colno := 0; incr lineno; comment lexbuf }
-| _			           { colno:= !colno + (String.length (lexeme lexbuf)); comment lexbuf }
+  //"*)"			   {  }
+| ('\n' | '\r' '\n')   { incr_linenum lexbuf; comment lexbuf }
+| _			           { comment lexbuf }
 | eof			       { () }

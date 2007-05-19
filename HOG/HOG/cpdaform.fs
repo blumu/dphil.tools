@@ -483,7 +483,7 @@ type CpdaForm =
     val mutable codestartline : int
     val mutable cumul_linelength : int array
 
-    new (title, newcpda, initconf:gen_configuration) as this =
+    new (title, newcpda) as this =
        { outerSplitContainer = null;
          treeviewheadLabel = null;
          rightContainer = null;
@@ -516,7 +516,7 @@ type CpdaForm =
         let SNode = new TreeNode("0")
         SNode.ImageKey <- "Help";
         SNode.SelectedImageKey <- "Help";
-        init_treeviewnode_history SNode initconf;
+        init_treeviewnode_history SNode (hocpda_initconf this.cpda);
         ignore(rootNode.Nodes.Add(SNode));
   end
   

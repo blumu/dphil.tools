@@ -195,6 +195,7 @@ type HorsForm =
         this.graphButton <- new System.Windows.Forms.Button();
         this.cpdaButton <- new System.Windows.Forms.Button();
         this.pdaButton <- new System.Windows.Forms.Button();
+        this.np1pdaButton <- new System.Windows.Forms.Button();
         this.outputTextBox <- new System.Windows.Forms.RichTextBox();
         this.outputLabel <- new System.Windows.Forms.Label();
         this.outerSplitContainer.Panel1.SuspendLayout();
@@ -305,6 +306,7 @@ type HorsForm =
         this.rightContainer.Panel2.Controls.Add(this.graphButton);
         this.rightContainer.Panel2.Controls.Add(this.cpdaButton);
         this.rightContainer.Panel2.Controls.Add(this.pdaButton);
+        this.rightContainer.Panel2.Controls.Add(this.np1pdaButton);
         this.rightContainer.Panel2.Controls.Add(this.outputTextBox);
         this.rightContainer.Panel2.Controls.Add(this.outputLabel);
         this.rightContainer.Size <- new System.Drawing.Size(680, 682);
@@ -388,6 +390,31 @@ type HorsForm =
         this.codeLabel.Size <- new System.Drawing.Size(100, 16);
         this.codeLabel.TabIndex <- 0;
         this.codeLabel.Text <- "Description of the recursion scheme:";
+        
+        
+          // 
+        // runButton
+        // 
+        this.runButton.Enabled <- true;
+        this.runButton.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
+        this.runButton.ImageAlign <- System.Drawing.ContentAlignment.MiddleRight;
+        this.runButton.ImageKey <- "Run";
+        this.runButton.ImageList <- this.imageList;
+        this.runButton.Location <- new System.Drawing.Point(0, -1);
+        this.runButton.Name <- "runButton";
+        this.runButton.Size <- new System.Drawing.Size(90, 27);
+        this.runButton.TabIndex <- 0;
+        this.runButton.Text <- "Run";
+        this.runButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
+        this.runButton.Click.Add(fun e -> let node = this.valueTreeView.SelectedNode
+                                          if is_expandable_treeviewnode node then
+                                            begin
+                                             while not (expand_term_in_treeview this.hors node) do () done;
+                                             this.validate_valuetree_path node;
+                                            end
+        );
+        
+        
         // 
         // graphButton
         // 
@@ -396,9 +423,9 @@ type HorsForm =
         //this.graphButton.ImageAlign <- System.Drawing.ContentAlignment.MiddleRight;
         //this.graphButton.ImageKey <- "Run";
         //this.graphButton.ImageList <- this.imageList;
-        this.graphButton.Location <- new System.Drawing.Point(0, -1);
+        this.graphButton.Location <- new System.Drawing.Point(100, -1);
         this.graphButton.Name <- "graphButton";
-        this.graphButton.Size <- new System.Drawing.Size(160, 27);
+        this.graphButton.Size <- new System.Drawing.Size(140, 27);
         this.graphButton.TabIndex <- 0;
         this.graphButton.Text <- "Computation graph";
         this.graphButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
@@ -423,24 +450,22 @@ type HorsForm =
             ignore(form.Show()); 
         );
         
+      
+        
         //
         // cpdaButton
         //
         this.cpdaButton.Enabled <- true;
         this.cpdaButton.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
-        //this.cpdaButton.ImageAlign <- System.Drawing.ContentAlignment.MiddleRight;
-        //this.cpdaButton.ImageKey <- "Run";
-        //this.cpdaButton.ImageList <- this.imageList;
-        this.cpdaButton.Location <- new System.Drawing.Point(170, -1);
+        this.cpdaButton.Location <- new System.Drawing.Point(250, -1);
         this.cpdaButton.Name <- "cpdaButton";
         this.cpdaButton.Size <- new System.Drawing.Size(100, 27);
         this.cpdaButton.TabIndex <- 0;
-        this.cpdaButton.Text <- "Build CPDA";
+        this.cpdaButton.Text <- "Build n-CPDA";
         this.cpdaButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
         this.cpdaButton.Click.Add( fun e -> //create the cpda form
-                                            let cpda = (Hocpda.hors_to_cpda false this.hors this.compgraph this.vartmtypes)
-                                            let initconf = State(0),(push1 cpda (empty_hostack cpda.n) "S" (0,0) )
-                                            let form = new Cpdaform.CpdaForm("CPDA built from the recursion scheme "^this.filename, cpda, initconf)
+                                            let form = new Cpdaform.CpdaForm("CPDA built from the recursion scheme "^this.filename,
+                                                                             Hocpda.hors_to_cpda Ncpda this.hors this.compgraph this.vartmtypes)
                                             ignore(form.Show());
                                  );
 
@@ -449,56 +474,37 @@ type HorsForm =
         //
         this.pdaButton.Enabled <- true;
         this.pdaButton.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
-        //this.pdaButton.ImageAlign <- System.Drawing.ContentAlignment.MiddleRight;
-        //this.pdaButton.ImageKey <- "Run";
-        //this.pdaButton.ImageList <- this.imageList;
-        this.pdaButton.Location <- new System.Drawing.Point(280, -1);
+        this.pdaButton.Location <- new System.Drawing.Point(360, -1);
         this.pdaButton.Name <- "pdaButton";
-        this.pdaButton.Size <- new System.Drawing.Size(100, 27);
+        this.pdaButton.Size <- new System.Drawing.Size(150, 27);
         this.pdaButton.TabIndex <- 0;
-        this.pdaButton.Text <- "Build PDA";
+        this.pdaButton.Text <- "Build n-PDA (safe RS)";
         this.pdaButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
         this.pdaButton.Click.Add( fun e -> //create the pda
-                                            let pda = (Hocpda.hors_to_cpda true this.hors this.compgraph this.vartmtypes)
-                                            let initconf = State(0),(push1 pda (empty_hostack pda.n) "S" (0,0) )
-                                            let form = new Cpdaform.CpdaForm("PDA built from the recursion scheme "^this.filename, pda, initconf)
+                                            let form = new Cpdaform.CpdaForm("PDA built from the recursion scheme "^this.filename,
+                                                                             Hocpda.hors_to_cpda Npda this.hors this.compgraph this.vartmtypes)
                                             ignore(form.Show());
                                  );
             
+
+        //
+        // np1pdaButton
+        //
+        this.np1pdaButton.Enabled <- true;
+        this.np1pdaButton.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
+        this.np1pdaButton.Location <- new System.Drawing.Point(520, -1);
+        this.np1pdaButton.Name <- "np1pdaButton";
+        this.np1pdaButton.Size <- new System.Drawing.Size(120, 27);
+        this.np1pdaButton.TabIndex <- 0;
+        this.np1pdaButton.Text <- "Build (n+1)-PDA";
+        this.np1pdaButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
+        this.np1pdaButton.Click.Add( fun e -> //create the pda
+                                            let form = new Cpdaform.CpdaForm("n+1-PDA built from the recursion scheme "^this.filename,
+                                                                             Hocpda.hors_to_cpda Np1pda this.hors this.compgraph this.vartmtypes)
+                                            ignore(form.Show());
+                                 );        
         
-        
-        // 
-        // runButton
-        // 
-        this.runButton.Enabled <- true;
-        this.runButton.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
-        this.runButton.ImageAlign <- System.Drawing.ContentAlignment.MiddleRight;
-        this.runButton.ImageKey <- "Run";
-        this.runButton.ImageList <- this.imageList;
-        this.runButton.Location <- new System.Drawing.Point(390, -1);
-        this.runButton.Name <- "runButton";
-        this.runButton.Size <- new System.Drawing.Size(100, 27);
-        this.runButton.TabIndex <- 0;
-        this.runButton.Text <- "Run";
-        this.runButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
-        this.runButton.Click.Add(fun e -> let node = this.valueTreeView.SelectedNode
-                                          if is_expandable_treeviewnode node then
-                                            begin
-                                             while not (expand_term_in_treeview this.hors node) do () done;
-                                             this.validate_valuetree_path node;
-                                            end
-        );
-         (*
-              this.UseWaitCursor <- true;
-              try 
-                this.outputTextBox.Text <- "";
-                let stream = new MemoryStream()  
-                let writer = new StreamWriter(stream)  
-                stream.SetLength(0L);
-                writer.Flush();
-                this.outputTextBox.Text <- this.outputTextBox.Text + writer.Encoding.GetString(stream.ToArray());
-              finally
-                this.UseWaitCursor <- false);  *)
+      
         // 
         // outputTextBox
         // 
@@ -564,6 +570,7 @@ type HorsForm =
     val mutable graphButton : System.Windows.Forms.Button;
     val mutable cpdaButton : System.Windows.Forms.Button;
     val mutable pdaButton : System.Windows.Forms.Button;
+    val mutable np1pdaButton : System.Windows.Forms.Button;
     val mutable rightUpperSplitContainer : System.Windows.Forms.SplitContainer;
     val mutable pathTextBox : System.Windows.Forms.TextBox;
     val mutable pathLabel : System.Windows.Forms.Label;
@@ -585,6 +592,7 @@ type HorsForm =
          outputLabel =null;
          cpdaButton = null;
          pdaButton = null;
+         np1pdaButton = null;
          graphButton = null;
          runButton =null;
          rightUpperSplitContainer =null;
@@ -615,9 +623,11 @@ type HorsForm =
         // convert the rules to LNF
         let r,v = rs_to_lnf this.hors in
         
-        if not (rs_check this.hors) then
+        // check that the hors is well-defined
+        let errors = rs_check this.hors in
+        if errors <> [] then
           begin
-            let msg = "Inconsistent HORS definition. Check types and identifier definitions (terminals, non-terminals, variable)." in
+            let msg = "Inconsistent HORS definition. Please check types and definitions of terminals, non-terminals and variables.\nList of errors:\n  "^(String.concat "\n  " errors) in
             //Mainform.Debug_print msg;
             failwith msg
           end

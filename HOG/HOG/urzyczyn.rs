@@ -1,8 +1,10 @@
+// The Urzyczin tree. This recursion scheme comes from Jolie De Miranda's thesis.
+
 name { "Urzyczin tree" }
 
-validator { demiranda_urzyczin }
+validator { demiranda_urzyczyn }
 
- terminals {
+terminals{
 	[:o -> o;
 	]:o -> o;
 	*:o -> o;
@@ -15,7 +17,7 @@ non-terminals {
 	S:o ;
 	D:(o -> o -> o) -> o -> o -> o -> o ;
 	F:o -> o ;
-	E:o ;
+	E:o; 
 	G:o -> o -> o;
 }
 

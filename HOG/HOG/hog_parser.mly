@@ -6,9 +6,6 @@
 %{
 open Hog
 
-(*type result = MissingSection | Ok | Badformat;;
-parsing_result := Badformat; *)
-
 type validators = None | Demiranda;;
 let parsed_validator = ref None;;
 let parsed_nonterminals = ref [];;

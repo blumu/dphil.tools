@@ -163,6 +163,9 @@ let pushj j cpda stk  =
 
 (** [push1 cpda stk a l] performs an order 1 push of the element 'a' with the link 'l'. **)
 let push1 cpda stk a l =
+  if not (List.mem a cpda.stack_alphabet) then
+    failwith "pushing an unknown stack element!";
+    
   let rec aux k stk = 
     match k,stk with
        0,_ | _,El(_) -> raise BadHOStackStructure
@@ -500,13 +503,14 @@ let hlicode_to_cpdacode hlicode =
 
 
 
-(* val hors_to_cpda : recscheme  -> computation_graph -> (ident * typ) list
- *)
+(** To specify which kind of CPDA must be generated. **)
+type Cpdatype = Npda | Ncpda | Np1pda;;
 
-
-(** [hors_to_cpda colapsesim hors graph] converts a HORS to a CPDA. 
-    @param colapsesim (experimental) if set to true then the generate CPDA will be in fact a PDA. i.e.
-    it will simulate the Collapse instruction using my unpublished (and unproved) algorithm. 
+(** [hors_to_cpda kind hors graph] converts a HORS to a CPDA.
+    @param kind
+        if set to Ncpda then the function generates the n-CPDA equivalent to the n-HORS,
+        if set to Npda then it generates a n-PDA which is equivalent to the n-HORS provided that it is safe,
+        if set to Np1Pda then it generates a n+1-PDA (experimental),
     @param hors the HO recursion scheme
     @param graph the computation graph of the HORS
     @param vartmtypes an association list mapping variable and terminal names to their type
@@ -514,7 +518,7 @@ let hlicode_to_cpdacode hlicode =
         
     @note See details of the algorithm in the STOC paper, Hague et al.
 **)
-let hors_to_cpda colapsesim hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartmtypes =
+let hors_to_cpda kind hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartmtypes =
     (* compute the order of the grammar *)
     let order = List.fold_left max 0 (List.map (function nt,t -> typeorder t) hors.nonterminals) in 
     
@@ -586,16 +590,21 @@ let hors_to_cpda colapsesim hors ((nodes_content:cg_nodes),(edges:cg_edges)) var
         let nodes_pushorder = Hashtbl.create (1+order) in        
             Array.iteri (function inode -> function ord -> 
                         match nodes_content.(inode) with
-                        (* If it is an abstraction node that does not correspond to a non-terminal then
-                           it is a j child with j>0 *)
-                         NCntAbs("",_) ->  Hashtbl.add nodes_pushorder 
-                                                (if ord = 0 then 1(* perform a pop1 *)
-                                                    else order-ord+1) (* perform a pop{order-ord+1} *) 
-                                                inode
-                        (* If it is an abstraction node corresponding to a non-terminal then it is a 0-child node. *)
-                        | NCntAbs(_,_) -> Hashtbl.add nodes_pushorder 1 inode
-                        
-                        | _ -> ()
+                            (* If it is an abstraction node that does not correspond to a non-terminal then
+                               it is a j child with j>0 *)
+                             NCntAbs("",_) ->  Hashtbl.add nodes_pushorder 
+                                                            (match kind with
+                                                                  Ncpda -> 0 (* primeCollapse will not be used anyway in a CPDA... *)
+                                                                | Npda -> 
+                                                                    if ord = 0 then 1 (* perform a pop1 *)
+                                                                    else order-ord+1  (* perform a pop{order-ord+1} *) 
+                                                                | Np1pda -> order-ord+1 (* perform a pop{order-ord+1} *) 
+                                                             )
+                                                            inode
+                            (* If it is an abstraction node corresponding to a non-terminal then it is a 0-child node. *)
+                            | NCntAbs(_,_) -> Hashtbl.add nodes_pushorder 1 inode
+                            
+                            | _ -> ()
                     ) nodes_order;
         
         (* build the cases *)                    
@@ -667,9 +676,10 @@ let hors_to_cpda colapsesim hors ((nodes_content:cg_nodes),(edges:cg_edges)) var
                             in
                             Label(startlabel)::
                             (
-                                (* are we generating the experimental (unproved) cpda that tries
-                                   to simulate the Collapse instruction using Pops? *)
-                                if colapsesim then
+                                match kind with
+                                  (* If we generate an n-PDA then we simulate the Collapse instruction by a
+                                   pop of order n-l+1 *)
+                                  Npda ->
                                     (if l>=1 then [Pushn(order-l+1)] else [] )
                                         @[Repeat(p,Popn(1));primeCollapse]
 
@@ -684,21 +694,26 @@ let hors_to_cpda colapsesim hors ((nodes_content:cg_nodes),(edges:cg_edges)) var
                                         Goto(whilelab);                                        
                                         Label(donelab);
                                         primeCollapse] *)
-                                else
+                                 | Ncpda ->
                                     (if l>=1 then [Pushn(order-l+1)] else [] )
                                         @[Repeat(p,Popn(1));Collapse]
+                                 | Np1pda -> 
+                                    [Pushn(order-l+1);Repeat(p,Popn(1));primeCollapse]
                             )@push1_Ei_top1() (* the code in push1_Ei_top1 is responsible of jumping to 'Start'.*)
     in
     
     (* The first instructions are responsible of jumping to the procedure
        associated to the node of the graph that is read from the top-1 stack.
-       The following is a table of labels used to perform the case analysis. *)
+       The following array of labels is used to perform the case analysis. *)
     let switchingtable = Array.to_list (Array.init (Array.length nodes_content)
                                         (function i -> [stackelement_of_nodeid i],(make_nodeproc_label i)) ) in
     let procedures_code = List.flatten (Array.mapi build_node_procedure nodes_content) in
-    let entirecode = Label("start")::CaseTop0(switchingtable)::procedures_code in
+    let entirecode = Push1(stackelement_of_nodeid 0,(0,0))::
+                     Label("start")::
+                     CaseTop0(switchingtable)::
+                     procedures_code in
     let unlabelledcode, labels = unlabel_code entirecode in
-        {   n = order;
+        {   n = (match kind with Ncpda | Npda -> order | Np1pda -> order+1);
             terminals_alphabet = hors.sigma;
             (* the stack alphabet is the set of nodes of the graph *) 
             stack_alphabet = Array.to_list (Array.init (Array.length nodes_content) stackelement_of_nodeid);

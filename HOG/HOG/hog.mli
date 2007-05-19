@@ -31,8 +31,7 @@ val string_of_rs : recscheme -> string
 val appterm_operator_operands  : appterm -> appterm * appterm list
 val step_reduce : recscheme -> appterm -> bool * appterm
 
-exception RscheckError of string;;
-val rs_check : recscheme -> bool
+val rs_check : recscheme -> string list
 
 
 type lnfrhs = lnfabstractpart * lnfapplicativepart

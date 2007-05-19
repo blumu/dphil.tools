@@ -96,11 +96,14 @@ let rec create_paramtyplist nt p t = match p,t with
 ;;
 
 
-exception RscheckError of string;;
-
-(* Check that rs is a well-defined recursion scheme *)
+(** Check that rs is a well-defined recursion scheme.
+    @param rs the recursion scheme
+    @return a list of error descriptions or an empty list if the recscheme passed the check.
+    **)
 let rs_check rs =
-  let valid = ref true in
+  let errorlst = ref [] in
+  
+  let adderror msg = errorlst:= msg::!errorlst in
   
   (* - parameters' names must be disjoint from terminals' names
      - appterm must be well-typed and para must be a superset of fv(appterm)
@@ -125,46 +128,46 @@ let rs_check rs =
 
     (* check that the parameters names do not clash with terminals names *)
     let _ = List.exists (function p-> 
-    (List.exists (function (a,t)-> 
-            if a=p then
-            begin
-              raise (RscheckError ("Parameter name "^p^" conflicts with a terminal name in "^(string_of_rule rs eq)));
-               valid := false;
-            end;
-            a=p) rs.sigma)) para in
+            (List.exists (function (a,t)-> 
+                if a=p then
+                  begin
+                    adderror ("Parameter name "^p^" conflicts with a terminal name in "^(string_of_rule rs eq));
+                  end;
+                a=p) rs.sigma)) para in
     
     try if (typecheck_term appterm) <> Gr then
-        begin
-          raise (RscheckError "RHS is not of ground type in: ");
-          print_rule rs eq; valid := false;
-        end
+            adderror ("RHS is not of ground type in "^(string_of_rule rs eq));
     with 
-        Wrong_variable_name(x) ->
-            raise (RscheckError ("Undefined variable '"^x^"' in RHS of: "^(string_of_rule rs eq))) ;
-            valid := false;
+          Wrong_variable_name(x) ->
+            adderror ("Undefined variable '"^x^"' in RHS of "^(string_of_rule rs eq)) ;
         | Wrong_terminal_name(x) ->
-            raise (RscheckError ("Undefined terminal '"^x^"' in RHS of: "^(string_of_rule rs eq))) ;
-            valid := false;
+            adderror ("Undefined terminal '"^x^"' in RHS of "^(string_of_rule rs eq)) ;
         | Wrong_nonterminal_name(x) ->
-            raise (RscheckError ("Undefined non-terminal '"^x^"' in RHS of: "^(string_of_rule rs eq))) ;
-            valid := false;
+            adderror ("Undefined non-terminal '"^x^"' in RHS of "^(string_of_rule rs eq)) ;
         | Type_check_error ->
-            raise (RscheckError "Type-checking error in RHS of: ") ;
-            valid := false;
+            adderror ("Type-checking error in RHS of "^(string_of_rule rs eq));
 in
 	(* Check all the rules *)
     List.iter check_eq rs.rules;
+
+	(* Check that for each declared non non-terminal there is a corresponding rewriting rule *)
+	List.iter (function nt,_ -> if not (List.exists (function nt2,_,_ -> nt2 = nt)  rs.rules ) then
+	                            adderror ("There is no rewriting rule for the non-terminal "^nt)
+	        ) rs.nonterminals;
+	
+	(* Check determinacy, i.e. there must be exactly one rule per non-terminal *)
+	if List.length rs.rules > List.length rs.nonterminals then
+	    adderror "The recursion must be deterministic! Make sure that there is exactly one rule per non-terminal";
     
 	(* Check that the name (i.e. the non-terminal) of the first rule is of ground type *)
 	if (List.length rs.rules) > 0 then
 	begin
 		match (List.hd rs.rules) with
 			_,[],_ -> ()
-		|	_ -> raise (RscheckError "The LHS of the first rule must be of ground type (i.e. no parameter)!");
-				 valid := false;
-	end;
+		|	_ -> adderror "The LHS of the first rule must be of ground type (i.e. no parameter)!";
+ 	end;
 				 
-	!valid    
+    !errorlst
 ;;
 
 
