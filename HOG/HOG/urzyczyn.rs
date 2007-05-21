@@ -5,7 +5,7 @@ name { "Urzyczin tree" }
 validator { demiranda_urzyczyn }
 
 terminals{
-	[:o -> o;
+	[:o-> o;
 	]:o -> o;
 	*:o -> o;
 	3:o -> o -> o -> o;
@@ -13,7 +13,7 @@ terminals{
 	r:o;
 }
 
-non-terminals {
+nonterminals {
 	S:o ;
 	D:(o -> o -> o) -> o -> o -> o -> o ;
 	F:o -> o ;

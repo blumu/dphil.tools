@@ -22,7 +22,7 @@ let kwtable =
       [ ("name",  SEC_NAME );
         ("validator",  SEC_VALIDATOR  );
         ("terminals",  SEC_TERMINALS );
-        ("non-terminals",  SEC_NONTERMINALS );
+        ("nonterminals",  SEC_NONTERMINALS );
         ("rules",  SEC_RULES );
         ("none",  NONE );
         ("demiranda_urzyczyn",  DEMIRANDA );
@@ -49,8 +49,8 @@ F#*)
 }
 
 rule token = parse
-  //['A'-'Z' 'a'-'z' '_']
-  ['A'-'Z' 'a'-'z' '0'-'9' '_' '.' '$' '#' '-' ']' '[' '*' ]*   { lookup (lexeme lexbuf) }			
+  //['A'-'Z' 'a'-'z' '0'-'9' '_' ']' '[' '*' ]
+  ['A'-'Z' 'a'-'z' '0'-'9' '_' ']' '[' '*' '.' '$' '#' ]*   { lookup (lexeme lexbuf) }			
 | '"' [^'"']* '"'    { ATOM(lexeme lexbuf) }
 
 //| ['0'-'9']+	     { NUMBER (int_of_string (lexeme lexbuf)) }
