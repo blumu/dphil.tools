@@ -565,8 +565,10 @@ let hors_to_cpda kind hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartmtype
             we do not take the first edge (labelled 0) of an @-node. *)
         Array.iteri (function childindex -> function nodeid ->
                             match nodes_content.(curnodeid),childindex with 
-                            NCntApp, 0 -> ();
-                            | _ ->  compute_varinfo nodeid ((curnodeid,childindex)::path))
+                              NCntApp, 0 -> ();
+                            | NCntApp, _ -> compute_varinfo nodeid ((curnodeid,childindex)::path)
+                            | _ -> compute_varinfo nodeid ((curnodeid,childindex+1)::path)
+                     )
                     (try NodeEdgeMap.find curnodeid edges with Not_found -> [||]);
     in
         (* Explore the sub-**tree** rooted at each non-terminal node *)
