@@ -104,4 +104,6 @@ val graph_node_type : (ident*typ) list -> nodecontent -> typ
 val hors_to_graph : recscheme -> lnfrule list -> computation_graph
 
 (** Validators *)
+val default_validator : terminal list -> bool * string
 val demiranda_validator :  terminal list -> bool * string
+val reverse_demiranda_validator :  terminal list -> bool * string

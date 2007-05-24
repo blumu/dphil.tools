@@ -1,8 +1,14 @@
 // Tree whose paths are the reverses of Urzyczin's tree paths.
 
+// This recursion scheme has been obtained by transformation of the recscheme urzyczin.rs.
+// Terminals are saved in an accumulator parameter instead of being emitted. When the end of the word is read,
+// the accumulator is dumped.
+// 
+// Drawback: the resulting recscheme remains unsafe.
+
 name { "Urzyczin tree (reverse)" }
 
-validator { none } // demiranda_urzyczyn }
+validator { reverse_demiranda_urzyczyn }
 
 terminals{
 	[:o-> o;
@@ -12,7 +18,7 @@ terminals{
 	e:o->o;
 	r:o->o;
 	i:o;
-	cons :o-> o ->o;
+//	cons :o-> o ->o;
 }
 
 nonterminals {

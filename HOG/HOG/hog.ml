@@ -584,8 +584,11 @@ let demiranda_validator path =
         
         !nbstars,nbopening
     in
+    
+    let path_text = String.concat " " path in
+    
     (* accepts the empty string *)
-    if !b = -1 then true,"Empty path"
+    if !b = -1 then true,("Empty path: "^path_text)
     else
         try                                                         
            match s.(!b) with
@@ -593,31 +596,39 @@ let demiranda_validator path =
                    let nbstars,nbopening = demiranda_decompos() in
                    (* Check that the number of star is equal to the number of '[' *)
                    if nbstars = nbopening then
-                     true,"Valid maximal path"
+                     true,("Valid maximal path: "^path_text)
                    else
-                     false,"Invalid maximal path"
+                     false,("Invalid maximal path: "^path_text)
 
             | "r" ->  (* Check for a well-bracketed sequence from !f to !b-1 *)
                       if fst (well_bracketed_prefix (!b-1)) = 0 then
-                        true,"Valid maximal path"
+                        true,("Valid maximal path: "^path_text)
                       else
-                        false,"Invalid maximal path"
+                        false,("Invalid maximal path: "^path_text)
 
-            | "[" | "]" -> ignore(well_bracketed_prefix !b); true,"Valid prefix path"
+            | "[" | "]" -> ignore(well_bracketed_prefix !b); true,("Valid prefix path: "^path_text)
 
-            | "3" -> ignore(well_bracketed_prefix (!b-1)); true,"Valid prefix path"
+            | "3" -> ignore(well_bracketed_prefix (!b-1)); true,("Valid prefix path: "^path_text)
             
             | "*" -> let nbstars,nbopening = demiranda_decompos() in
                      (* Check that the number of star is <= than the number of '[' *)
                      if nbstars <= nbopening then
-                       true,"Valid prefix path"
+                       true,("Valid prefix path: "^path_text)
                      else
-                       false,"Invalid prefix path"
+                       false,("Invalid prefix path: "^path_text)
                        
-            | _ -> false,"Invalid path containing undefined terminals"
-        with InvalidPath(msg) -> false, "Invalid path, "^msg
+            | _ -> false,("Invalid path containing undefined terminals: "^path_text)
+        with InvalidPath(msg) -> false, ("Invalid path, "^msg^": "^path_text)
 ;;
 
+let default_validator path =  
+    true, (String.concat " " path)
+;;
+
+let reverse_demiranda_validator path = 
+    true, "Reversed path:"^(String.concat " " (List.rev path))
+
+;;
 
 
 

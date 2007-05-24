@@ -101,15 +101,14 @@ type CpdaForm =
           let nodepath = TreeNode_get_path (if is_cpda_alive_at_treeviewnode node then node.Parent else node)
           let path = List.map (function (n:TreeNode) -> n.Text) nodepath
           let v,c = this.cpda.cpda_path_validator path
-          let path_text = String.concat " " path
           if v then
             begin
-              this.pathTextBox.Text <- c^": "^path_text;
+              this.pathTextBox.Text <- c;
               this.pathTextBox.ForeColor <- System.Drawing.Color.Green
             end
           else
             begin
-              this.pathTextBox.Text <- c^": "^path_text;
+              this.pathTextBox.Text <- c;
               this.pathTextBox.ForeColor <- System.Drawing.Color.Red
             end
       else

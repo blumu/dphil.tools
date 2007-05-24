@@ -164,15 +164,14 @@ type HorsForm =
           let nodepath = Cpdaform.TreeNode_get_path (if is_terminal_treeviewnode node then node else node.Parent)
           let path = List.map (function (n:TreeNode) -> n.Text) nodepath
           let v,c = this.hors.rs_path_validator path
-          let path_text = String.concat " " path
           if v then
             begin
-              this.pathTextBox.Text <- c^": "^path_text;
+              this.pathTextBox.Text <- c;
               this.pathTextBox.ForeColor <- System.Drawing.Color.Green
             end
           else
             begin
-              this.pathTextBox.Text <- c^": "^path_text;
+              this.pathTextBox.Text <- c;
               this.pathTextBox.ForeColor <- System.Drawing.Color.Red
             end
       else

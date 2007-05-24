@@ -26,6 +26,7 @@ let kwtable =
         ("rules",  SEC_RULES );
         ("none",  NONE );
         ("demiranda_urzyczyn",  DEMIRANDA );
+        ("reverse_demiranda_urzyczyn",  REVERSE_DEMIRANDA );
   ];
     tbl;;
 

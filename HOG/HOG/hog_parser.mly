@@ -6,7 +6,7 @@
 %{
 open Hog
 
-type validators = None | Demiranda;;
+type validators = None | Demiranda | ReverseDemiranda;;
 let parsed_validator = ref None;;
 let parsed_nonterminals = ref [];;
 let parsed_terminals = ref [];;
@@ -29,7 +29,7 @@ let section_rules_present = ref false;;
 %left SEMICOLON LP RP LCB RCB
 
 %token SEC_NAME SEC_VALIDATOR SEC_TERMINALS SEC_NONTERMINALS SEC_RULES
-%token NONE DEMIRANDA
+%token NONE DEMIRANDA REVERSE_DEMIRANDA
 
 %token<string> ATOM
 
@@ -57,8 +57,9 @@ hog_specification:
 																		sigma = !parsed_terminals;
 																		rules = !parsed_rules;        
 																		rs_path_validator = match !parsed_validator with
-																								  None ->  (function s -> true,"")
+																								  None ->  Hog.default_validator
 																								| Demiranda -> Hog.demiranda_validator
+																								| ReverseDemiranda -> Hog.reverse_demiranda_validator
 																	   }
 																}
 ;
@@ -82,7 +83,8 @@ sec_name_content : ident										{ parsed_name := $1 }
 
 sec_validator : SEC_VALIDATOR LCB sec_validator_content RCB     { }
 
-sec_validator_content :   DEMIRANDA                             { parsed_validator := Demiranda }
+sec_validator_content :   REVERSE_DEMIRANDA                     { parsed_validator := ReverseDemiranda }
+						| DEMIRANDA                             { parsed_validator := Demiranda }
 						| NONE                                  { parsed_validator := None }
 
 ;
