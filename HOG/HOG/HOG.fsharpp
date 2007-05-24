@@ -20,7 +20,7 @@
     "DebugStartMode" = "0"
     "StartApp" = ""
     "StartAppPath" = ""
-    "CustomStartupArguments" = ""
+    "CustomStartupArguments" = "urzyczyn.rs"
     }
     "Release|Win32"
     {

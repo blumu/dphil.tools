@@ -29,6 +29,8 @@ EX2
 	
 EX3
 
+	Invalid maximal path: [ 3    [ 3 ] 3 [ 3 [ 3 [ 3 ] 3 ] 3 ] 3  * * * * * * e
+	
 	
 
 

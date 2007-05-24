@@ -253,21 +253,21 @@ let oi_derivation rs =
 ;;
 
 (** Return the type of an applicative term (assume that the term is well-typed) 
-   @param fvtypes gives the types of the free variable in the term:
-   it is a list of pair (var,typ) where 'typ' is the type of the variable 'var'.
+   @param fvtypes gives the types of the free variable in the term: a list of pair (var,typ) where 'typ' is the type of the variable 'var'.
 **)
 let rec appterm_type rs fvtypes = function
     Tm(f) -> terminal_type rs f
   | Nt(nt) -> nonterminal_type rs nt
   | Var(x) -> List.assoc x fvtypes
   | App(a,_) -> match appterm_type rs fvtypes a with 
-        Gr -> failwith "Term is not well-typed!"
-      | Ar(_,r) -> r
+                  Gr -> failwith "Term is not well-typed: operator of ground type!"
+                | Ar(_,r) -> r
 ;;
 
 (* return the order of an appterm *)
+(***** unused 
 let appterm_order rs fvtypes t = typeorder (appterm_type rs fvtypes t);;
-
+*)
 
 
 (** Long normal form (lnf) **)

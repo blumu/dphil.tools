@@ -11,6 +11,9 @@ type terminal = ident
 type stackelement = ident
 type link = int  * int (* A link is specified by a pair j,k. The stack pointed to by this link is obtained
                           by perfoming k iterations of the 'pop_j' operation **)
+                          
+type hostack = El of stackelement * link | Stack of hostack list
+
 type instruction = 
       Popn of int
     (** Popn(n) removes the top (n-1)-stack from the stack. **)
@@ -57,12 +60,14 @@ type instruction =
     
     | Failwith of string
     (** raise a CPDA-exception with an error message **)
-
+    
+    | Assert of string * (hostack -> bool)
+    (** Asserts that a given property of the stack is met. **)    
+    
     | Comment of string
     (** source code commentary **)
     
 
-type hostack = El of stackelement * link | Stack of hostack list
 
 (** The type of a Higher-Order Collapsible Pushdown Automoton.
    Formally a Ho-CPDA is given by a 5-tuple (Sigma, Gamma, Q, delta, q0)
@@ -101,6 +106,11 @@ type gen_configuration = gen_state * hostack;;
     The parameter contains the message given in the Failiwith CPDA instruction **)
 exception Cpda_exception of string;;
 
+(** Exception raised when an ASSERT instruction executed by the CPDA failed.
+    The parameter contains a description of the assertion test. **)
+exception Cpda_assertfailed of string;;
+
+
 (** Exception raised when the execution of a CPDA instruction failed.
     The first parameter is the instruction name and the second parameter
     is a description of the problem. **)
@@ -118,8 +128,10 @@ let rec empty_hostack = function
 exception EmptyHOStack;;
 exception BadHOStackStructure;;
 
-(** [top0 cpda stk] retrieves the top 0-element of the stack [stk]. **)
-let top0 cpda stk =
+(** [top0 n stk] retrieves the top 0-element of the stack [stk].
+   @param n is the stack order
+   @param stk is the stack **)
+let top0 n stk =
   let rec aux k stk = 
     match k,stk with
 	0,El(a,l) -> a,l
@@ -127,7 +139,7 @@ let top0 cpda stk =
       | _,Stack([]) -> raise EmptyHOStack
       | _,Stack(top::_) -> aux (k-1) top
   in 
-    aux cpda.n stk
+    aux n stk
 ;;
 
 (** [popn j cpda stk] performs an order j pop on the stack [stk], with j>=1. **)
@@ -180,7 +192,7 @@ let push1 cpda stk a l =
 (** [collapse cpda stk] performs the collapse operation. **)
 let collapse cpda stk =
   let ret = ref stk in
-  let a,(j,k) = top0 cpda stk in
+  let a,(j,k) = top0 cpda.n stk in
   (*for debugging purpose *)
   (*if k > 1 then failwith ("The CPDA is executing a COLLAPSE on a ("^(string_of_int j)^","^(string_of_int k)^")link");
     *)
@@ -236,18 +248,17 @@ let rec execute cpda ip stk =
     | Push1(a,l) -> (mk_nextstate cpda ip), (push1 cpda stk a l) 
     | Pushn(j) -> (mk_nextstate cpda ip), (pushj j cpda stk);
     | Collapse -> (mk_nextstate cpda ip), (collapse cpda stk);
-    | GotoIfTop0(q, t) -> if fst (top0 cpda stk) = t then 
+    | GotoIfTop0(q, t) -> if fst (top0 cpda.n stk) = t then 
                             (mk_state cpda (hocpda_label_to_address cpda q)),stk
                           else 
                             (mk_nextstate cpda ip),stk
     | CaseTop0(cases) -> (try 
-                            let top0elem = fst (top0 cpda stk) in
+                            let top0elem = fst (top0 cpda.n stk) in
                             let _, lab = List.find (function stkelems, _ -> List.mem top0elem stkelems) cases in
                             (mk_state cpda (hocpda_label_to_address cpda lab)),stk
-                            (* (mk_state cpda (hocpda_label_to_address cpda (List.assoc (fst (top0 cpda stk)) cases))),stk *)
                          with Not_found -> (mk_nextstate cpda ip),stk)
     | CaseTop0Do(cases) -> (try 
-                              let top0elem = fst (top0 cpda stk) in
+                              let top0elem = fst (top0 cpda.n stk) in
                               let _, ins = List.find (function stkelems, _ -> List.mem top0elem stkelems) cases in
                               execute cpda ip stk ins
                             with Not_found -> (mk_nextstate cpda ip),stk)
@@ -268,6 +279,12 @@ let rec execute cpda ip stk =
                               TmState(_),_ -> ()
                            | State(_),newstk -> conf := execute cpda ip newstk ins
                        done; !conf
+    
+    | Assert(descr,test) -> if test stk then
+                              (mk_nextstate cpda ip),stk
+                            else
+                              raise (Cpda_assertfailed(descr))
+                              
 ;;
 
 (** [hopcpda_step cpda genconf] performs a transition of the cpda.
@@ -280,8 +297,9 @@ let hocpda_step cpda genconf =
         match genconf with
           TmState(_),_ -> failwith "The CPDA has just emitted a terminal and therefore has halted. You need to choose a terminal parameter in order to spawn the CPDA."
         | State(ip),stk -> execute cpda ip stk cpda.code.(ip)
-    with   Cpda_execution_failed(ins,msg) -> failwith ("The execution of a CPDA instruction failed!\nInstruction: "^ins^"\nDescription:"^msg)
-         | Cpda_exception(msg) -> failwith ("CPDA exception raised!\nDescription: "^msg)
+    with   Cpda_execution_failed(ins,msg) -> failwith ("CPDA INSTRUCTION FAILED!\nInstruction: "^ins^"\nDescription:"^msg)
+         | Cpda_exception(msg) -> failwith ("CPDA EXCEPTION RAISED!\nDescription: "^msg)
+         | Cpda_assertfailed(msg) -> failwith ("CPDA ASSERTION TEST FAILED!\nDescription of the test: "^msg)
 ;;
 
 (** Create the initial configuration of a CPDA. **)
@@ -328,6 +346,7 @@ let string_of_hocpda cpda =
         | Failwith(msg) -> "FAILWITH \""^msg^"\""
         | Comment(com) -> "// "^com
         | Label(lab)  -> lab^":"
+        | Assert(desc,_) -> "ASSERT "^desc 
     in
       let nextlab = ref 0 in
       for i = 0 to (Array.length cpda.code)-1 do
@@ -353,55 +372,7 @@ let string_of_hocpda cpda =
 ;;
 
 
-
-
-(** [hocpda_conf_step cpda conf opponent] does the same
-    as [hocpda_conf_step cpda opponent] except that it
-    first sets the cpda in the configuration [conf] before
-    executing a step of the cpda.
-    
-    @param opponent is a function of type [terminal -> state list -> state option] modeling the (history-free) strategy of the opponent player.
-    It is  called each time an operation emits a Sigma-constant f. The Opponent is then responsible of chosing one direction among
-    1..ar(f), and does so by returning the corresponding state from the list passed in the second parameter.
-    If and only f is of arity 0, opponent can return None.
-    **)
-    (*
-let hocpda_conf_step cpda (q,stk) opponent =
-  let execute = function
-      Popn(n) -> popn cpda n; incr_ip cpda;
-    | Push1(a,l) -> push1 cpda a l; incr_ip cpda;
-    | Pushn(j) -> pushj cpda j; incr_ip cpda;
-    | Collapse -> collapse cpda; incr_ip cpda;
-    | GotoIfTop0(q, t) -> if fst (top0 cpda) = t then 
-                            jmp cpda q
-                          else 
-                            incr_ip cpda;
-    | Goto(q) -> jmp cpda q;
-    | Emit(t,ql) -> match opponent t ql with 
-                        None -> raise CpdaHalt
-                      | Some(i) -> jmp cpda i;
-  in
-    cpda.ip <- q;
-    cpda.stk <- stk;
-    execute cpda.code.(q)
-;;
-
-
-(** Define a strategy for the opponent that always choose the first parameter of
-    the emitted terminal. **)
-let opp_strategy a q =
-    print_string ("CPDA emits terminal "^a);
-    match q with 
-        [] -> None
-      | p1::_ -> print_string "Opponent choses "; print_int p1; Some(p1)
-;;
-
-*)
-
-
-
-
-(** Remove the labels from a CPDA code and compute the adresses of the labels.
+(** Remove the labels occurring in the CPDA code and compute the adresses of the labels.
     [unlabel_code code]
     @param code a list of CPDA instructions
     @return (unlabelled_code,labels) where  [labels] is a mapping from labels to instruction addresses
@@ -416,90 +387,12 @@ let unlabel_code code =
                                             | Pushn(_) | Collapse
                                             | Goto(_) | GotoIfTop0(_,_)
                                             | CaseTop0(_) | CaseTop0Do(_) | Emit(_,_)
-                                            | Repeat(_,_)  | Comment(_)
+                                            | Repeat(_,_)  | Comment(_) | Assert(_,_)
                                             | Failwith(_) | Halt (* | Nop *)
                                                     -> s+1,labmap
                                        ) (0,[]) code in
     (Array.of_list (List.filter (function Label(_) -> false | _ -> true ) code)), label2ip 
 ;;
-
-
-
-(*
-
-(** Type for higher-level instructions. 
-    It is used for generating intermediate code containing labels. **)
-type hli_labelident = string;;
-type hlinstr =    HliLabel of hli_labelident
-                | HliPopn of int
-                | HliPush1 of stackelement * link 
-                | HliPushn of int
-                | HliCollapse
-                | HliGoto of hli_labelident
-                | HliGotoIfTop0 of hli_labelident * stackelement
-                | HliCaseTop0 of (stackelement * hli_labelident) list
-                | HliEmit of terminal * hli_labelident list
-                | HliNop
-                | HliHalt
-                | HliIter of int * hlinstr
-                | HliFailwith of string
-                | HliComment of string
-                ;;
-
-(** Convert higher-level code to low-level CPDA code.
-    [hlicode_to_cpdacode hlicode]
-    @param hlicode list of higher-level instructions
-    @return an array of low-level instructions **)    
-let hlicode_to_cpdacode hlicode =
-    (* - size is the size of the code to be generated,
-       - label2ip is an association list mapping labels to their corresponding instruction pointer *)
-    let size,label2ip = List.fold_left (function (s,labmap) -> function
-                                              HliLabel(label) -> s,(label,s)::labmap
-                                            | HliPopn(_)
-                                            | HliPush1(_,_)
-                                            | HliPushn(_)
-                                            | HliCollapse
-                                            | HliGoto(_)
-                                            | HliGotoIfTop0(_,_)
-                                            | HliCaseTop0(_)
-                                            | HliEmit(_,_)
-                                            | HliComment(_)
-                                            | HliFailwith(_) | HliHalt -> s+1,labmap
-                                            | HliIter(k,_) when k>=0 -> s+k,labmap
-                                            | HliIter(_,_) -> failwith "Wrong number of iterations in HliIter."
-                                            | HliNop -> s,labmap                                             
-                                       ) (0,[]) hlicode in
-    
-    let ip_from_label label = 
-        try List.assoc label label2ip
-        with Not_found -> failwith "The high-level source code contains references to undefined labels!"
-    in
-    let code = Array.create size (Goto(0)) in  
-    let curip = ref 0 in
-    let rec gen_instruction = function 
-          HliLabel(_) -> ();
-        | HliPopn(i) -> code.(!curip) <- Popn(i); incr(curip);
-        | HliPush1(a,l) -> code.(!curip) <- Push1(a,l); incr(curip);
-        | HliPushn(n) -> code.(!curip) <- Pushn(n); incr(curip);
-        | HliCollapse-> code.(!curip) <- Collapse; incr(curip);
-        | HliGoto(label) -> code.(!curip) <- Goto(ip_from_label label) ; incr(curip);
-        | HliGotoIfTop0(label,a) -> code.(!curip) <- GotoIfTop0((ip_from_label label), a) ; incr(curip);
-        | HliCaseTop0(cases) -> code.(!curip) <- CaseTop0( (List.map (function a,l -> a,(ip_from_label l)) cases)) ; incr(curip);
-        | HliEmit(t,slst) -> code.(!curip) <- Emit(t,(List.map ip_from_label slst)); incr(curip);
-        | HliComment(com) -> code.(!curip) <- Comment(com); incr(curip);
-        | HliHalt -> code.(!curip) <- Halt ; incr(curip);
-        | HliFailwith(msg) -> code.(!curip) <- Failwith(msg) ; incr(curip);
-        | HliIter(k,ins) -> for i = 1 to k do
-                                gen_instruction ins;
-                            done;
-        | HliNop -> ();
-    in
-    List.iter gen_instruction hlicode;
-    code
-;;
-
-*)
-
 
 
 
@@ -610,15 +503,17 @@ let hors_to_cpda kind hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartmtype
                     ) nodes_order;
         
         (* build the cases *)                    
-        let cases = ref [] in
+        let cases_pop = ref [] in
         for ord = 0 to order do        
             let nodes = Hashtbl.find_all nodes_pushorder ord in
             if nodes <> [] then
-            cases := ((List.map stackelement_of_nodeid nodes),Popn(ord))::!cases
+                cases_pop := ((List.map stackelement_of_nodeid nodes),Popn(ord))::!cases_pop
         done; 
-        CaseTop0Do( !cases )        
+        (* First assert that the simulation of the collapse by a pop is sound and then do the pop. *)
+        [Assert("that the top link is of type (_,1) so that COLLAPSE can be simulated by a pop.",
+                                                (function hostack -> match top0 order hostack with _,(_,1) -> true | _ -> false ));
+                                                 CaseTop0Do( !cases_pop )]
     in
-
 
 
     let make_nodeproc_label nodei = "NODE"^(string_of_int nodei) in
@@ -683,7 +578,7 @@ let hors_to_cpda kind hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartmtype
                                    pop of order n-l+1 *)
                                   Npda ->
                                     (if l>=1 then [Pushn(order-l+1)] else [] )
-                                        @[Repeat(p,Popn(1));primeCollapse]
+                                        @[Repeat(p,Popn(1))]@primeCollapse
 
                                     (* let whilelab = startlabel^".while"
                                     and donelab = startlabel^".done" in
@@ -700,7 +595,7 @@ let hors_to_cpda kind hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartmtype
                                     (if l>=1 then [Pushn(order-l+1)] else [] )
                                         @[Repeat(p,Popn(1));Collapse]
                                  | Np1pda -> 
-                                    [Pushn(order-l+1);Repeat(p,Popn(1));primeCollapse]
+                                    [Pushn(order-l+1);Repeat(p,Popn(1))]@primeCollapse
                             )@push1_Ei_top1() (* the code in push1_Ei_top1 is responsible of jumping to 'Start'.*)
     in
     
@@ -749,4 +644,134 @@ let testcpda = {    n = 5;
                     stack_alphabet = ["e1";"e2"];
                     code = [|Push1("e1",(0,0)); Emit("g",[1;2]); GotoIfTop0(1,"e2"); Push1("e1",(0,0)); Collapse|];
                }
+*)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(*
+
+(** [hocpda_conf_step cpda conf opponent] does the same
+    as [hocpda_conf_step cpda opponent] except that it
+    first sets the cpda in the configuration [conf] before
+    executing a step of the cpda.
+    
+    @param opponent is a function of type [terminal -> state list -> state option] modeling the (history-free) strategy of the opponent player.
+    It is  called each time an operation emits a Sigma-constant f. The Opponent is then responsible of chosing one direction among
+    1..ar(f), and does so by returning the corresponding state from the list passed in the second parameter.
+    If and only f is of arity 0, opponent can return None.
+    **)
+let hocpda_conf_step cpda (q,stk) opponent =
+  let execute = function
+      Popn(n) -> popn cpda n; incr_ip cpda;
+    | Push1(a,l) -> push1 cpda a l; incr_ip cpda;
+    | Pushn(j) -> pushj cpda j; incr_ip cpda;
+    | Collapse -> collapse cpda; incr_ip cpda;
+    | GotoIfTop0(q, t) -> if fst (top0 cpda) = t then 
+                            jmp cpda q
+                          else 
+                            incr_ip cpda;
+    | Goto(q) -> jmp cpda q;
+    | Emit(t,ql) -> match opponent t ql with 
+                        None -> raise CpdaHalt
+                      | Some(i) -> jmp cpda i;
+  in
+    cpda.ip <- q;
+    cpda.stk <- stk;
+    execute cpda.code.(q)
+;;
+
+
+(** Define a strategy for the opponent that always choose the first parameter of
+    the emitted terminal. **)
+let opp_strategy a q =
+    print_string ("CPDA emits terminal "^a);
+    match q with 
+        [] -> None
+      | p1::_ -> print_string "Opponent choses "; print_int p1; Some(p1)
+;;
+
+
+(** Type for higher-level instructions. 
+    It is used for generating intermediate code containing labels. **)
+type hli_labelident = string;;
+type hlinstr =    HliLabel of hli_labelident
+                | HliPopn of int
+                | HliPush1 of stackelement * link 
+                | HliPushn of int
+                | HliCollapse
+                | HliGoto of hli_labelident
+                | HliGotoIfTop0 of hli_labelident * stackelement
+                | HliCaseTop0 of (stackelement * hli_labelident) list
+                | HliEmit of terminal * hli_labelident list
+                | HliNop
+                | HliHalt
+                | HliIter of int * hlinstr
+                | HliFailwith of string
+                | HliComment of string
+                ;;
+
+(** Convert higher-level code to low-level CPDA code.
+    [hlicode_to_cpdacode hlicode]
+    @param hlicode list of higher-level instructions
+    @return an array of low-level instructions **)    
+let hlicode_to_cpdacode hlicode =
+    (* - size is the size of the code to be generated,
+       - label2ip is an association list mapping labels to their corresponding instruction pointer *)
+    let size,label2ip = List.fold_left (function (s,labmap) -> function
+                                              HliLabel(label) -> s,(label,s)::labmap
+                                            | HliPopn(_)
+                                            | HliPush1(_,_)
+                                            | HliPushn(_)
+                                            | HliCollapse
+                                            | HliGoto(_)
+                                            | HliGotoIfTop0(_,_)
+                                            | HliCaseTop0(_)
+                                            | HliEmit(_,_)
+                                            | HliComment(_)
+                                            | HliFailwith(_) | HliHalt -> s+1,labmap
+                                            | HliIter(k,_) when k>=0 -> s+k,labmap
+                                            | HliIter(_,_) -> failwith "Wrong number of iterations in HliIter."
+                                            | HliNop -> s,labmap                                             
+                                       ) (0,[]) hlicode in
+    
+    let ip_from_label label = 
+        try List.assoc label label2ip
+        with Not_found -> failwith "The high-level source code contains references to undefined labels!"
+    in
+    let code = Array.create size (Goto(0)) in  
+    let curip = ref 0 in
+    let rec gen_instruction = function 
+          HliLabel(_) -> ();
+        | HliPopn(i) -> code.(!curip) <- Popn(i); incr(curip);
+        | HliPush1(a,l) -> code.(!curip) <- Push1(a,l); incr(curip);
+        | HliPushn(n) -> code.(!curip) <- Pushn(n); incr(curip);
+        | HliCollapse-> code.(!curip) <- Collapse; incr(curip);
+        | HliGoto(label) -> code.(!curip) <- Goto(ip_from_label label) ; incr(curip);
+        | HliGotoIfTop0(label,a) -> code.(!curip) <- GotoIfTop0((ip_from_label label), a) ; incr(curip);
+        | HliCaseTop0(cases) -> code.(!curip) <- CaseTop0( (List.map (function a,l -> a,(ip_from_label l)) cases)) ; incr(curip);
+        | HliEmit(t,slst) -> code.(!curip) <- Emit(t,(List.map ip_from_label slst)); incr(curip);
+        | HliComment(com) -> code.(!curip) <- Comment(com); incr(curip);
+        | HliHalt -> code.(!curip) <- Halt ; incr(curip);
+        | HliFailwith(msg) -> code.(!curip) <- Failwith(msg) ; incr(curip);
+        | HliIter(k,ins) -> for i = 1 to k do
+                                gen_instruction ins;
+                            done;
+        | HliNop -> ();
+    in
+    List.iter gen_instruction hlicode;
+    code
+;;
+
 *)

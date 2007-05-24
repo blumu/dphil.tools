@@ -619,10 +619,7 @@ type HorsForm =
         let rootNode = new TreeNode("Value tree", Tag = (null : obj), ImageKey = "BookStack", SelectedImageKey = "BookStack")
         ignore(this.valueTreeView.Nodes.Add(rootNode));
         rootNode.Expand();
-      
-        // convert the rules to LNF
-        let r,v = rs_to_lnf this.hors in
-        
+              
         // check that the hors is well-defined
         let errors = rs_check this.hors in
         if errors <> [] then
@@ -632,6 +629,8 @@ type HorsForm =
             failwith msg
           end
           
+        // convert the rules to LNF
+        let r,v = rs_to_lnf this.hors in
 
         this.lnfrules <- r;
         this.vartmtypes <- v;
