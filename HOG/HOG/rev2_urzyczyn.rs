@@ -20,51 +20,47 @@ terminals{
 
 nonterminals {
 	S:o ;
-	SP:o;
 
 	B0:o;
-	B1:o;
+	B1:o->o;
 	B2:o->o;
 
-	R1:o->o;
-	R2:o->o;
-	A1:o->o;
-	A2:o->o;
-	A3:o->o;
+	R0:o;
+	R1:o->o->o;
+	
+	A00:o;
+	A_l0sGT0:o->o;
+	A_lGT0:o->o->o;
 }
 
 rules {
-	S = SP;
+	S = R0;
 
 	B0 = e;
-	B1 = B0;
+	B1 p = p;
 	B2 p = 2 ([ p)
 	         (] (B2 p));
 
 			 
-	SP = 3	(* (R1 B1) )
-			(] (A2 B0) )
+	R0 = 3	(* (R1 (A_lGT0 (A_l0sGT0 (B1 B0) ) (B1 B0)) B0) )
+			(] (A_lGT0 A00 e) )
 			 r ;
 
-	R1 phi = 3  (* (R2 (B2 phi)) )
-				(] (A3 phi) )
-				([ phi );
+	R1 x y = 3  (* (R1 (A_l0sGT0 (B2 y)) (B2 y)) )
+				(] x )
+				([ y );
 
-	R2 phi = 3  (* (R2 (B2 phi)) )
-				(] (A3 phi) )
-				([ phi );
-				
 	// s>0 & l=0
-	A1 phi = 2  (] (A3 phi) )
-				([ phi);
+	A00 = 2 (] (A_lGT0 A00 e) )
+				r;
 				
 	// s=0 & l>0
-	A2 phi = 2  (] (A2 B0) )
-				([ B0 );
+	A_l0sGT0 z = 2  (] (A_lGT0 (A_l0sGT0 z) z) )
+					([ z );
 
-	// s>0 & l>0
-	A3 phi = 2  (] (A3 phi) )
-				([ phi );
+	// l>0
+	A_lGT0 x z = 2  (] (A_lGT0 (A_lGT0 x z) z) )
+					([ x );
 
 
 }

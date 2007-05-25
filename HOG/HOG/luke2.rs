@@ -1,5 +1,4 @@
-// Knapik et al. safe example
-
+// 
 name { "s" }
 
 validator { none }
