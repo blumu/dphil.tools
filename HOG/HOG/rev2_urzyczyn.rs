@@ -1,6 +1,11 @@
 // The tree whose paths are the reverses of Urzyczin's tree paths.
 
-// Second method.
+// Second (experimental) method.
+//
+// Still buggy since this recscheme is order 1!
+// (Urzyczyn's word language is not context-free therfore
+// one needs the power of an order 2 pda at least.)
+
 
 name { "Urzyczin tree (reverse)" }
 
