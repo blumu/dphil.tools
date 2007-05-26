@@ -1,5 +1,8 @@
 #light
 
+(** Application version **)
+let VERSION = "0.0.1";;
+
 open System
 open System.IO  
 open System.Windows.Forms
@@ -81,7 +84,7 @@ let mainform =
 
 mainform.Width  <- 400
 mainform.Height <- 300
-mainform.Text <- "HOG"
+mainform.Text <- "HOG Version "^VERSION
 mainform.Controls.Add(textB)
 
 // menu bar and menus 

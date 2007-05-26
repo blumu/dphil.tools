@@ -1,5 +1,5 @@
-// 
-name { "s" }
+// This is an order 3 unsafe recursion scheme generating a finite tree
+name { "Luke's second example" }
 
 validator { none }
 

@@ -1,4 +1,5 @@
-// Luke's example
+// Luke's example.
+// This is an order 2 unsafe recursion scheme
 
 name { "Luke's example" }
 

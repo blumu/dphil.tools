@@ -299,7 +299,7 @@ let hocpda_step cpda genconf =
         | State(ip),stk -> execute cpda ip stk cpda.code.(ip)
     with   Cpda_execution_failed(ins,msg) -> failwith ("CPDA INSTRUCTION FAILED!\nInstruction: "^ins^"\nDescription:"^msg)
          | Cpda_exception(msg) -> failwith ("CPDA EXCEPTION RAISED!\nDescription: "^msg)
-         | Cpda_assertfailed(msg) -> failwith ("CPDA ASSERTION TEST FAILED!\nDescription of the test: "^msg)
+         | Cpda_assertfailed(msg) -> failwith ("CPDA ASSERTION FAILED!\nDescription of the test: "^msg)
 ;;
 
 (** Create the initial configuration of a CPDA. **)
@@ -415,6 +415,9 @@ let hors_to_cpda kind hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartmtype
     (* compute the order of the grammar *)
     let order = List.fold_left max 0 (List.map (function nt,t -> typeorder t) hors.nonterminals) in 
     
+    (* order of the generated CPDA/PDA *)
+    let ordercpda = match kind with Ncpda | Npda -> order | Np1pda -> order+1 in
+    
     (* Compute an array [varsinfo] of 4-tuples given information about each node of the computation graph.
        For a variable node x the tuple is (b,p,i,j) where:
         - b is the nodeid of the binder of x
@@ -504,14 +507,14 @@ let hors_to_cpda kind hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartmtype
         
         (* build the cases *)                    
         let cases_pop = ref [] in
-        for ord = 0 to order do        
-            let nodes = Hashtbl.find_all nodes_pushorder ord in
+        for popord = 0 to order do        
+            let nodes = Hashtbl.find_all nodes_pushorder popord in
             if nodes <> [] then
-                cases_pop := ((List.map stackelement_of_nodeid nodes),Popn(ord))::!cases_pop
+                cases_pop := ((List.map stackelement_of_nodeid nodes),Popn(popord))::!cases_pop
         done; 
         (* First assert that the simulation of the collapse by a pop is sound and then do the pop. *)
-        [Assert("that the top link is of type (_,1) so that COLLAPSE can be simulated by a pop.",
-                                                (function hostack -> match top0 order hostack with _,(_,1) -> true | _ -> false ));
+        [Assert("that the top link is of type (j,1) so that COLLAPSE can be simulated by a POP_{n-j+1}.",
+                                                (function hostack -> match top0 ordercpda hostack with _,(_,1) -> true | _ -> false ));
                                                  CaseTop0Do( !cases_pop )]
     in
 
@@ -610,7 +613,7 @@ let hors_to_cpda kind hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartmtype
                      CaseTop0(switchingtable)::
                      procedures_code in
     let unlabelledcode, labels = unlabel_code entirecode in
-        {   n = (match kind with Ncpda | Npda -> order | Np1pda -> order+1);
+        {   n = ordercpda;
             terminals_alphabet = hors.sigma;
             (* the stack alphabet is the set of nodes of the graph *) 
             stack_alphabet = Array.to_list (Array.init (Array.length nodes_content) stackelement_of_nodeid);
