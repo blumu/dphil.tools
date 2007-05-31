@@ -16,6 +16,7 @@ open Lexing
 // be loaded properly.
 do Application.EnableVisualStyles();
 
+   
 
 // RichTextBox - text area 
 let textB = new RichTextBox()

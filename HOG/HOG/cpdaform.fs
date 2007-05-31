@@ -213,7 +213,10 @@ type CpdaForm =
         this.valueTreeView.Location <- new System.Drawing.Point(0, 28);
         this.valueTreeView.Name <- "valueTreeView";
         this.valueTreeView.PathSeparator <- " ";
-        this.valueTreeView.ShowNodeToolTips <- true;
+        // Treeview..ShowNodeToolTips Not implemented in  Mono
+        if not Common.IsRunningOnMono then
+            (); // this.valueTreeView.ShowNodeToolTips <- true;
+        
         this.valueTreeView.ShowRootLines <- false;
         this.valueTreeView.Size <- new System.Drawing.Size(266, 654);
         this.valueTreeView.TabIndex <- 1;

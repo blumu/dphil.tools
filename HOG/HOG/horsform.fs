@@ -180,6 +180,7 @@ type HorsForm =
     member this.InitializeComponent() =
         this.components <- new System.ComponentModel.Container();
         let resources = new System.ComponentModel.ComponentResourceManager((type HorsForm)) 
+        
         this.outerSplitContainer <- new System.Windows.Forms.SplitContainer();
         this.valueTreeView <- new System.Windows.Forms.TreeView();
         this.imageList <- new System.Windows.Forms.ImageList(this.components);
@@ -241,7 +242,9 @@ type HorsForm =
         this.valueTreeView.ImageList <- this.imageList;
         this.valueTreeView.Location <- new System.Drawing.Point(0, 28);
         this.valueTreeView.Name <- "valueTreeView";
-        this.valueTreeView.ShowNodeToolTips <- true;
+        // Treeview.ShowNodeToolTips Not implemented in  Mono
+        if not Common.IsRunningOnMono then
+            (); //this.valueTreeView.ShowNodeToolTips <- true;
         this.valueTreeView.ShowRootLines <- false;
         this.valueTreeView.Size <- new System.Drawing.Size(450, 654);
         this.valueTreeView.TabIndex <- 1;
@@ -433,6 +436,7 @@ type HorsForm =
             let form = new System.Windows.Forms.Form()
             form.Text <- "Computation graph of "^this.filename;
             form.Size <- Size(700,800);
+
             // create a viewer object
             let viewer = new Microsoft.Glee.GraphViewerGdi.GViewer()
             this.outputTextBox.Text <- "Rules in eta-long normal form:\n"^(String.concat "\n" (List.map (lnf_to_string this.hors) this.lnfrules));
@@ -541,7 +545,7 @@ type HorsForm =
         this.ClientSize <- new System.Drawing.Size(1100, 682);
         this.Controls.Add(this.outerSplitContainer);
         this.Font <- new System.Drawing.Font("Tahoma", 8.25F);
-        this.Icon <- (resources.GetObject("$this.Icon") :?> System.Drawing.Icon);
+        //this.Icon <- (resources.GetObject("$this.Icon") :?> System.Drawing.Icon);
         this.Name <- "DisplayForm";
         this.Text <- "Samples";
         this.outerSplitContainer.Panel1.ResumeLayout(false);

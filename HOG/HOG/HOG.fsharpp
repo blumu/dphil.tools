@@ -43,6 +43,10 @@
 }
 "Files"
 {
+    "common.ml"
+    {
+    "ProjRelPath" = "T"
+    }
     "hog.mli"
     {
     "ProjRelPath" = "T"
