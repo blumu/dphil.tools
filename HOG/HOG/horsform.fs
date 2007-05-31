@@ -257,10 +257,10 @@ type HorsForm =
               );
                         
         this.valueTreeView.add_BeforeCollapse(fun _ e -> 
-          match e.Node.Level with 
-          | 0 -> 
-            e.Cancel <- true;
-          | _ -> ());
+              // e.Node.Level is incompatible with Mono
+              if e.Node.Parent = null then
+                e.Cancel <- true;
+            );
             
         this.valueTreeView.add_AfterSelect(fun _ e -> 
             let currentNode = this.valueTreeView.SelectedNode  

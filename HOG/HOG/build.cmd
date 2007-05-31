@@ -48,7 +48,7 @@ goto success
 
 :mono
 echo   * Mono build
-echo     - Duplicate the resource files (to fix a bug in Mono)
+echo     - Create duplicate resource files to fix a bug in Mono
 copy /y horsform.resx "horsform+horsform.resx"
 copy /y cpdaform.resx "cpdaform+cpdaform.resx"
 
@@ -57,14 +57,14 @@ if %1 == mono_release goto mono_release
 
 :mono_debug
 echo   * Debug mode
-"""%FSC%""" --fullpaths --progress -Ooff -I "%GLEE%\bin" -r Microsoft.GLEE.dll -r Microsoft.GLEE.GraphViewerGDI.dll -r Microsoft.GLEE.Drawing.dll -o hog.exe --no-warn 40 -g common.ml hog.mli hog.ml hocpda.ml cpdaform.fs horsform.fs horsform+horsform.resx horsform.resx cpdaform.resx cpdaform+cpdaform.resx parsing.ml hog_parser.mli hog_parser.ml hog_lexer.ml mainform.fs
+"""%FSC%""" --fullpaths --progress -Ooff -I "%GLEE%\bin" -r Microsoft.GLEE.dll -r Microsoft.GLEE.GraphViewerGDI.dll -r Microsoft.GLEE.Drawing.dll -o hog-mono.exe --no-warn 40 -g common.ml hog.mli hog.ml hocpda.ml cpdaform.fs horsform.fs horsform+horsform.resx horsform.resx cpdaform.resx cpdaform+cpdaform.resx parsing.ml hog_parser.mli hog_parser.ml hog_lexer.ml mainform.fs
 if ERRORLEVEL 1 goto exit
 goto success
 
 
 :mono_release
 echo   * Release mode
-"""%FSC%""" --fullpaths --progress --standalone -O3 -I "%GLEE%\bin" -r Microsoft.GLEE.dll -r Microsoft.GLEE.GraphViewerGDI.dll -r Microsoft.GLEE.Drawing.dll -o hog.exe --no-warn 40 common.ml hog.mli hog.ml hocpda.ml cpdaform.fs horsform.fs horsform+horsform.resx horsform.resx cpdaform.resx cpdaform+cpdaform.resx parsing.ml hog_parser.mli hog_parser.ml hog_lexer.ml mainform.fs
+"""%FSC%""" --fullpaths --progress --standalone -O3 -I "%GLEE%\bin" -r Microsoft.GLEE.dll -r Microsoft.GLEE.GraphViewerGDI.dll -r Microsoft.GLEE.Drawing.dll -o hog-mono.exe --no-warn 40 common.ml hog.mli hog.ml hocpda.ml cpdaform.fs horsform.fs horsform+horsform.resx horsform.resx cpdaform.resx cpdaform+cpdaform.resx parsing.ml hog_parser.mli hog_parser.ml hog_lexer.ml mainform.fs
 if ERRORLEVEL 1 goto exit
 goto success
 

@@ -71,7 +71,9 @@ let init_treeviewnode_history (node:TreeNode) (newconf:gen_configuration) =
 
 let TreeNode_get_path (node:TreeNode) =
    let rec aux (node:TreeNode) = 
-     if node.Level = 0 then
+     //incompatible with Mono
+     //if node.Level = 0 then
+     if node.Parent = null then
        []
      else 
        (aux node.Parent)@[node]
@@ -230,9 +232,10 @@ type CpdaForm =
                this.selectTreeViewNodeSourceline();
               );
         this.valueTreeView.add_BeforeCollapse(fun _ e -> 
-              match e.Node.Level with 
-              | 0 -> e.Cancel <- true;
-              | _ -> ());
+              // e.Node.Level is incompatible with Mono
+              if e.Node.Parent = null then
+                e.Cancel <- true;
+              );
 
         this.valueTreeView.add_AfterSelect(fun _ e -> 
             let currentNode = this.valueTreeView.SelectedNode  
