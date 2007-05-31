@@ -3,6 +3,11 @@ call build release
 popd
 @if ERRORLEVEL 1 goto exit
 
+pushd HOG
+call build mono_release
+popd
+@if ERRORLEVEL 1 goto exit
+
 call zip_exe.cmd
 @if ERRORLEVEL 1 goto exit
 
