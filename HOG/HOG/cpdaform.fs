@@ -17,7 +17,10 @@ open Hocpda
 let RichTextbox_SelectLine cum (rtb:RichTextBox) line  = 
   if line < Array.length cum then
     begin
-      ignore(rtb.Select( cum.(line) + rtb.Lines.(line).Length , -rtb.Lines.(line).Length ));
+      // selection of negative length are not compatible with Mono
+      //ignore(rtb.Select( cum.(line) + rtb.Lines.(line).Length , -rtb.Lines.(line).Length ));
+      ignore(rtb.Select( cum.(line) , rtb.Lines.(line).Length+1 ));
+//      rtb.ScrollToCaret();
     end
 ;;
 
@@ -49,7 +52,7 @@ let is_cpda_emitting_at_treeviewnode (node:TreeNode) =
                         ) ;;
 
 
-let is_configuration_treeviewnode (node:TreeNode) = node.Tag<>null;;
+let is_configuration_treeviewnode (node:TreeNode) = node<> null && node.Tag<>null;;
 
 (* Add a configuration to the history.
    When consecutive configurations share the same stack, only the last one is kept in the history.
@@ -71,7 +74,7 @@ let init_treeviewnode_history (node:TreeNode) (newconf:gen_configuration) =
 
 let TreeNode_get_path (node:TreeNode) =
    let rec aux (node:TreeNode) = 
-     //incompatible with Mono
+     // incompatible with Mono
      //if node.Level = 0 then
      if node.Parent = null then
        []
@@ -96,7 +99,7 @@ type CpdaForm =
       if is_configuration_treeviewnode node then
           match cpda_conf_from_treeviewnode node with 
               TmState(_),_ -> ();
-            | State(ip),_ -> RichTextbox_SelectLine this.cumul_linelength this.codeRichTextBox (ip+this.codestartline);      
+            | State(ip),_ -> RichTextbox_SelectLine this.cumul_linelength this.codeRichTextBox (ip+this.codestartline);
     
     member this.validate_valuetree_path (node:TreeNode) =
       if is_configuration_treeviewnode node then
@@ -117,7 +120,7 @@ type CpdaForm =
         this.pathTextBox.Clear();
 
     member this.expand_selected_treeviewconfiguration (node:TreeNode) =
-        if  is_cpda_alive_at_treeviewnode node then 
+        if is_cpda_alive_at_treeviewnode node then 
             let conf = cpda_conf_from_treeviewnode node
             try 
                   let newconf = hocpda_step this.cpda conf
@@ -516,12 +519,14 @@ type CpdaForm =
         let rootNode = new TreeNode(title, Tag = (null : obj), ImageKey = "BookStack", SelectedImageKey = "BookStack")
         ignore(this.valueTreeView.Nodes.Add(rootNode));
         rootNode.Expand();
-      
+        
 
         let SNode = new TreeNode("0")
         SNode.ImageKey <- "Help";
         SNode.SelectedImageKey <- "Help";
         init_treeviewnode_history SNode (hocpda_initconf this.cpda);
         ignore(rootNode.Nodes.Add(SNode));
+        this.valueTreeView.SelectedNode <- SNode;
+        
   end
   

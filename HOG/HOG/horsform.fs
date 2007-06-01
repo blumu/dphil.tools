@@ -645,5 +645,6 @@ type HorsForm =
         SNode.ImageKey <- "Help";
         SNode.SelectedImageKey <- "Help";
         SNode.Tag <- Nt("S");
-        ignore(rootNode.Nodes.Add(SNode));       
+        ignore(rootNode.Nodes.Add(SNode)); 
+        this.valueTreeView.SelectedNode <- SNode;      
   end
