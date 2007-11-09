@@ -90,6 +90,9 @@ echo  . texmfdir is the local root latex directory (where you want to install th
 echo  . pid is the platform id of the font (used by ttf2tfm)
 echo  . pid is the encoding id of the font (used by ttf2tfm)
 echo.
+echo Example:
+echo   %0 C:\Windows\Fonts\Simkai.ttf
+echo.
 goto end
 
 :filenotfound

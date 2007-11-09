@@ -1,23 +1,23 @@
-% to be processed by pdflatex
-% the font cyberbit must be installed in the latex texmf/font directory
 \documentclass[twocolumn]{article}
-\usepackage[utf8ttf]{inputenc}
-\usepackage{ttfucs}
-\DeclareTruetypeFont{cyberb}{cyberb}
-\DeclareTruetypeFont{simkay}{simkay}
-
+\usepackage{CJK}
 \usepackage{savetrees}
 \usepackage{pinyin}
 
 \begin{document}
+
+
+\begin{CJK*}{UTF8}{SIMKAI} \CJKtilde
+%\begin{CJK*}{UTF8}{cyberbit} \CJKtilde
+
+%\begin{CJK*}{UTF8}{song} \CJKtilde
+%\begin{CJK*}{GB}{gbsn} \CJKtilde
+
 \begin{center}
 \textbf{William Blum}
 中文 - List of sinograms
 \end{center}
 
-\TruetypeFont{cyberbit}
 \section*{第\ 0 课\ \ \ 中国大， 日本小。}
-\TruetypeFont{simkai}
 
 \begin{tabular}{lll}
  中  & \zhong1 & middle \\
@@ -147,8 +147,7 @@ Numbers:
 东 & \dong1 & east\\
 西 & \xi1 & west\\
 \end{tabular}
+
+\end{CJK*}
+
 \end{document}
-
-
-
-
