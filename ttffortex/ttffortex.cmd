@@ -1,7 +1,8 @@
 @rem This line serves to eat the BOM (byte-order-mark, present if the cmd file is saved by Notepad in UTF-8 mode)
 @echo OFF
-rem created by William Blum on 22 fev 2006
-rem  Install a truetype unicode font for latex and pdflatex
+rem Created by William Blum on 22 fev 2006.
+rem Acknowledgement: DanielThibault for his suggestions.
+rem Install a truetype unicode font for latex and pdflatex
 rem requirement:
 rem   - ttf2tfm, ttfucs.sty and utf8ttf.def
 
@@ -14,11 +15,12 @@ setlocal
 if (%1)==() goto print_syntax
 set TFFFILE_PATH=%1
 set TFFFILE_BASENAME=%~n1
+set TFFFILE_EXT=%~x1
 rem Short name for the font (6 characters maximum) used to generate the files "baseXX.enc"
 set TFFFILE_SHORT_BASENAME=%TFFFILE_BASENAME:~0,6%
 
 set TEXMF=%2
-if (%TEXMF%)==() goto detect_miktex_dir:
+if (%TEXMF%)==() goto detect_miktex_dir
 
 echo The font will be installed in the directory: %TEXMF%
 goto get_pideid
@@ -43,21 +45,24 @@ rem default value
 if (%EID%)==() set EID=1
 
 
-rem Check that the font file extension is .ttf (/i for case insensitive comparison)
-IF /i "%~x1" NEQ ".ttf" goto badfileextension
+rem Check that the font file extension is either .ttf or .ttc (/i for case insensitive comparison)
+echo %TFFFILE_EXT%
+IF /i %TFFFILE_EXT% == .ttf goto ttfextension_ok
+IF /i %TFFFILE_EXT% NEQ .ttc goto badfileextension
+:ttfextension_ok
 IF NOT EXIST %TFFFILE_PATH% goto filenotfound
 IF NOT EXIST %TEXMF% goto dirnotfound
 
 
-echo Install the truetype font "%TFFFILE_BASENAME%.TTF" in the latex directory %TEXMF% ...
+echo Install the truetype font "%TFFFILE_BASENAME%%TFFFILE_EXT%" in the latex directory %TEXMF% ...
 
 @echo ON
 @if not exist %TEXMF%\fonts\truetype\ mkdir %TEXMF%\fonts\truetype\
 copy %TFFFILE_PATH% %TEXMF%\fonts\truetype\
 cd %TEXMF%\fonts\truetype
-ttf2tfm %TFFFILE_BASENAME%.ttf -P %PID% -E %EID% -w %TFFFILE_SHORT_BASENAME%@Unicode@ > ttfortex.log ||  goto ttf2tfm_error
+ttf2tfm %TFFFILE_BASENAME%%TFFFILE_EXT% -P %PID% -E %EID% -w %TFFFILE_SHORT_BASENAME%@Unicode@ > ttfortex.log ||  goto ttf2tfm_error
 @if exist %TFFFILE_BASENAME%.map del %TFFFILE_BASENAME%.map
-for %%i in (*.enc) do @echo %%~ni ^<%TFFFILE_BASENAME%.ttf ^<%%~ni.enc >>%TFFFILE_BASENAME%.map
+for %%i in (*.enc) do @echo %%~ni ^<%TFFFILE_BASENAME%%TFFFILE_EXT% ^<%%~ni.enc >>%TFFFILE_BASENAME%.map
 @if not exist %TFFFILE_BASENAME%.map goto nomap
 
 @if not exist %TEXMF%\pdftex\config\ mkdir %TEXMF%\pdftex\config\
@@ -68,6 +73,10 @@ move %TFFFILE_SHORT_BASENAME%*.tfm %TEXMF%\fonts\tfm\%TFFFILE_BASENAME%\
 
 @if not exist %TEXMF%\pdftex\enc\%TFFFILE_BASENAME% mkdir %TEXMF%\pdftex\enc\%TFFFILE_BASENAME%
 move %TFFFILE_SHORT_BASENAME%*.enc %TEXMF%\pdftex\enc\%TFFFILE_BASENAME%\
+
+rem Update the Truetype font map file (ttfonts.map) used by ttf2pk to generate the pk bitmap files representing the glyphs of the truetype font.
+rem (the PK files are used by the DVI viewer and by dvi2ps)
+echo %TFFFILE_SHORT_BASENAME%@Unicode@  %TFFFILE_BASENAME%%TFFFILE_EXT%    Pid=%PID% Eid=%EID% >> %TEXMF%\ttf2tfm\base\ttfonts.map
 
 @if not exist %TEXMF%\tex\latex\winfonts mkdir %TEXMF%\tex\latex\winfonts
 @set FDFILE=%TEXMF%\tex\latex\winfonts\C70%TFFFILE_BASENAME%.fd
@@ -103,7 +112,7 @@ goto end
 
 :badfileextension
 @echo off
-echo Bad file extension ("%TFFFILE_PATH%")! The font file must have the .TTF extension.
+echo Bad file extension ("%TFFFILE_PATH%")! The font file must have the .TTF or .TCC extension.
 SET v_return=4
 goto end
 
