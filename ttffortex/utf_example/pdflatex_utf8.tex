@@ -1,17 +1,14 @@
-% to be processed by pdflatex
-% the font cyberbit must be installed in the latex texmf/font directory
+% This document must be processed by pdflatex.
+% The true-type font 'cyberbit' must be installed in the latex texmf/font directory 
+% (this can be done using the ttffortex utility from http://william.famille-blum.org/software/latex/index.html)
 \documentclass[twocolumn]{article}
 \usepackage[utf8ttf]{inputenc}
 \usepackage{ttfucs}
 
-%\DeclareTruetypeFont{cyberbit}{cyberb}
-%\DeclareTruetypeFont{simkay}{simkay}
-
-\newcommand{\cyberbit}{\TruetypeFont{cyberb}%
-  \usefont{C70}{cyberbit}{m}{n}\selectfont}
-
-\newcommand{\simkai}{\TruetypeFont{simkai}%
-  \usefont{C70}{simkai}{m}{n}\selectfont}
+\DeclareTruetypeFont{cyberbit}{cyberb}
+\DeclareTruetypeFont{SIMKAI}{SIMKAI}
+\DeclareTruetypeFont{simhei}{simhei}
+\DeclareTruetypeFont{ARIALUNI}{ARIALU}
   
 \usepackage{savetrees}
 \usepackage{pinyin}
@@ -22,9 +19,21 @@
 中文 - List of sinograms
 \end{center}
 
-\cyberbit
+\TruetypeFont{cyberbit}
+Cyberbit: 中 王 国 大 日 本 小 吗 马 很 不
+
+\TruetypeFont{simhei}
+SimHei: 中 王 国 大 日 本 小 吗 马 很 不
+
+\TruetypeFont{SIMKAI}
+SimKai: 中 王 国 大 日 本 小 吗 马 很 不
+
+\TruetypeFont{ARIALUNI}
+Arial Unicode: 中 王 国 大 日 本 小 吗 马 很 不
+
+
+\TruetypeFont{SIMKAI}
 \section*{第\ 0 课\ \ \ 中国大， 日本小。}
-\simkai
 
 \begin{tabular}{lll}
  中  & \zhong1 & middle \\
@@ -78,7 +87,6 @@ Numbers:
 
 
 中国
-
 
 \section*{第\ 1 课\ \ \ 您贵姓}
 
