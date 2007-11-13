@@ -7,7 +7,7 @@ rem requirement:
 rem   - ttf2tfm, ttfucs.sty and utf8ttf.def
 
 echo Truetype font installer for Latex by William Blum.
-echo Version 1.2 - 13/11/2007
+echo Version 1.1 - 8/11/2007
 echo.
 
 setlocal
@@ -30,8 +30,8 @@ rem Guess miktex dir: look for a directory in the PATH env var containing pdflat
 FOR %%I IN (pdflatex.exe) do set TEXMF="%%~$PATH:I"
 
 rem default value
-if (%TEXMF%)==("") set TEXMF="C:\Program files\Miktex 2.7" & goto miktex_dir_ok
-set TEXMF=%TEXMF:\miktex\bin\pdflatex.exe=%
+if (%TEXMF%)==("") set TEXMF="C:\Program files\Miktex 2.7\" & goto miktex_dir_ok
+set TEXMF=%TEXMF:miktex\bin\pdflatex.exe=%
 echo MiKTex directory detected: %TEXMF%
 goto get_pideid
 
@@ -46,6 +46,7 @@ if (%EID%)==() set EID=1
 
 
 rem Check that the font file extension is either .ttf or .ttc (/i for case insensitive comparison)
+echo %TFFFILE_EXT%
 IF /i %TFFFILE_EXT% == .ttf goto ttfextension_ok
 IF /i %TFFFILE_EXT% NEQ .ttc goto badfileextension
 :ttfextension_ok
@@ -59,8 +60,7 @@ echo Install the truetype font "%TFFFILE_BASENAME%%TFFFILE_EXT%" in the latex di
 @if not exist %TEXMF%\fonts\truetype\ mkdir %TEXMF%\fonts\truetype\
 copy %TFFFILE_PATH% %TEXMF%\fonts\truetype\
 cd %TEXMF%\fonts\truetype
-ttf2tfm %TFFFILE_BASENAME%%TFFFILE_EXT% -P %PID% -E %EID% -w %TFFFILE_SHORT_BASENAME%@Unicode@ > ttffortex_%TFFFILE_BASENAME%.log ||  goto ttf2tfm_error
-
+ttf2tfm %TFFFILE_BASENAME%%TFFFILE_EXT% -P %PID% -E %EID% -w %TFFFILE_SHORT_BASENAME%@Unicode@ > ttfortex.log ||  goto ttf2tfm_error
 @if exist %TFFFILE_BASENAME%.map del %TFFFILE_BASENAME%.map
 for %%i in (*.enc) do @echo %%~ni ^<%TFFFILE_BASENAME%%TFFFILE_EXT% ^<%%~ni.enc >>%TFFFILE_BASENAME%.map
 @if not exist %TFFFILE_BASENAME%.map goto nomap
@@ -74,16 +74,16 @@ move %TFFFILE_SHORT_BASENAME%*.tfm %TEXMF%\fonts\tfm\%TFFFILE_BASENAME%\
 @if not exist %TEXMF%\pdftex\enc\%TFFFILE_BASENAME% mkdir %TEXMF%\pdftex\enc\%TFFFILE_BASENAME%
 move %TFFFILE_SHORT_BASENAME%*.enc %TEXMF%\pdftex\enc\%TFFFILE_BASENAME%\
 
-@rem Update the Truetype font map file (ttfonts.map) used by ttf2pk to generate the pk bitmap files representing the glyphs of the truetype font.
-@rem (the PK files are used by the DVI viewer and by dvi2ps)
+rem Update the Truetype font map file (ttfonts.map) used by ttf2pk to generate the pk bitmap files representing the glyphs of the truetype font.
+rem (the PK files are used by the DVI viewer and by dvi2ps)
 echo %TFFFILE_SHORT_BASENAME%@Unicode@  %TFFFILE_BASENAME%%TFFFILE_EXT%    Pid=%PID% Eid=%EID% >> %TEXMF%\ttf2tfm\base\ttfonts.map
 
 @if not exist %TEXMF%\tex\latex\winfonts mkdir %TEXMF%\tex\latex\winfonts
 @set FDFILE=%TEXMF%\tex\latex\winfonts\C70%TFFFILE_BASENAME%.fd
 @echo \ProvidesFile{C70%TFFFILE_BASENAME%.fd}[%TFFFILE_BASENAME%] > %FDFILE%
 @echo \DeclareFontFamily{C70}{%TFFFILE_BASENAME%}{\hyphenchar \font\m@ne} >> %FDFILE%
-@echo \DeclareFontShape{C70}{%TFFFILE_BASENAME%}{m}{n}{^<-^> CJK * %TFFFILE_SHORT_BASENAME%}{} >> %FDFILE%
-@echo \DeclareFontShape{C70}{%TFFFILE_BASENAME%}{bx}{n}{^<-^> CJKb * %TFFFILE_SHORT_BASENAME%}{\CJKbold}	>> %FDFILE%
+@echo \DeclareFontShape{C70}{%TFFFILE_BASENAME%}{m}{n}{^<-^> CJK * %TFFFILE_BASENAME%}{} >> %FDFILE%
+@echo \DeclareFontShape{C70}{%TFFFILE_BASENAME%}{bx}{n}{^<-^> CJKb * %TFFFILE_BASENAME%}{\CJKbold}	>> %FDFILE%
 @echo \endinput >> %FDFILE%
 
 initexmf --update-fndb

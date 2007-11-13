@@ -4,23 +4,17 @@
 \usepackage{savetrees}
 \usepackage{pinyin}
 
-\DeclareFontFamily{C70}{arial}{}
-\DeclareFontShape{C70}{arial}{m}{n}{<-> CJK * ARIALU}{}
-\DeclareFontShape{C70}{arial}{bx}{n}{<-> CJKb * ARIALU}{\CJKbold}
 % we want the Unicode font for normal text also
-\DeclareFontFamily{T1}{arial}{}
-\DeclareFontShape{T1}{arial}{m}{n}{<-> ARIALU00}{} 
+\DeclareFontFamily{T1}{ARIALUNI}{}
+\DeclareFontShape{T1}{ARIALUNI}{m}{n}{<-> ARIALU00}{} 
 
-\DeclareFontFamily{C70}{song}{}
-\DeclareFontShape{C70}{song}{m}{n}{<-> CJK * CJSONG}{}
-\DeclareFontShape{C70}{song}{bx}{n}{<-> CJKb * CJSONG}{\CJKbold}
 % we want the Unicode font for normal text also
-\DeclareFontFamily{T1}{song}{} 
-\DeclareFontShape{T1}{song}{m}{n}{<-> CJSONG00}{} 
+\DeclareFontFamily{T1}{CJSONGEB}{} 
+\DeclareFontShape{T1}{CJSONGEB}{m}{n}{<-> CJSONG00}{} 
 
 \begin{document}
 
-\begin{CJK*}{UTF8}{cyberb} \CJKtilde
+\begin{CJK*}{UTF8}{Cyberbit} \CJKtilde
 Cyberbit: 中 王 国 大 日 本 小 吗 马 很 不
 \end{CJK*}
 
@@ -40,16 +34,16 @@ Gulim: 中 王 国 大 日 本 小 吗 马 很 不
 Batang: 中 王 国 大 日 本 小 吗 马 很 不
 \end{CJK*}
 
-\begin{CJK*}{UTF8}{song} \CJKtilde
+\begin{CJK*}{UTF8}{CJSONGEB} \CJKtilde
 CJSONGEB: 中 王 国 大 日 本 小 吗 马 很 不
 \end{CJK*}
 
-\begin{CJK*}{UTF8}{arial} \CJKtilde
+\begin{CJK*}{UTF8}{ARIALUNI} \CJKtilde
 Arial Unicode: 中 王 国 大 日 本 小 吗 马 很 不
 \end{CJK*}
 
 
-\begin{CJK}{UTF8}{arial}
+\begin{CJK}{UTF8}{ARIALUNI}
 
 \noindent Hello World!
 
