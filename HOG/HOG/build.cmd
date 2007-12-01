@@ -2,11 +2,12 @@
 
 :setenvir
 setlocal
-if "%FSHARP_HOME%"=="" ( set FSHARP_HOME=C:\Program Files\FSharp-1.9.1.9)
-if "%FSC%"=="" ( set FSC=%FSHARP_HOME%\bin\fsc.exe )
-if "%FSYACC%"=="" ( set FSYACC=%FSHARP_HOME%\bin\fsyacc.exe )
-if "%FSLEX%"=="" ( set FSLEX=%FSHARP_HOME%\bin\fslex.exe )
+if "%FSHARP_HOME%"=="" ( set FSHARP_HOME=C:\Program Files\FSharp-1.9.2.9)
+if "%FSC%"=="" ( set FSC=%FSHARP_HOME%\bin\fsc.exe)
+if "%FSYACC%"=="" ( set FSYACC=%FSHARP_HOME%\bin\fsyacc.exe)
+if "%FSLEX%"=="" ( set FSLEX=%FSHARP_HOME%\bin\fslex.exe)
 if "%GLEE%"=="" ( set GLEE=C:\Program Files\Microsoft Research\GLEE)
+if "%RESXC%"=="" ( set RESXC=%FSHARP_HOME%\bin\resxc.exe)
 
 :parserlexer
 echo - Lex...
@@ -24,7 +25,7 @@ if %1 == release goto release
 if %1 == debug goto debug
 if %1 == mono goto mono
 if %1 == mono_release goto mono
-if %1 == "" goto debug
+goto debug
 
 echo.
 echo Bad build paramter!
@@ -34,6 +35,7 @@ exit /b 10
 
 :debug
 echo   * Debug mode
+"""%FSC%""" 
 """%FSC%""" --fullpaths --progress -Ooff -I "%GLEE%\bin" -r Microsoft.GLEE.dll -r Microsoft.GLEE.GraphViewerGDI.dll -r Microsoft.GLEE.Drawing.dll -o hog.exe --no-warn 40 --target-winexe -g common.ml hog.mli hog.ml hocpda.ml cpdaform.fs horsform.fs horsform.resx cpdaform.resx parsing.ml hog_parser.mli hog_parser.ml hog_lexer.ml mainform.fs
 if ERRORLEVEL 1 goto exit
 goto success
@@ -41,7 +43,10 @@ goto success
 
 :release
 echo   * Release mode
-"""%FSC%""" --fullpaths --progress --standalone -O3 -I "%GLEE%\bin" -r Microsoft.GLEE.dll -r Microsoft.GLEE.GraphViewerGDI.dll -r Microsoft.GLEE.Drawing.dll -o hog.exe --no-warn 40 --target-winexe common.ml hog.mli hog.ml hocpda.ml cpdaform.fs horsform.fs horsform.resx cpdaform.resx parsing.ml hog_parser.mli hog_parser.ml hog_lexer.ml mainform.fs
+echo     - compiling resources
+"""%RESXC%""" horsform.resx cpdaform.resx
+echo     - compiling sources
+"""%FSC%""" --fullpaths --progress --standalone -O3 -I "%GLEE%\bin" -r Microsoft.GLEE.dll -r Microsoft.GLEE.GraphViewerGDI.dll -r Microsoft.GLEE.Drawing.dll -o hog.exe --no-warn 40 --target-winexe --resource horsform.resources --resource cpdaform.resources  common.ml hog.mli hog.ml hocpda.ml cpdaform.fs horsform.fs  parsing.ml hog_parser.mli hog_parser.ml hog_lexer.ml mainform.fs
 if ERRORLEVEL 1 goto exit
 goto success
 

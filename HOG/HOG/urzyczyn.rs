@@ -23,7 +23,7 @@ nonterminals {
 
 rules {
 	S = [ (D G E E E) ;
-	D phi x y z = 3 ([ (D (D phi x) z (F y) (F y))) (] (phi y x)) (* z);
+	D \varphi x y z = 3 ([ (D (D \varphi x) z (F y) (F y))) (] (\varphi y x)) (* z);
 	F x = * x ;
 	E = e ;
 	G u v = r ;

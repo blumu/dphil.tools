@@ -103,6 +103,8 @@ val graph_n_children : cg_edges -> int -> int
 val graph_node_type : (ident*typ) list -> nodecontent -> typ
 val hors_to_graph : recscheme -> lnfrule list -> computation_graph
 
+val hors_to_latexcompgraph : recscheme -> lnfrule list -> string
+
 (** Validators *)
 val default_validator : terminal list -> bool * string
 val demiranda_validator :  terminal list -> bool * string
