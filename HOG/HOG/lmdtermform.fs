@@ -9,94 +9,51 @@ open System.IO
 open Printf
 open Hog
 open Hocpda
+open Horsform
 
 
-(** Create the graph view of the computation graph
-    @param graph the computation graph
-    @return the GLEE graph object representing the computation graph
-**)
-let compgraph_to_graphview (nodes_content:cg_nodes,edges:cg_edges) =
-    (* create a graph object *)
-    let graph = new Microsoft.Glee.Drawing.Graph("graph") in
-    
-    for k = 0 to (Array.length nodes_content)-1 do
-        let nodeid = string_of_int k in
-        let node = graph.AddNode nodeid in
-        match nodes_content.(k) with 
-            NCntApp ->  node.Attr.Label <- "@"^" ["^nodeid^"]";
-          | NCntTm(tm) -> node.Attr.Label <- tm^" ["^nodeid^"]";
-                          node.Attr.Fillcolor <- Microsoft.Glee.Drawing.Color.Salmon;
-                          node.Attr.Shape <- Microsoft.Glee.Drawing.Shape.Box;
-                          node.Attr.LabelMargin <- 10;
-          | NCntVar(x) -> node.Attr.Label <- x^" ["^nodeid^"]";
-                          node.Attr.Fillcolor <- Microsoft.Glee.Drawing.Color.Green;
-          | NCntAbs("",vars) -> node.Attr.Label <- "λ"^(String.concat " " vars)^" ["^nodeid^"]";
-          | NCntAbs(nt,vars) -> node.Attr.Label <- "λ"^(String.concat " " vars)^" ["^nt^":"^nodeid^"]";
-                                node.Attr.Fillcolor <- Microsoft.Glee.Drawing.Color.Yellow;
-    done;
+let keywords = 
+   [  "and";"as";
+      "begin"; 
+      "do";"done";
+      "else";"end";
+      "false";"for";"fun";"function";
+      "if";"in";
+      "let";
+      "match";
+      "or"; 
+      "rec";
+      "then";"to";"true";      
+      "while";"with";"="; "->"; "|"; ]   ;;
 
-    let addtargets source targets =
-        let source_id = string_of_int source in
-        let aux i target = 
-            let target_id = string_of_int target in
-            let edge = graph.AddEdge(source_id,target_id) in
-            (match nodes_content.(source) with
-                NCntApp -> edge.EdgeAttr.Label <- string_of_int i;
-                               (* Highlight the first edge if it is an @-node (going to the operator) *)
-                               if i = 0 then edge.EdgeAttr.Color <- Microsoft.Glee.Drawing.Color.Green;
-               | NCntAbs(_)  -> ();
-               | _ -> edge.EdgeAttr.Label <- string_of_int (i+1);
-            )
+      
+#light;;
+let colorizeCode(rtb: # RichTextBox) = 
+    let text = rtb.Text 
+    rtb.SelectAll()
+    rtb.SelectionColor <- rtb.ForeColor
 
-        in 
-        Array.iteri aux targets
-    in
-    NodeEdgeMap.iter addtargets edges;
-    graph
-;;
+    keywords |> List.iter (fun keyword -> 
+        let mutable keywordPos = rtb.Find(keyword, Enum.combine[RichTextBoxFinds.MatchCase; RichTextBoxFinds.WholeWord])
+        while (keywordPos <> -1) do 
+            let underscorePos = text.IndexOf("_", keywordPos)
+            let commentPos = text.LastIndexOf("//", keywordPos)
+            let newLinePos = text.LastIndexOf('\n', keywordPos)
+            let mutable quoteCount = 0
+            let mutable quotePos = text.IndexOf("\"", newLinePos + 1, keywordPos - newLinePos)
+            while (quotePos <> -1) do
+                quoteCount <- quoteCount + 1
+                quotePos <- text.IndexOf("\"", quotePos + 1, keywordPos - (quotePos + 1))
+            
+            if (newLinePos >= commentPos && 
+                underscorePos <> keywordPos + rtb.SelectionLength  && 
+                quoteCount % 2 = 0) 
+             then
+                rtb.SelectionColor <- Color.Blue;
 
-
-let appterm_of_treeviewnode (node:TreeNode) =
-  node.Tag:?>appterm
-;;
-
-let is_terminal_treeviewnode (node:TreeNode) =
-  node.Tag <> null &&  (match appterm_operator_operands (appterm_of_treeviewnode node) with Tm(_),_ -> true  | _ -> false)
-;;
-
-let is_expandable_treeviewnode (node:TreeNode) =
-  node.Tag <> null && (match appterm_operator_operands (appterm_of_treeviewnode node) with Tm(_),_ -> false  | _ -> true)
-;;
-
-
-(* Expand the node of the treeview by performing one step of the CPDA.
-   Return true if the CPDA has emitted a terminal, false otherwise. *)
-let expand_term_in_treeview hors (treeview_node:TreeNode) =
-    let rec expand_term_in_treeview_aux (rootnode:TreeNode) t = 
-      let op,operands = appterm_operator_operands t in
-      match op with
-        Tm(f) -> rootnode.Text <- f;
-                 rootnode.ImageKey <- "BookClosed";
-                 rootnode.SelectedImageKey <- "BookClosed";
-                 rootnode.Tag <- t;
-                 List.iter (function operand -> let newNode = new TreeNode((string_of_appterm operand), ImageKey = "Help", SelectedImageKey = "Help") in
-                                                  newNode.Tag <- operand;
-                                                  ignore(rootnode.Nodes.Add(newNode));
-                                                  ignore(expand_term_in_treeview_aux newNode operand);
-                                                ) operands;
-                 rootnode.Expand();                                                             
-                 true;
-            (* The leftmost operator is not a terminal: we just replace the Treeview node label
-               by the reduced term. *)
-       | Nt(nt) -> rootnode.Text <- string_of_appterm t;
-                   rootnode.Tag <- t;
-                   false;
-       | _ -> failwith "bug in appterm_operator_operands!";
-    in
-    let _,redterm = step_reduce hors (appterm_of_treeviewnode treeview_node) in
-    expand_term_in_treeview_aux treeview_node redterm;
-;;
-
+            keywordPos <- rtb.Find(keyword, keywordPos + rtb.SelectionLength, Enum.combine[RichTextBoxFinds.MatchCase; RichTextBoxFinds.WholeWord])
+    );
+    rtb.Select(0, 0)
 
 #light
 
@@ -110,23 +67,6 @@ type HorsForm =
           this.components.Dispose();
         base.Dispose(disposing)
 
-    member this.validate_valuetree_path (node:TreeNode) =
-      if node.Tag <> null then
-          let nodepath = Cpdaform.TreeNode_get_path (if is_terminal_treeviewnode node then node else node.Parent)
-          let path = List.map (function (n:TreeNode) -> n.Text) nodepath
-          let v,c = this.hors.rs_path_validator path
-          if v then
-            begin
-              this.pathTextBox.Text <- c;
-              this.pathTextBox.ForeColor <- System.Drawing.Color.Green
-            end
-          else
-            begin
-              this.pathTextBox.Text <- c;
-              this.pathTextBox.ForeColor <- System.Drawing.Color.Red
-            end
-      else
-        this.pathTextBox.Clear();
 
     member this.InitializeComponent() =
         this.components <- new System.ComponentModel.Container();
@@ -199,12 +139,8 @@ type HorsForm =
         this.valueTreeView.ShowRootLines <- false;
         this.valueTreeView.Size <- new System.Drawing.Size(450, 654);
         this.valueTreeView.TabIndex <- 1;
-        this.valueTreeView.add_NodeMouseDoubleClick(fun  _ e -> 
-                if is_expandable_treeviewnode e.Node then
-                  begin
-                    ignore(expand_term_in_treeview this.hors e.Node);
-                    this.validate_valuetree_path e.Node;
-                  end
+        this.valueTreeView.add_NodeMouseDoubleClick(fun  _ e -> ()
+               
               );
                         
         this.valueTreeView.add_BeforeCollapse(fun _ e -> 
@@ -213,10 +149,7 @@ type HorsForm =
                 e.Cancel <- true;
             );
             
-        this.valueTreeView.add_AfterSelect(fun _ e -> 
-            let currentNode = this.valueTreeView.SelectedNode  
-            this.runButton.Enabled <- is_expandable_treeviewnode currentNode;
-            this.validate_valuetree_path currentNode;
+        this.valueTreeView.add_AfterSelect(fun _ e ->  ()
         );
  
         // 
@@ -359,12 +292,7 @@ type HorsForm =
         this.runButton.TabIndex <- 0;
         this.runButton.Text <- "Run";
         this.runButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
-        this.runButton.Click.Add(fun e -> let node = this.valueTreeView.SelectedNode
-                                          if is_expandable_treeviewnode node then
-                                            begin
-                                             while not (expand_term_in_treeview this.hors node) do () done;
-                                             this.validate_valuetree_path node;
-                                            end
+        this.runButton.Click.Add(fun e -> ()
         );
         
         
@@ -401,7 +329,7 @@ type HorsForm =
             buttonLatex.TabIndex <- 2
             buttonLatex.Text <- "Export to Latex"
             buttonLatex.UseVisualStyleBackColor <- true
-            buttonLatex.Click.Add(fun e -> Texexportform.export_to_latex this.lnfrules )
+            buttonLatex.Click.Add(fun e -> Texexportform.export_to_latex this.lnfrules)
 
 
             // create a viewer object
@@ -418,7 +346,7 @@ type HorsForm =
             panel1.TabIndex <- 4;
             
             // bind the graph to the viewer
-            viewer.Graph <- compgraph_to_graphview this.compgraph;
+            viewer.Graph <- Horsform.compgraph_to_graphview this.compgraph this.vartmtypes;
             viewer.AsyncLayout <- false;
             viewer.AutoScroll <- true;
             viewer.BackwardEnabled <- false;
@@ -611,7 +539,7 @@ type HorsForm =
        then 
         this.InitializeComponent();
 
-        this.Text <- ("Higher-order recursion scheme - "^filename);
+        this.Text <- ("Simply-typed lambda term - "^filename);
         this.filename <- filename;
 
         let rootNode = new TreeNode("Value tree", Tag = (null : obj), ImageKey = "BookStack", SelectedImageKey = "BookStack")
@@ -622,7 +550,7 @@ type HorsForm =
         let errors = rs_check this.hors in
         if errors <> [] then
           begin
-            let msg = "Inconsistent HORS definition. Please check types and definitions of terminals, non-terminals and variables.\nList of errors:\n  "^(String.concat "\n  " errors) in
+            let msg = "Typechecking error.\nList of errors:\n  "^(String.concat "\n  " errors) in
             //Mainform.Debug_print msg;
             failwith msg
           end

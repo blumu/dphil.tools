@@ -441,12 +441,11 @@ let rec graph_node_type vartm_types = function
 ;;
 
 
-(** [hors_to_graph rs lnfrules] converts the recursion scheme [rs] into a computation graph.
-    @param rs recursion scheme
+(** [lnf_to_graph rs lnfrules] converts rules in lnf into a computation graph.
     @param lnfrules the rules of the recursion scheme in LNF
     @return the compuation graph (nodes,edges)
 **)
-let hors_to_graph (rs:recscheme) lnfrules =
+let lnf_to_graph lnfrules =
     (* The list of created nodes *)
     let nodes = ref [] in
     (* The edges: a map from node ids to array of edges *)
@@ -521,13 +520,12 @@ let array_find_index f a =
   try array_find_index_ 0 with _ -> raise Not_found;;
   
   
-(** [hors_to_latexcompgraph rs lnfrules] Create Latex code (using the pstricks package) to draw the computation graph
-    of the HORS [rs].
-    @param rs recursion scheme
-    @param lnfrules the rules of the recursion scheme in LNF
+(** [hors_to_latexcompgraph lnfrules] Create Latex code (using the pstricks package) to draw the computation graph
+    of the rules in eta normalform [lnfrules].
+    @param lnfrules rewriting rules in eta-long normal form
     @return a string containing the latex code to draw the compuation graph.
 **)
-let hors_to_latexcompgraph (rs:recscheme) (lnfrules:lnfrule list) =
+let lnfrules_to_latexcompgraph (lnfrules:lnfrule list) =
     
     let ar_lnfrules = Array.of_list lnfrules in
     let nrules = Array.length ar_lnfrules in

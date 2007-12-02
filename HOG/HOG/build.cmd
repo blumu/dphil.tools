@@ -1,77 +1,92 @@
 @if "%_echo%"=="" echo off
 
+if "%1"=="release" goto set_release
+if "%1"=="debug" goto set_debug
+goto bad_parameter
+
+:bad_parameter
+echo.
+echo Bad build paramter!
+echo Valid value for the first argument are: debug release
+echo Valid value for the second argument (optional): mono
+exit /b 10
+
+:set_release
+echo   * Release mode
+set FSC_OPTIONS=--standalone -O3 
+goto testmonomode
+
+:set_debug
+echo   * Debug mode
+set FSC_OPTIONS=-Ooff -g
+goto testmonomode
+
+
+:testmonomode
+if "%2" NEQ "mono" goto no_mono
+
+:set_mono
+echo Compilation for Mono
+set mono_mode=1
+set RESOURCES_ARG=horsform+horsform.resx horsform.resx cpdaform.resx cpdaform+cpdaform.resx
+set OUTPUT_EXE=hog-mono.exe
+goto setenvir
+
+:no_mono
+echo Compilation for .NET
+set mono_mode=0
+set RESOURCES_ARG=--resource horsform.resources --resource cpdaform.resources 
+set OUTPUT_EXE=hog.exe
+
+
 :setenvir
 setlocal
-if "%FSHARP_HOME%"=="" ( set FSHARP_HOME=C:\Program Files\FSharp-1.9.2.9)
+if "%FSHARP_HOME%"=="" ( set FSHARP_HOME=C:\Program Files\FSharp-1.9.3.7)
 if "%FSC%"=="" ( set FSC=%FSHARP_HOME%\bin\fsc.exe)
 if "%FSYACC%"=="" ( set FSYACC=%FSHARP_HOME%\bin\fsyacc.exe)
 if "%FSLEX%"=="" ( set FSLEX=%FSHARP_HOME%\bin\fslex.exe)
 if "%GLEE%"=="" ( set GLEE=C:\Program Files\Microsoft Research\GLEE)
 if "%RESXC%"=="" ( set RESXC=%FSHARP_HOME%\bin\resxc.exe)
 
+
+set SOURCE_FILES= common.ml hog.mli hog.ml hocpda.ml cpdaform.fs texexportform.fs horsform.fs parsing.ml hog_parser.mli hog_parser.ml hog_lexer.ml ml_structs.ml ml_parser.mli ml_parser.ml ml_lexer.ml lmdtermform.fs  mainform.fs 
+
+set RESOURCES_FILES=horsform.resx cpdaform.resx lmdtermform.resx lmdtermform.resx
+
+
 :parserlexer
-echo - Lex...
+echo   - Lex for HORS...
 """%FSLEX%""" -o hog_lexer.ml hog_lexer.mll
+echo   - Lex for CoreML...
+"""%FSLEX%""" -o ml_lexer.ml ml_lexer.mll
 if ERRORLEVEL 1 goto Exit
 
-echo - Yacc...
+echo   - Yacc for HORS...
 """%FSYACC%""" -o hog_parser.ml hog_parser.mly
+echo   - Yacc for CoreML...
+"""%FSYACC%""" -o ml_parser.ml ml_parser.mly
 if ERRORLEVEL 1 goto Exit
+
+
+:resources
+echo     - compiling resources
+"""%RESXC%""" %RESOURCES_FILES%
 
 
 :compile
 echo - F# compilation...
-if %1 == release goto release
-if %1 == debug goto debug
-if %1 == mono goto mono
-if %1 == mono_release goto mono
-goto debug
-
-echo.
-echo Bad build paramter!
-echo Valid parameters are: debug release mono mono_release
-exit /b 10
-
-
-:debug
-echo   * Debug mode
-"""%FSC%""" 
-"""%FSC%""" --fullpaths --progress -Ooff -I "%GLEE%\bin" -r Microsoft.GLEE.dll -r Microsoft.GLEE.GraphViewerGDI.dll -r Microsoft.GLEE.Drawing.dll -o hog.exe --no-warn 40 --target-winexe -g common.ml hog.mli hog.ml hocpda.ml cpdaform.fs horsform.fs horsform.resx cpdaform.resx parsing.ml hog_parser.mli hog_parser.ml hog_lexer.ml mainform.fs
-if ERRORLEVEL 1 goto exit
-goto success
-
-
-:release
-echo   * Release mode
-echo     - compiling resources
-"""%RESXC%""" horsform.resx cpdaform.resx
 echo     - compiling sources
-"""%FSC%""" --fullpaths --progress --standalone -O3 -I "%GLEE%\bin" -r Microsoft.GLEE.dll -r Microsoft.GLEE.GraphViewerGDI.dll -r Microsoft.GLEE.Drawing.dll -o hog.exe --no-warn 40 --target-winexe --resource horsform.resources --resource cpdaform.resources  common.ml hog.mli hog.ml hocpda.ml cpdaform.fs horsform.fs  parsing.ml hog_parser.mli hog_parser.ml hog_lexer.ml mainform.fs
-if ERRORLEVEL 1 goto exit
-goto success
 
-
-:mono
-echo   * Mono build
-echo     - Create duplicate resource files to fix a bug in Mono
+if %mono_mode==0 then goto fsc_compile
+echo     - Create duplicate resource files (this is necessary because of a bug in Mono)
 copy /y horsform.resx "horsform+horsform.resx"
 copy /y cpdaform.resx "cpdaform+cpdaform.resx"
 
-if %1 == mono goto mono_debug
-if %1 == mono_release goto mono_release
-
-:mono_debug
-echo   * Debug mode
-"""%FSC%""" --fullpaths --progress -Ooff -I "%GLEE%\bin" -r Microsoft.GLEE.dll -r Microsoft.GLEE.GraphViewerGDI.dll -r Microsoft.GLEE.Drawing.dll -o hog-mono.exe --no-warn 40 -g common.ml hog.mli hog.ml hocpda.ml cpdaform.fs horsform.fs horsform+horsform.resx horsform.resx cpdaform.resx cpdaform+cpdaform.resx parsing.ml hog_parser.mli hog_parser.ml hog_lexer.ml mainform.fs
+:fsc_compile
+"""%FSC%""" %FSC_OPTIONS% --fullpaths --progress -I "%GLEE%\bin" -r Microsoft.GLEE.dll -r Microsoft.GLEE.GraphViewerGDI.dll -r Microsoft.GLEE.Drawing.dll --no-warn 40 --target-winexe -o %OUTPUT_EXE% %RESOURCES_ARG% %SOURCE_FILES%
 if ERRORLEVEL 1 goto exit
 goto success
 
-
-:mono_release
-echo   * Release mode
-"""%FSC%""" --fullpaths --progress --standalone -O3 -I "%GLEE%\bin" -r Microsoft.GLEE.dll -r Microsoft.GLEE.GraphViewerGDI.dll -r Microsoft.GLEE.Drawing.dll -o hog-mono.exe --no-warn 40 common.ml hog.mli hog.ml hocpda.ml cpdaform.fs horsform.fs horsform+horsform.resx horsform.resx cpdaform.resx cpdaform+cpdaform.resx parsing.ml hog_parser.mli hog_parser.ml hog_lexer.ml mainform.fs
-if ERRORLEVEL 1 goto exit
-goto success
 
 :success
 echo ********************************************

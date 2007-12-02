@@ -34,6 +34,7 @@ val step_reduce : recscheme -> appterm -> bool * appterm
 val rs_check : recscheme -> string list
 
 
+(** Structures for storing terms in eta-normal form **)
 type lnfrhs = lnfabstractpart * lnfapplicativepart
 and lnfabstractpart = ident list
 and lnfapplicativepart = 
@@ -46,6 +47,8 @@ type lnfrule = nonterminal * lnfrhs ;;
 val lnf_to_string : recscheme -> lnfrule -> string
 val rule_to_lnf : recscheme -> rule -> lnfrule * (ident*typ) list
 val rs_to_lnf : recscheme -> (lnfrule list) * (ident*typ) list
+
+val lnfrules_to_latexcompgraph : lnfrule list -> string
 
 
 
@@ -97,13 +100,11 @@ F#*)
 (** The type of a computation graph *)
 type computation_graph = cg_nodes * cg_edges;;
 
-
 val graph_childnode : cg_edges -> int -> int -> int 
 val graph_n_children : cg_edges -> int -> int 
 val graph_node_type : (ident*typ) list -> nodecontent -> typ
-val hors_to_graph : recscheme -> lnfrule list -> computation_graph
+val lnf_to_graph : lnfrule list -> computation_graph
 
-val hors_to_latexcompgraph : recscheme -> lnfrule list -> string
 
 (** Validators *)
 val default_validator : terminal list -> bool * string

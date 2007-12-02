@@ -16,7 +16,7 @@
     "CustomCommandLine" = "/c \"D:\\my documents\\dev\\HOG\\HOG\\build.cmd\" release"
     "CustomCompiler" = "c:\\windows\\system32\\cmd.exe"
     "DebugCheck" = "TRUE"
-    "CustomCompilationCheck" = "TRUE"
+    "CustomCompilationCheck" = "FALSE"
     "DebugStartMode" = "0"
     "StartApp" = ""
     "StartAppPath" = ""
@@ -63,11 +63,15 @@
     {
     "ProjRelPath" = "T"
     }
-    "horsform.fs"
+    "texexportform.fs"
     {
     "ProjRelPath" = "T"
     }
-    "horsform.resx"
+    "lmdtermform.fs"
+    {
+    "ProjRelPath" = "T"
+    }
+    "lmdtermform.resx"
     {
     "ProjRelPath" = "T"
     }
@@ -95,6 +99,42 @@
     {
     "ProjRelPath" = "T"
     }
+    "horsform.resx"
+    {
+    "ProjRelPath" = "T"
+    }
+    "horsform.fs"
+    {
+    "ProjRelPath" = "T"
+    }
+    "ml_structs.mli"
+    {
+    "ProjRelPath" = "T"
+    }
+    "ml_structs.ml"
+    {
+    "ProjRelPath" = "T"
+    }
+    "ml_lexer.mll"
+    {
+    "ProjRelPath" = "T"
+    }
+    "ml_parser.mly"
+    {
+    "ProjRelPath" = "T"
+    }
+    "ml_parser.mli"
+    {
+    "ProjRelPath" = "T"
+    }
+    "ml_parser.ml"
+    {
+    "ProjRelPath" = "T"
+    }
+    "ml_lexer.ml"
+    {
+    "ProjRelPath" = "T"
+    }
     "mainform.fs"
     {
     "ProjRelPath" = "T"
@@ -108,6 +148,10 @@
     "ProjRelPath" = "T"
     }
     "urzyczyn.rs"
+    {
+    "ProjRelPath" = "T"
+    }
+    "lambdaterm.rs"
     {
     "ProjRelPath" = "T"
     }

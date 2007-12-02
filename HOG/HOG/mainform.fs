@@ -35,7 +35,7 @@ let Debug_print str =
 
 exception ParseError of string
 
-let parse_file (fname:string) = 
+let parse_file parser lexer (fname:string) = 
 
     try
         let str  = new StreamReader(fname) in
@@ -51,22 +51,20 @@ let parse_file (fname:string) =
         let lexbuf = Lexing.from_text_reader System.Text.Encoding.ASCII stream 
         try             
             // Call the parser             
-            let parsed_hors = try  Hog_parser.hog_specification Hog_lexer.token lexbuf
-                              with  Parsing.MissingSection -> raise (ParseError "Bad file format: some compulsory section is missing!")
-                                  | e ->  let pos = lexbuf.EndPos
-                                          Debug_print ((sprintf "error near line %d, character %d\n" (pos.pos_lnum+1) (pos.pos_cnum - pos.pos_bol +1))^"\n"^e.ToString());
-                                          raise (ParseError "parsing aborted!\n")
+            let parsed_object = try  parser lexer lexbuf
+                                with  Parsing.MissingSection -> raise (ParseError "Bad file format: some compulsory section is missing!")
+                                    | e ->  let pos = lexbuf.EndPos
+                                            raise (ParseError ((sprintf "error near line %d, character %d\n" (pos.pos_lnum+1) (pos.pos_cnum - pos.pos_bol +1))^"\n"^e.ToString()^"parsing aborted!\n"))
 
             stream.Close();
             
-            (* Load the recursion scheme form *)
+            (* Load the Windows form for the recursion scheme *)
             Debug_print ("File content:\n "^text^"\n");
+            Some(parsed_object)
 
-            let form = new Horsform.HorsForm(fname, parsed_hors) in
-            ignore(form.Show())
         finally stream.Close();
-    with   :? System.IO.FileNotFoundException -> Debug_print ("File not found! ("^fname^")");
-         | ParseError(msg) -> Debug_print msg;
+    with   :? System.IO.FileNotFoundException -> Debug_print ("File not found! ("^fname^")"); None
+         | ParseError(msg) -> Debug_print msg; None
 ;;
 
  
@@ -80,7 +78,7 @@ let mainform =
                   exit 1;
                 end
               else
-                ignore(parse_file Sys.argv.(1));
+                ignore(parse_file Hog_parser.hog_specification Hog_lexer.token Sys.argv.(1));
       }
 
 mainform.Width  <- 400
@@ -94,23 +92,38 @@ let mFile = mainform.Menu.MenuItems.Add("&File")
 let mHelp = mainform.Menu.MenuItems.Add("&Help")
 
 // menu items 
-let miOpen  = new MenuItem("&Open...")
+let miOpen  = new MenuItem("&Open scheme...")
+let miOpenLmd  = new MenuItem("&Open term...")
 let miQuit  = new MenuItem("&Quit")
 let miAbout = new MenuItem("&About...")
 
 mFile.MenuItems.Add(miOpen)
+mFile.MenuItems.Add(miOpenLmd)
 mFile.MenuItems.Add(miQuit)
 mHelp.MenuItems.Add(miAbout)
 
 
+type FileType = RecSchemeFile | TermFile
 
-// open dialog
-let openRecschemeFile _ = 
+// open dialog for recursion scheme
+let open_dialog defaulttype _ = 
     let d = new OpenFileDialog() in 
-    d.Filter <- "Higher-order recursion scheme *.rs|*.rs|All files *.*|*.*";
-    d.FilterIndex <- 1;
+    d.Filter <- "Higher-order recursion scheme *.rs|*.rs|Lambda term *.lmd|*.lmd|All files *.*|*.*";
+    d.FilterIndex <- match defaulttype with RecSchemeFile -> 0 | TermFile -> 1;
     if d.ShowDialog() = DialogResult.OK then
-        ignore(parse_file d.FileName)
+        match defaulttype with 
+            RecSchemeFile ->  
+                     match parse_file Hog_parser.hog_specification Hog_lexer.token d.FileName with
+                         None -> ()
+                         | Some(o) -> let form = new Horsform.HorsForm(d.FileName, o)
+                                      ignore(form.Show())
+          | TermFile ->
+                     //parse_file Ml_parser.program Ml_lexer.token d.FileName      
+                     match parse_file Hog_parser.hog_specification Hog_lexer.token d.FileName with
+                         None -> ()
+                         | Some(o) -> let form = new Horsform.HorsForm(d.FileName, o)
+                                      ignore(form.Show())          
+
 
 let opAbout _ = 
     MessageBox.Show("HOG by William Blum, 2007","About HOG") |> ignore
@@ -118,7 +131,8 @@ let opAbout _ =
 let opExitForm _ = mainform.Close ()
 
 // callbacks 
-miOpen.Click.Add(openRecschemeFile)
+miOpen.Click.Add(open_dialog RecSchemeFile)
+miOpenLmd.Click.Add(open_dialog TermFile)
 miQuit.Click.Add(opExitForm)
 miAbout.Click.Add(opAbout)
   
