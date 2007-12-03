@@ -1,10 +1,7 @@
 (* Interface File *)
 (* namespace Comlab *)
+open Type
 
-type typ = Gr | Ar of typ * typ ;;
-
-val typeorder : typ -> int
-val typearity : typ -> int
 
 type ident = string;;
 type alphabet = (ident * typ) list;;
@@ -25,7 +22,6 @@ type recscheme = { nonterminals : alphabet;
 val terminal_type : recscheme -> terminal -> typ
 val get_parameter_type : recscheme -> ident -> typ
 
-val string_of_alphabet : alphabet -> string
 val string_of_appterm : appterm -> string
 val string_of_rs : recscheme -> string
 val appterm_operator_operands  : appterm -> appterm * appterm list
@@ -43,12 +39,14 @@ and lnfapplicativepart =
     | LnfAppTm of terminal * lnfrhs list
 ;;
 type lnfrule = nonterminal * lnfrhs ;;
+val lnf_to_string : lnfrule -> string
+val lnfrules_to_latexcompgraph : lnfrule list -> string
 
-val lnf_to_string : recscheme -> lnfrule -> string
+
+
 val rule_to_lnf : recscheme -> rule -> lnfrule * (ident*typ) list
 val rs_to_lnf : recscheme -> (lnfrule list) * (ident*typ) list
 
-val lnfrules_to_latexcompgraph : lnfrule list -> string
 
 
 

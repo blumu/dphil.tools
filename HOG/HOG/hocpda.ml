@@ -1,6 +1,6 @@
 (** Higher-order collapsible pushdown automata (HO-CPDA) module **)
 open Hog
-
+open Type
 
 type state = int
 

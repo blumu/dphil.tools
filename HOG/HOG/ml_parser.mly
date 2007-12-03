@@ -5,20 +5,21 @@
 
 %{
 open Ml_structs;;
+open Type;;
 %}
 
 %token<string>	IDENT
 %token<int>	NUMBER
 
 %token          BADTOK EOF
-%token          DOT LPAR RPAR 
+%token          VDASH DOT LP RP
 %token          FUN LET AND REC
 %token          EQUAL IN ARROW AT
 %token          IF THEN ELSE
 %token          ADDOP
 %token          TRUE FALSE
 %token          SUCC PRED
-%token          SEMISEMI
+%token          COMMA SEMISEMI COLON SEMICOLON
 %token          ANYINT
 
 
@@ -26,13 +27,33 @@ open Ml_structs;;
 %left           EQUAL
 
 
-%start		          program
-%type<Ml_structs.ml_expr>  program
+%start		                            term_in_context
+
+%type<Ml_structs.ml_termincontext>      term_in_context
+%type<Ml_structs.ml_expr>               term
+%type<Ml_structs.ml_context>            context
 
 
 
 %%
-program:
+term_in_context:
+  context VDASH term                                            {$1,$3}  
+   
+context :													    { [] }
+                | IDENT COLON typ           		            { [$1,$3] }
+                | IDENT COLON typ COMMA context		            { ($1,$3)::$5 }
+;
+
+
+
+typ :    IDENT													{ if $1 = "o" then Gr else failwith "Invalid type!" }
+        | LP typ RP												{ $2 }
+        | typ ARROW typ 										{ Ar($1,$3) }
+;
+
+
+
+term:
   expression SEMISEMI                                           {$1}
 
 expression:
@@ -91,7 +112,7 @@ operand:
  | SUCC                                                         { Succ }
  | ANYINT                                                       { AnyInt }
  | PRED                                                         { Pred }
- | LPAR expression RPAR                                         { $2 };
+ | LP expression RP                                             { $2 };
 
 operator:
   operand                                                       { $1 }

@@ -1,0 +1,113 @@
+# by William Blum
+
+OMakeVersion(0.9.8.5, 0.9.8.5)
+
+open build/Common
+open configure/Configure
+
+################################################
+# Configuration.  
+# To build an assembly that is compatible with Mono, add the following command line switch to omake:
+#  MONO=
+
+# For a debug build, add the switch:
+#  DEBUG=
+
+if $(defined MONO)
+    @echo "Mono build"
+else
+    @echo ".Net build"
+
+
+if $(defined DEBUG)
+    @echo "Debug build"
+else
+    @echo "Release build"
+
+    
+#    
+#####################################
+
+
+%.ml %.mli: %.mly
+    $(FSYACC) $(FSYACCFLAGS) $< -o $*.ml
+
+%.ml: %.mll
+    $(FSLEX) $(FSLEXFLAGS) $< -o $@
+
+%.resources: %.resx
+    $(RESXC) $(FSRESXCFLAGS) $<	
+
+
+.STATIC:
+    if $(not $(defined public.FSHARP_HOME))
+        FSHARP_HOME=C:\Program Files\FSharp-1.9.3.7
+        export
+    FSC="$(FSHARP_HOME)\bin\fsc.exe"
+    FSYACC="$(FSHARP_HOME)\bin\fsyacc.exe"
+    FSLEX="$(FSHARP_HOME)\bin\fslex.exe"
+    RESXC="$(FSHARP_HOME)\bin\resxc.exe"
+
+    
+    
+public.FSFLAGS=--fullpaths --progress --no-warn 40 --target-winexe
+public.FS_MONO_FLAGS=
+public.FS_DOTNET_FLAGS=
+public.FSYACCFLAGS=
+public.FSLEXFLAGS=
+public.FSRESXCFLAGS=
+
+
+
+public.FSharpAssembly(name, files) =  
+    protected.RCFILES  = $(addsuffix .resources, $(FS_RESOURCES_FILES))
+    protected.DLLS = $(addsuffix .dll, $(FS_DLLREFS))
+
+    protected.name = $(file $(name))
+    protected.MONOPROG = $(file $(name)-mono$(EXE))
+    protected.DOTNETPROG  = $(file $(name)$(EXE))
+
+    if $(defined DEBUG)
+        FSMOREFLAGS=-Ooff -g
+        export
+    else
+        FSMOREFLAGS=--standalone -O3
+        export
+
+        
+    #
+    # Rules to build byte-code and native targets
+    #
+    # Create additionnal dummy resource files (this is necessary to overcome a bug in Mono)
+    foreach(res, $(FS_RESOURCES_FILES))
+        $(res)+$(res).resx: $(res).resx
+            cp $(res).resx "$(res)+$(res).resx"
+
+    protected.MONORCFILES=$(RCFILES)
+    foreach(res, $(FS_RESOURCES_FILES))
+        MONORCFILES+="$(res)+$(res).resources"
+        export
+            
+    $(MONOPROG): $(MONORCFILES) $(files)
+        @echo "- F# compilation for Mono..."
+        $(FSC) $(FSFLAGS) $(FSMOREFLAGS) $(FS_MONO_FLAGS)\
+                $(mapprefix -I, $(FS_INCLUDEPATH)) $(mapprefix -r, $(DLLS)) \
+                $(mapprefix --resource, $(MONORCFILES)) \
+                $(files) -o $@
+        @echo "***********************************************************"
+        @echo "The assembly $(PROGRAM).exe) has been created successfuly"
+        @echo "***********************************************************"  
+
+                
+    $(DOTNETPROG): $(RCFILES) $(files)
+        @echo "- F# compilation for .NET..."
+        $(FSC) $(FSFLAGS) $(FSMOREFLAGS) $(FS_DOTNET_FLAGS) \
+                $(mapprefix -I, $(FS_INCLUDEPATH)) $(mapprefix -r, $(DLLS)) \
+                $(mapprefix --resource, $(RCFILES)) \
+                $(files) -o $@
+        $(echo ***********************************************************)
+        $(echo The assembly $(PROGRAM).exe) has been created successfuly
+        $(echo ***********************************************************)
+
+    return $(if $(defined MONO), $(MONOPROG), $(DOTNETPROG)) 
+   

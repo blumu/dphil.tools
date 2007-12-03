@@ -1,0 +1,45 @@
+########################################################################
+
+  
+if $(not $(defined GLEE))
+    public.GLEE="C:\Program Files\Microsoft Research\GLEE\bin"
+    export
+
+PROGRAM=hog
+
+FS_FILES[] =
+    common.ml
+    type.ml
+    hog.mli
+    hog.ml
+    hocpda.ml
+    cpdaform.fs
+    texexportform.fs
+    horsform.fs
+    parsing.ml
+    hog_parser.mli
+    hog_parser.ml
+    hog_lexer.ml
+    ml_structs.mli
+    ml_structs.ml
+    ml_parser.mli
+    ml_parser.ml
+    ml_lexer.ml
+    lmdtermform.fs
+    mainform.fs
+
+
+FS_RESOURCES_FILES[]=
+    horsform
+    cpdaform
+    lmdtermform
+
+FS_DLLREFS[]=
+    Microsoft.GLEE
+    Microsoft.GLEE.GraphViewerGDI
+    Microsoft.GLEE.Drawing
+
+FS_INCLUDEPATH=$(GLEE)
+
+.DEFAULT: $(FSharpAssembly $(PROGRAM), $(FS_FILES))
+

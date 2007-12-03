@@ -50,7 +50,6 @@ F#*)
 }
 
 rule token = parse
-  //['A'-'Z' 'a'-'z' '0'-'9' '_' ']' '[' '*' ]
   ['A'-'Z' 'a'-'z' '0'-'9' '_' '\\' ']' '[' '*' '.' '$' '#' ]*   { lookup (lexeme lexbuf) }			
 | '"' [^'"']* '"'    { ATOM(lexeme lexbuf) }
 
@@ -73,12 +72,12 @@ rule token = parse
 | "="                { EQUAL }
 //| "<"              { LT }
 //| ">"              { GT }
-| "->"               {  ARROW }
-//| "!="             {  NOTEQUAL }
-//| "<="             {  LE }
-//| ">="             {  GE }
-//| ".."             {  TWODOTS }
-//| "<->"            {  EQUIV }
+| "->"               { ARROW }
+//| "!="             { NOTEQUAL }
+//| "<="             { LE }
+//| ">="             { GE }
+//| ".."             { TWODOTS }
+//| "<->"            { EQUIV }
         
 | eof			     { EOF }
 | _				     { BADTOK }
@@ -86,11 +85,11 @@ rule token = parse
              
 and linecomment = parse
  ('\n' | '\r' '\n')	   { incr_linenum lexbuf;  }
-| _					   { linecomment lexbuf }
 | eof				   { () }
+| _					   { linecomment lexbuf }
 
 and comment = parse
   //"*)"			   {  }
 | ('\n' | '\r' '\n')   { incr_linenum lexbuf; comment lexbuf }
-| _			           { comment lexbuf }
 | eof			       { () }
+| _			           { comment lexbuf }

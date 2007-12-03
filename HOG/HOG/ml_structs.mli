@@ -3,7 +3,9 @@
 	Author:		William Blum
 **)
 
-type ident = string
+open Type;;
+
+type ident = string;;
 
 type ml_expr =
     MlVar of ident
@@ -19,5 +21,9 @@ type ml_expr =
   | Pred
   | Succ
 
-  
+type ml_context = (ident * typ) list
 
+type ml_termincontext = ml_context*ml_expr
+
+
+val string_of_mltermincontext : ml_termincontext -> string

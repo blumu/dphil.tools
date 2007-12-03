@@ -1,0 +1,11 @@
+(* Example of a simply-typed term-in-context*)
+\varphi:(o-> o)->o |- 
+	\varphi (fun x -> 
+				(fun \psi -> 
+					\varphi (fun xp -> 
+								(fun y -> \psi (fun z -> z))
+								(\varphi (fun xpp -> xp))
+							)
+				) 
+			(fun u-> u e))
+;;

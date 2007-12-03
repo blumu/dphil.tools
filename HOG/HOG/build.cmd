@@ -23,20 +23,20 @@ goto testmonomode
 
 
 :testmonomode
-if "%2" NEQ "mono" goto no_mono
-
-:set_mono
-echo Compilation for Mono
-set mono_mode=1
-set RESOURCES_ARG=horsform+horsform.resx horsform.resx cpdaform.resx cpdaform+cpdaform.resx
-set OUTPUT_EXE=hog-mono.exe
-goto setenvir
+if "%2" EQU "mono" goto set_mono
 
 :no_mono
 echo Compilation for .NET
 set mono_mode=0
 set RESOURCES_ARG=--resource horsform.resources --resource cpdaform.resources 
 set OUTPUT_EXE=hog.exe
+goto setenvir
+
+:set_mono
+echo Compilation for Mono
+set mono_mode=1
+set RESOURCES_ARG=horsform+horsform.resx horsform.resx cpdaform.resx cpdaform+cpdaform.resx
+set OUTPUT_EXE=hog-mono.exe
 
 
 :setenvir
@@ -49,7 +49,7 @@ if "%GLEE%"=="" ( set GLEE=C:\Program Files\Microsoft Research\GLEE)
 if "%RESXC%"=="" ( set RESXC=%FSHARP_HOME%\bin\resxc.exe)
 
 
-set SOURCE_FILES= common.ml hog.mli hog.ml hocpda.ml cpdaform.fs texexportform.fs horsform.fs parsing.ml hog_parser.mli hog_parser.ml hog_lexer.ml ml_structs.ml ml_parser.mli ml_parser.ml ml_lexer.ml lmdtermform.fs  mainform.fs 
+set SOURCE_FILES= common.ml type.ml hog.mli hog.ml hocpda.ml cpdaform.fs texexportform.fs horsform.fs parsing.ml hog_parser.mli hog_parser.ml hog_lexer.ml ml_structs.mli ml_structs.ml ml_parser.mli ml_parser.ml ml_lexer.ml lmdtermform.fs  mainform.fs 
 
 set RESOURCES_FILES=horsform.resx cpdaform.resx lmdtermform.resx lmdtermform.resx
 
@@ -76,8 +76,7 @@ echo     - compiling resources
 :compile
 echo - F# compilation...
 echo     - compiling sources
-
-if %mono_mode==0 then goto fsc_compile
+if %mono_mode% == 0 goto fsc_compile
 echo     - Create duplicate resource files (this is necessary because of a bug in Mono)
 copy /y horsform.resx "horsform+horsform.resx"
 copy /y cpdaform.resx "cpdaform+cpdaform.resx"

@@ -5,6 +5,7 @@
 
 %{
 open Hog
+open Type
 
 type validators = None | Demiranda | ReverseDemiranda;;
 let parsed_validator = ref None;;

@@ -10,7 +10,8 @@ open Printf
 open Hog
 open Hocpda
 open Horsform
-
+open Type
+open Ml_structs
 
 let keywords = 
    [  "and";"as";
@@ -24,7 +25,7 @@ let keywords =
       "or"; 
       "rec";
       "then";"to";"true";      
-      "while";"with";"="; "->"; "|"; ]   ;;
+      "while";"with";"="; "->"; "|"; "|-"; ]   ;;
 
       
 #light;;
@@ -57,7 +58,7 @@ let colorizeCode(rtb: # RichTextBox) =
 
 #light
 
-type HorsForm = 
+type TermForm = 
   class
     inherit Form as base
 
@@ -263,9 +264,11 @@ type HorsForm =
         this.codeRichTextBox.ReadOnly <- true;
         this.codeRichTextBox.Size <- new System.Drawing.Size(680, 240);
         this.codeRichTextBox.TabIndex <- 1;
-        this.codeRichTextBox.Text <- (string_of_rs this.hors) ;
+        this.codeRichTextBox.Text <- string_of_mltermincontext this.lmdterm;
         //this.codeRichTextBox.Dock <- DockStyle.Fill;
-        this.codeRichTextBox.WordWrap <- false;
+        this.codeRichTextBox.WordWrap <- true;        
+        colorizeCode this.codeRichTextBox;
+        
         // 
         // codeLabel
         // 
@@ -321,7 +324,7 @@ type HorsForm =
 
             form.Text <- "Computation graph of "^this.filename;
             form.Size <- Size(700,800);
-            this.outputTextBox.Text <- "Rules in eta-long normal form:\n"^(String.concat "\n" (List.map (lnf_to_string this.hors) this.lnfrules));
+            this.outputTextBox.Text <- "Rules in eta-long normal form:\n"^(String.concat "\n" (List.map lnf_to_string this.lnfrules));
 
             buttonLatex.Location <- new System.Drawing.Point(1, 1)
             buttonLatex.Name <- "button1"
@@ -346,7 +349,7 @@ type HorsForm =
             panel1.TabIndex <- 4;
             
             // bind the graph to the viewer
-            viewer.Graph <- Horsform.compgraph_to_graphview this.compgraph this.vartmtypes;
+            viewer.Graph <- Horsform.compgraph_to_graphview this.compgraph;
             viewer.AsyncLayout <- false;
             viewer.AutoScroll <- true;
             viewer.BackwardEnabled <- false;
@@ -375,61 +378,7 @@ type HorsForm =
             //show the form
             ignore(form.Show()); 
         );
-        
-      
-        
-        //
-        // cpdaButton
-        //
-        this.cpdaButton.Enabled <- true;
-        this.cpdaButton.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
-        this.cpdaButton.Location <- new System.Drawing.Point(250, -1);
-        this.cpdaButton.Name <- "cpdaButton";
-        this.cpdaButton.Size <- new System.Drawing.Size(100, 27);
-        this.cpdaButton.TabIndex <- 0;
-        this.cpdaButton.Text <- "Build n-CPDA";
-        this.cpdaButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
-        this.cpdaButton.Click.Add( fun e -> //create the cpda form
-                                            let form = new Cpdaform.CpdaForm("CPDA built from the recursion scheme "^this.filename,
-                                                                             Hocpda.hors_to_cpda Ncpda this.hors this.compgraph this.vartmtypes)
-                                            ignore(form.Show());
-                                 );
 
-        //
-        // pdaButton
-        //
-        this.pdaButton.Enabled <- true;
-        this.pdaButton.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
-        this.pdaButton.Location <- new System.Drawing.Point(360, -1);
-        this.pdaButton.Name <- "pdaButton";
-        this.pdaButton.Size <- new System.Drawing.Size(150, 27);
-        this.pdaButton.TabIndex <- 0;
-        this.pdaButton.Text <- "Build n-PDA (safe RS)";
-        this.pdaButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
-        this.pdaButton.Click.Add( fun e -> //create the pda
-                                            let form = new Cpdaform.CpdaForm("PDA built from the recursion scheme "^this.filename,
-                                                                             Hocpda.hors_to_cpda Npda this.hors this.compgraph this.vartmtypes)
-                                            ignore(form.Show());
-                                 );
-            
-
-        //
-        // np1pdaButton
-        //
-        this.np1pdaButton.Enabled <- true;
-        this.np1pdaButton.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
-        this.np1pdaButton.Location <- new System.Drawing.Point(520, -1);
-        this.np1pdaButton.Name <- "np1pdaButton";
-        this.np1pdaButton.Size <- new System.Drawing.Size(120, 27);
-        this.np1pdaButton.TabIndex <- 0;
-        this.np1pdaButton.Text <- "Build (n+1)-PDA";
-        this.np1pdaButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
-        this.np1pdaButton.Click.Add( fun e -> //create the pda
-                                            let form = new Cpdaform.CpdaForm("n+1-PDA built from the recursion scheme "^this.filename,
-                                                                             Hocpda.hors_to_cpda Np1pda this.hors this.compgraph this.vartmtypes)
-                                            ignore(form.Show());
-                                 );        
-        
       
         // 
         // outputTextBox
@@ -504,13 +453,13 @@ type HorsForm =
     val mutable valueTreeView : System.Windows.Forms.TreeView;
     val mutable imageList : System.Windows.Forms.ImageList;
     val mutable codeRichTextBox : System.Windows.Forms.RichTextBox;
-    val mutable hors : recscheme;
+    val mutable lmdterm : ml_termincontext;
     val mutable lnfrules : lnfrule list;
     val mutable vartmtypes : (ident*typ) list;
     val mutable compgraph : computation_graph;
     val mutable filename : string;
 
-    new (filename,newhors) as this =
+    new (filename,newterm) as this =
        { outerSplitContainer = null;
          treeviewLabel = null;
          rightContainer = null;
@@ -529,7 +478,7 @@ type HorsForm =
          imageList = null;
          codeRichTextBox = null;
          components = null;
-         hors = newhors;
+         lmdterm = newterm;
          lnfrules = [];
          vartmtypes = [];
          compgraph = [||],NodeEdgeMap.empty;
@@ -546,22 +495,22 @@ type HorsForm =
         ignore(this.valueTreeView.Nodes.Add(rootNode));
         rootNode.Expand();
               
-        // check that the hors is well-defined
-        let errors = rs_check this.hors in
+        // check that the term is well-typed
+        (* let errors = lmd_check this.lmdterm in
         if errors <> [] then
           begin
             let msg = "Typechecking error.\nList of errors:\n  "^(String.concat "\n  " errors) in
             //Mainform.Debug_print msg;
             failwith msg
-          end
+          end *)
           
-        // convert the rules to LNF
-        let r,v = rs_to_lnf this.hors in
+        // convert the term to LNF
+        (*let r,v = lmd_to_lnf this.lmdterm in
 
         this.lnfrules <- r;
-        this.vartmtypes <- v;
+        this.vartmtypes <- v;*)
         
-        // create the computation graph from the HO recursion scheme
+        // create the computation graph from the LNF of the term
         this.compgraph <- lnf_to_graph this.lnfrules;
 
         let SNode = new TreeNode("S")  

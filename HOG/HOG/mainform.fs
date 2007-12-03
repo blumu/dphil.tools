@@ -67,6 +67,33 @@ let parse_file parser lexer (fname:string) =
          | ParseError(msg) -> Debug_print msg; None
 ;;
 
+
+
+(** Return the extension part of a filename **)
+let get_file_extension filename =
+    try 
+        let extpart = String.rindex filename '.' in
+        String.sub filename (extpart+1) ((String.length filename)-extpart-1)        
+    with Not_found -> ""
+;;
+
+// open a file containing either a term or a Rec scheme
+let open_file filename =
+    match (get_file_extension filename) with 
+            "rs" ->  
+                     match parse_file Hog_parser.hog_specification Hog_lexer.token filename with
+                         None -> ()
+                         | Some(o) -> let form = new Horsform.HorsForm(filename, o)
+                                      ignore(form.Show())
+          | "lmd" ->
+                     match parse_file Ml_parser.term_in_context Ml_lexer.token filename with
+                         None -> ()
+                         | Some(o) -> let form = new Lmdtermform.TermForm(filename, o)
+                                      ignore(form.Show())          
+          
+          | _ -> Debug_print("Unknown file format!\n")
+;;
+
  
 let mainform =
     { new Form()
@@ -78,7 +105,7 @@ let mainform =
                   exit 1;
                 end
               else
-                ignore(parse_file Hog_parser.hog_specification Hog_lexer.token Sys.argv.(1));
+                open_file Sys.argv.(1)
       }
 
 mainform.Width  <- 400
@@ -105,24 +132,14 @@ mHelp.MenuItems.Add(miAbout)
 
 type FileType = RecSchemeFile | TermFile
 
-// open dialog for recursion scheme
+// openfile dialog box
 let open_dialog defaulttype _ = 
     let d = new OpenFileDialog() in 
     d.Filter <- "Higher-order recursion scheme *.rs|*.rs|Lambda term *.lmd|*.lmd|All files *.*|*.*";
-    d.FilterIndex <- match defaulttype with RecSchemeFile -> 0 | TermFile -> 1;
+    d.FilterIndex <- match defaulttype with RecSchemeFile -> 1 | TermFile -> 2;
     if d.ShowDialog() = DialogResult.OK then
-        match defaulttype with 
-            RecSchemeFile ->  
-                     match parse_file Hog_parser.hog_specification Hog_lexer.token d.FileName with
-                         None -> ()
-                         | Some(o) -> let form = new Horsform.HorsForm(d.FileName, o)
-                                      ignore(form.Show())
-          | TermFile ->
-                     //parse_file Ml_parser.program Ml_lexer.token d.FileName      
-                     match parse_file Hog_parser.hog_specification Hog_lexer.token d.FileName with
-                         None -> ()
-                         | Some(o) -> let form = new Horsform.HorsForm(d.FileName, o)
-                                      ignore(form.Show())          
+        open_file d.FileName
+
 
 
 let opAbout _ = 

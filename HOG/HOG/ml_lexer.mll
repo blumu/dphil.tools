@@ -28,37 +28,52 @@ List.iter (function (k, t) -> Hashtbl.add kwtable k t )
 
 let lookup s = try Hashtbl.find kwtable s with Not_found -> IDENT s;;
 
-let lineno = ref 1;;
-let colno = ref 0;;
+(*IF-OCAML*)
+let incr_linenum lexbuf =
+	let pos = lexbuf.Lexing.lex_curr_p in
+		lexbuf.Lexing.lex_curr_p <- { 
+			pos with
+				Lexing.pos_lnum = pos.Lexing.pos_lnum + 1;
+				Lexing.pos_bol = pos.Lexing.pos_cnum;
+		}
+;;
+(*ENDIF-OCAML*)
+(*F#
+let incr_linenum (lexbuf : lexbuf) = lexbuf.EndPos <- lexbuf.EndPos.NextLine
+F#*)
+
 }
 
 rule token = parse
-  ['A'-'Z''a'-'z']['A'-'Z''a'-'z''0'-'9''_']*
-			{ colno:= !colno + (String.length (lexeme lexbuf)); lookup (lexeme lexbuf) }
-| ['0'-'9']+		{ colno:= !colno + (String.length (lexeme lexbuf)); NUMBER (int_of_string (lexeme lexbuf)) }
-| "?"			{ incr colno; ANYINT }
-| "@"			{ incr colno; AT }
-| "+"			{ incr colno; ADDOP }
-| "="			{ incr colno; EQUAL }
-| "("			{ incr colno; LPAR }
-| ")"			{ incr colno; RPAR }
-| "."			{ incr colno; DOT }
-| [' ''\t']+	{ incr colno; token lexbuf }
-| "->"			{ colno := !colno + 2; ARROW }
-| ";;"			{ colno := !colno + 2; SEMISEMI }
-| "(*"			{ colno := !colno + 2; comment lexbuf; token lexbuf }
-| "//"			{ colno := !colno + 2; linecomment lexbuf; token lexbuf }
-| '\n'			{ colno := 0; incr lineno; token lexbuf }
-| _			{ BADTOK }
+  ['A'-'Z' 'a'-'z' '0'-'9' '_' '\\' ']' '[' '*' '.' '$' '#' ]*   { lookup (lexeme lexbuf) }			
+| ['0'-'9']+	{ NUMBER (int_of_string (lexeme lexbuf)) }
+| "?"			{ ANYINT }
+| "@"			{ AT }
+| "+"			{ ADDOP }
+| "="			{ EQUAL }
+| "("           { LP }
+| ")"           { RP }
+| "."			{ DOT }
+| [' ''\t']+	{ token lexbuf }
+| "|-"			{ VDASH }
+| "->"			{ ARROW }
+| ":"           { COLON }
+| ","           { COMMA }
+| ";"           { SEMICOLON }
+| ";;"			{ SEMISEMI }
+| "(*"			{ comment lexbuf; token lexbuf }
+| "//"			{ linecomment lexbuf; token lexbuf }
+| ('\n' | '\r' '\n') { incr_linenum lexbuf; token lexbuf }
 | eof			{ EOF }
+| _			    { BADTOK }
 
 and linecomment = parse
- "\n"			{ colno := 0; incr lineno; }
-| _			{ colno:= !colno + (String.length (lexeme lexbuf) ); linecomment lexbuf }
+ "\n"			{ incr_linenum lexbuf; }
 | eof			{ () }
+| _			    { linecomment lexbuf }
 
 and comment = parse
-  "*)"			{ colno:= !colno + 2 }
-| "\n"			{ colno := 0; incr lineno; comment lexbuf }
-| _			{ colno:= !colno + (String.length (lexeme lexbuf)); comment lexbuf }
+  "*)"		    { }
+| "\n"			{ incr_linenum lexbuf; comment lexbuf }
 | eof			{ () }
+| _			    { comment lexbuf }

@@ -9,6 +9,7 @@ open System.IO
 open Printf
 open Hog
 open Hocpda
+open Type
 
 
 (** Create the graph view of the computation graph
@@ -393,7 +394,7 @@ type HorsForm =
 
             form.Text <- "Computation graph of "^this.filename;
             form.Size <- Size(700,800);
-            this.outputTextBox.Text <- "Rules in eta-long normal form:\n"^(String.concat "\n" (List.map (lnf_to_string this.hors) this.lnfrules));
+            this.outputTextBox.Text <- "Rules in eta-long normal form:\n"^(String.concat "\n" (List.map lnf_to_string this.lnfrules));
 
             buttonLatex.Location <- new System.Drawing.Point(1, 1)
             buttonLatex.Name <- "button1"
@@ -633,7 +634,7 @@ type HorsForm =
         this.lnfrules <- r;
         this.vartmtypes <- v;
         
-        // create the computation graph from the HO recursion scheme
+        // create the computation graph from the rules of the recursion scheme in in LNF
         this.compgraph <- lnf_to_graph this.lnfrules;
 
         let SNode = new TreeNode("S")  

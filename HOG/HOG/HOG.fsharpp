@@ -13,14 +13,14 @@
     "SearchPath" = "--target-winexe -r Microsoft.GLEE.dll -r Microsoft.GLEE.Drawing.dll -r Microsoft.GLEE.GraphViewerGDI.dll"
     "StrongNameFile" = ""
     "OutputBase" = ""
-    "CustomCommandLine" = "/c \"D:\\my documents\\dev\\HOG\\HOG\\build.cmd\" release"
+    "CustomCommandLine" = " /c build.cmd debug"
     "CustomCompiler" = "c:\\windows\\system32\\cmd.exe"
     "DebugCheck" = "TRUE"
-    "CustomCompilationCheck" = "FALSE"
+    "CustomCompilationCheck" = "TRUE"
     "DebugStartMode" = "0"
     "StartApp" = ""
     "StartAppPath" = ""
-    "CustomStartupArguments" = "lambdaterm.rs"
+    "CustomStartupArguments" = "example.lmd"
     }
     "Release|Win32"
     {
@@ -47,6 +47,18 @@
     {
     "ProjRelPath" = "T"
     }
+    "type.ml"
+    {
+    "ProjRelPath" = "T"
+    }
+    "ml_structs.mli"
+    {
+    "ProjRelPath" = "T"
+    }
+    "ml_structs.ml"
+    {
+    "ProjRelPath" = "T"
+    }
     "hog.mli"
     {
     "ProjRelPath" = "T"
@@ -64,14 +76,6 @@
     "ProjRelPath" = "T"
     }
     "texexportform.fs"
-    {
-    "ProjRelPath" = "T"
-    }
-    "lmdtermform.fs"
-    {
-    "ProjRelPath" = "T"
-    }
-    "lmdtermform.resx"
     {
     "ProjRelPath" = "T"
     }
@@ -107,14 +111,14 @@
     {
     "ProjRelPath" = "T"
     }
-    "ml_structs.mli"
+    "lmdtermform.fs"
     {
     "ProjRelPath" = "T"
     }
-    "ml_structs.ml"
+    "lmdtermform.resx"
     {
     "ProjRelPath" = "T"
-    }
+    }	
     "ml_lexer.mll"
     {
     "ProjRelPath" = "T"
