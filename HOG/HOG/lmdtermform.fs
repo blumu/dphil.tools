@@ -278,7 +278,7 @@ type TermForm =
         this.codeLabel.Name <- "codeLabel";
         this.codeLabel.Size <- new System.Drawing.Size(100, 16);
         this.codeLabel.TabIndex <- 0;
-        this.codeLabel.Text <- "Description of the recursion scheme:";
+        this.codeLabel.Text <- "Input lambda-term:";
         
         
           // 

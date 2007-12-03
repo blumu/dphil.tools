@@ -1,3 +1,5 @@
+:: by William Blum, 3/12/2007
+:: This file is deprecated, use Omake instead to build the project. (http://omake.metaprl.org/index.html)
 @if "%_echo%"=="" echo off
 
 if "%1"=="release" goto set_release

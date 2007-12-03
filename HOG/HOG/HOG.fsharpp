@@ -13,8 +13,8 @@
     "SearchPath" = "--target-winexe -r Microsoft.GLEE.dll -r Microsoft.GLEE.Drawing.dll -r Microsoft.GLEE.GraphViewerGDI.dll"
     "StrongNameFile" = ""
     "OutputBase" = ""
-    "CustomCommandLine" = " /c build.cmd debug"
-    "CustomCompiler" = "c:\\windows\\system32\\cmd.exe"
+    "CustomCommandLine" = "DEBUG="
+    "CustomCompiler" = "c:\\Program Files\\OMake\\bin\\omake.exe"
     "DebugCheck" = "TRUE"
     "CustomCompilationCheck" = "TRUE"
     "DebugStartMode" = "0"
@@ -118,7 +118,7 @@
     "lmdtermform.resx"
     {
     "ProjRelPath" = "T"
-    }	
+    }
     "ml_lexer.mll"
     {
     "ProjRelPath" = "T"

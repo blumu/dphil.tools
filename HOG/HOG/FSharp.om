@@ -105,9 +105,9 @@ public.FSharpAssembly(name, files) =
                 $(mapprefix -I, $(FS_INCLUDEPATH)) $(mapprefix -r, $(DLLS)) \
                 $(mapprefix --resource, $(RCFILES)) \
                 $(files) -o $@
-        $(echo ***********************************************************)
-        $(echo The assembly $(PROGRAM).exe) has been created successfuly
-        $(echo ***********************************************************)
+        @echo "***********************************************************"
+        @echo "The assembly $(PROGRAM).exe) has been created successfuly"
+        @echo "***********************************************************"
 
     return $(if $(defined MONO), $(MONOPROG), $(DOTNETPROG)) 
    
