@@ -1,0 +1,27 @@
+README FILE for HOG. 
+By William Blum, 4th Dec 2007
+
+== Compilation:
+
+    Requirement: + Omake build system
+                    (http://omake.metaprl.org/index.html)
+                 + Microsoft GLEE .NET graph layout engine
+                    (http://research.microsoft.com/~levnach/GLEEWebPage.htm)
+    To compile just run omake in the HOG subdirectory:
+        omake
+        
+    Optional parameters:
+        -for compatibility with the Mono platform:
+            omake MONO=
+        -for debug build:
+            omake DEBUG=
+
+        
+== History
+0.0.2
+    + New feature that lets you load a simply-typed lambda term-in-context and construct its compuation tree. A type inference algorithm is implemented to avoid to have to declare the type of the variable in the lambda abstractions.
+    + Exportation of the computation tree/graph to Latex using the PSTricks package
+    + Build system based on OMake
+    
+0.0.1
+    + initial version for Higher-order grammars and Pushdown automaton

@@ -1,4 +1,7 @@
-(** Higher-order collapsible pushdown automata (HO-CPDA) module **)
+(** $Id$
+	Description: Higher-order collapsible pushdown automata (HO-CPDA) module
+	Author:		William Blum
+**)
 open Hog
 open Type
 open Lnf

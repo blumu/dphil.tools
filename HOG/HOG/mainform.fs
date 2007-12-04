@@ -6,7 +6,7 @@
 #light
 
 (** Application version **)
-let VERSION = "0.0.1";;
+let VERSION = "0.0.2";;
 
 open System
 open System.IO  

@@ -1,3 +1,8 @@
+(** $Id$
+	Description: Window for Higher-order collapsible pushdown automata
+	Author:		William Blum
+**)
+
 open System
 //open System.Collections.Generic
 open System.ComponentModel

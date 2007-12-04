@@ -60,6 +60,10 @@ and string_in_bracket = function
 let string_of_mltermincontext (c,t) =
      (string_of_alphabet_aux " " c)^"|-"^(string_of_mlterm t);;
 
+exception MissingVariableInContext;;
+
+let lookup_var x context = try List.assoc x context 
+                           with Not_found -> raise MissingVariableInContext;;
 
 (* Infer a polymorphic type for a term-in-context *)
 let infer_polytype (context,term) =  
@@ -67,7 +71,7 @@ let infer_polytype (context,term) =
     let new_freshvar() = incr(freshvar); "'"^(string_of_char (char_of_int ((int_of_char 'a')+ !freshvar))) in
     let rec infer context (term:ml_expr) =
         match term with
-          MlVar(x) -> List.assoc x context
+          MlVar(x) -> lookup_var x context
         | MlAppl(f,e) -> let tauf, taue = (infer context f),(infer context e) in
                          (match unify_polytype tauf (PTypAr(taue,PTypVar(new_freshvar()))) with
                                 | PTypAr(_,sigma) -> sigma
@@ -92,7 +96,7 @@ let annotate_term ((context,term):ml_termincontext) :ml_annotated_expr =
     let new_freshvar() = incr(freshvar); "'"^(string_of_char (char_of_int ((int_of_char 'a')+ !freshvar))) in
     let rec annotate context (term:ml_expr) =
         match term with
-          MlVar(x) -> (List.assoc x context),(AnMlVar(x))
+          MlVar(x) -> (lookup_var x context),(AnMlVar(x))
         | MlAppl(f,e) -> let (tauf,_) as f_annotated = annotate context f
                          and (taue,_) as e_annotated = annotate context e in
                             (match unify_polytype tauf (PTypAr(taue,PTypVar(new_freshvar()))) with

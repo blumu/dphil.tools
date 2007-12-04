@@ -2,9 +2,9 @@
 \varphi:(o-> o)->o, e:o |- 
 	\varphi (fun x -> 
 				(fun \psi -> 
-					\varphi (fun xp -> 
+					\varphi (fun x' -> 
 								(fun y -> \psi (fun z -> z))
-								(\varphi (fun xpp -> xp))
+								(\varphi (fun x'' -> x'))
 							)
 				) 
 			(fun u-> u e))

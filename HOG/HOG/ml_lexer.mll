@@ -46,7 +46,7 @@ F#*)
 }
 
 rule token = parse
-  ['A'-'Z' 'a'-'z' '0'-'9' '_' '\\' ']' '[' '*' '.' '$' '#' ]*   { lookup (lexeme lexbuf) }			
+  ['A'-'Z' 'a'-'z' '0'-'9' '_' '\\' ']' '[' '\'' '*' '.' '$' '#' ]*   { lookup (lexeme lexbuf) }			
 | ['0'-'9']+	{ NUMBER (int_of_string (lexeme lexbuf)) }
 | "?"			{ ANYINT }
 | "@"			{ AT }

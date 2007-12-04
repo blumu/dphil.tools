@@ -72,7 +72,7 @@ let lnfrules_to_latexcompgraph (lnfrules:lnfrule list) =
         let optlambda = if nt_occs.(i_nt) > 1 then "[name="^(string_of_int i_nt)^"]" else ""
         and edgelabel = if incomingedge_label = "" then "" else "\\ncput*{\\scriptstyle "^incomingedge_label^"}" in
         let prefix = if nt = "" then "" else "["^nt^"]" in
-        "\\pstree{\\TR"^optlambda ^"{["^prefix^"]\lambda "^(String.concat " " (List.map format_var abs_part))
+        "\\pstree{\\TR"^optlambda ^"{"^prefix^"\lambda "^(String.concat " " (List.map format_var abs_part))
             ^"}"^edgelabel^"}{"^(build_subgraph_app app_part)^"}"
 
     and build_subgraph_lmd (abs_part, app_part) =
@@ -138,7 +138,7 @@ let export_to_latex (lnfrules:Lnf.lnfrule list) =
 
 \\begin{document}
 \\begin{center}
-\\psset{levelsep=5ex,linewidth=0.5pt,nodesep=1pt,arrows=->,arcangle=-20,arrowsize=2pt 1}
+\\psset{levelsep=5ex,linewidth=0.5pt,nodesep=1pt,arcangle=-20,arrowsize=2pt 1}
 \\setlength\fboxsep{2pt}
 
 $\\rput[t](0,0){"

@@ -12,8 +12,6 @@ open System.Text
 open System.Windows.Forms
 open System.IO
 open Printf
-//open Hog
-//open Hocpda
 open Horsform
 open Type
 open Lnf
@@ -89,7 +87,6 @@ type TermForm =
         this.pathLabel <- new System.Windows.Forms.Label();
         this.codeRichTextBox <- new System.Windows.Forms.RichTextBox();
         this.codeLabel <- new System.Windows.Forms.Label();
-        this.runButton <- new System.Windows.Forms.Button();
         this.graphButton <- new System.Windows.Forms.Button();
         this.cpdaButton <- new System.Windows.Forms.Button();
         this.pdaButton <- new System.Windows.Forms.Button();
@@ -123,7 +120,7 @@ type TermForm =
         // 
         this.outerSplitContainer.Panel2.Controls.Add(this.rightContainer);
         this.outerSplitContainer.Size <- new System.Drawing.Size(952, 682);
-        this.outerSplitContainer.SplitterDistance <- 450;
+        this.outerSplitContainer.SplitterDistance <- 100;
         this.outerSplitContainer.TabIndex <- 0;
         // 
         // valueTreeView
@@ -144,7 +141,7 @@ type TermForm =
         if not Common.IsRunningOnMono then
             (); //this.valueTreeView.ShowNodeToolTips <- true;
         this.valueTreeView.ShowRootLines <- false;
-        this.valueTreeView.Size <- new System.Drawing.Size(450, 654);
+        this.valueTreeView.Size <- new System.Drawing.Size(100, 654);
         this.valueTreeView.TabIndex <- 1;
         this.valueTreeView.add_NodeMouseDoubleClick(fun  _ e -> ()
                
@@ -180,7 +177,7 @@ type TermForm =
         this.treeviewLabel.Name <- "treeviewLabel";
         this.treeviewLabel.Size <- new System.Drawing.Size(58, 16);
         this.treeviewLabel.TabIndex <- 0;
-        this.treeviewLabel.Text <- "The lazy value-tree:";
+        this.treeviewLabel.Text <- "Some tree:";
         // 
         // rightContainer
         // 
@@ -195,15 +192,12 @@ type TermForm =
         // 
         // rightContainer.Panel2
         // 
-        this.rightContainer.Panel2.Controls.Add(this.runButton);        
         this.rightContainer.Panel2.Controls.Add(this.graphButton);
-        this.rightContainer.Panel2.Controls.Add(this.cpdaButton);
-        this.rightContainer.Panel2.Controls.Add(this.pdaButton);
-        this.rightContainer.Panel2.Controls.Add(this.np1pdaButton);
         this.rightContainer.Panel2.Controls.Add(this.outputTextBox);
         this.rightContainer.Panel2.Controls.Add(this.outputLabel);
-        this.rightContainer.Size <- new System.Drawing.Size(680, 682);
-        this.rightContainer.SplitterDistance <- 357;
+        
+        this.rightContainer.Size <- new System.Drawing.Size(980, 682);
+        this.rightContainer.SplitterDistance <- 400;
         this.rightContainer.TabIndex <- 0;
         // 
         // rightUpperSplitContainer
@@ -252,7 +246,7 @@ type TermForm =
         this.pathLabel.Name <- "pathLabel";
         this.pathLabel.Size <- new System.Drawing.Size(72, 16);
         this.pathLabel.TabIndex <- 0;
-        this.pathLabel.Text <- "Result of the value tree path validation:";
+        this.pathLabel.Text <- "Things here:";
         // 
         // codeRichTextBox
         // 
@@ -284,25 +278,7 @@ type TermForm =
         this.codeLabel.Name <- "codeLabel";
         this.codeLabel.Size <- new System.Drawing.Size(100, 16);
         this.codeLabel.TabIndex <- 0;
-        this.codeLabel.Text <- "Input lambda-term:";
-        
-        
-          // 
-        // runButton
-        // 
-        this.runButton.Enabled <- true;
-        this.runButton.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
-        this.runButton.ImageAlign <- System.Drawing.ContentAlignment.MiddleRight;
-        this.runButton.ImageKey <- "Run";
-        this.runButton.ImageList <- this.imageList;
-        this.runButton.Location <- new System.Drawing.Point(0, -1);
-        this.runButton.Name <- "runButton";
-        this.runButton.Size <- new System.Drawing.Size(90, 27);
-        this.runButton.TabIndex <- 0;
-        this.runButton.Text <- "Run";
-        this.runButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
-        this.runButton.Click.Add(fun e -> ()
-        );
+        this.codeLabel.Text <- "Input lambda-term:";        
         
         
         // 
@@ -417,7 +393,6 @@ type TermForm =
         // 
         // DisplayForm
         // 
-        this.AcceptButton <- this.runButton;
         this.AutoScaleDimensions <- new System.Drawing.SizeF(6.0F, 13.0F);
         this.AutoScaleMode <- System.Windows.Forms.AutoScaleMode.Font;
         this.ClientSize <- new System.Drawing.Size(1100, 682);
@@ -447,7 +422,6 @@ type TermForm =
     val mutable rightContainer : System.Windows.Forms.SplitContainer;
     val mutable outputTextBox : System.Windows.Forms.RichTextBox;
     val mutable outputLabel : System.Windows.Forms.Label;
-    val mutable runButton : System.Windows.Forms.Button;
     val mutable graphButton : System.Windows.Forms.Button;
     val mutable cpdaButton : System.Windows.Forms.Button;
     val mutable pdaButton : System.Windows.Forms.Button;
@@ -475,7 +449,6 @@ type TermForm =
          pdaButton = null;
          np1pdaButton = null;
          graphButton = null;
-         runButton =null;
          rightUpperSplitContainer =null;
          pathTextBox =null;
          pathLabel = null;
@@ -496,21 +469,12 @@ type TermForm =
 
         this.Text <- ("Simply-typed lambda term - "^filename);
         this.filename <- filename;
-
-        let rootNode = new TreeNode("Value tree", Tag = (null : obj), ImageKey = "BookStack", SelectedImageKey = "BookStack")
-        ignore(this.valueTreeView.Nodes.Add(rootNode));
-        rootNode.Expand();
               
         // convert the term to LNF
-        this.lnfrules <- [lmdterm_to_lnf this.lmdterm]
+        //try 
+            this.lnfrules <- [lmdterm_to_lnf this.lmdterm]
+        //with MissingVariableInContext -> ()
         
         // create the computation graph from the LNF of the term
         this.compgraph <- lnfrs_to_graph this.lnfrules
-
-        let SNode = new TreeNode("S")  
-        SNode.ImageKey <- "Help"
-        SNode.SelectedImageKey <- "Help"
-        SNode.Tag <- null
-        ignore(rootNode.Nodes.Add(SNode))
-        this.valueTreeView.SelectedNode <- SNode   
   end
