@@ -7,9 +7,11 @@ open System.Text
 open System.Windows.Forms
 open System.IO
 open Printf
+open Type
+open Lnf
 open Hog
 open Hocpda
-open Type
+
 
 
 (** Create the graph view of the computation graph
@@ -62,11 +64,11 @@ let appterm_of_treeviewnode (node:TreeNode) =
 ;;
 
 let is_terminal_treeviewnode (node:TreeNode) =
-  node.Tag <> null &&  (match appterm_operator_operands (appterm_of_treeviewnode node) with Tm(_),_ -> true  | _ -> false)
+  node.Tag <> null &&  (match applicative_decomposition (appterm_of_treeviewnode node) with Tm(_),_ -> true  | _ -> false)
 ;;
 
 let is_expandable_treeviewnode (node:TreeNode) =
-  node.Tag <> null && (match appterm_operator_operands (appterm_of_treeviewnode node) with Tm(_),_ -> false  | _ -> true)
+  node.Tag <> null && (match applicative_decomposition (appterm_of_treeviewnode node) with Tm(_),_ -> false  | _ -> true)
 ;;
 
 
@@ -74,7 +76,7 @@ let is_expandable_treeviewnode (node:TreeNode) =
    Return true if the CPDA has emitted a terminal, false otherwise. *)
 let expand_term_in_treeview hors (treeview_node:TreeNode) =
     let rec expand_term_in_treeview_aux (rootnode:TreeNode) t = 
-      let op,operands = appterm_operator_operands t in
+      let op,operands = applicative_decomposition t in
       match op with
         Tm(f) -> rootnode.Text <- f;
                  rootnode.ImageKey <- "BookClosed";
@@ -92,7 +94,7 @@ let expand_term_in_treeview hors (treeview_node:TreeNode) =
        | Nt(nt) -> rootnode.Text <- string_of_appterm t;
                    rootnode.Tag <- t;
                    false;
-       | _ -> failwith "bug in appterm_operator_operands!";
+       | _ -> failwith "bug in applicative_decomposition!";
     in
     let _,redterm = step_reduce hors (appterm_of_treeviewnode treeview_node) in
     expand_term_in_treeview_aux treeview_node redterm;
@@ -394,7 +396,7 @@ type HorsForm =
 
             form.Text <- "Computation graph of "^this.filename;
             form.Size <- Size(700,800);
-            this.outputTextBox.Text <- "Rules in eta-long normal form:\n"^(String.concat "\n" (List.map lnf_to_string this.lnfrules));
+            this.outputTextBox.Text <- "Rules in eta-long normal form:\n"^(String.concat "\n" (List.map lnfrule_to_string this.lnfrules));
 
             buttonLatex.Location <- new System.Drawing.Point(1, 1)
             buttonLatex.Name <- "button1"
@@ -635,7 +637,7 @@ type HorsForm =
         this.vartmtypes <- v;
         
         // create the computation graph from the rules of the recursion scheme in in LNF
-        this.compgraph <- lnf_to_graph this.lnfrules;
+        this.compgraph <- lnfrs_to_graph this.lnfrules;
 
         let SNode = new TreeNode("S")  
         SNode.ImageKey <- "Help";

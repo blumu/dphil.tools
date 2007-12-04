@@ -10,6 +10,7 @@ PROGRAM=hog
 FS_FILES[] =
     common.ml
     type.ml
+    lnf.ml
     hog.mli
     hog.ml
     hocpda.ml
@@ -20,8 +21,8 @@ FS_FILES[] =
     hog_parser.mli
     hog_parser.ml
     hog_lexer.ml
-    ml_structs.mli
-    ml_structs.ml
+    Coreml.mli
+    Coreml.ml
     ml_parser.mli
     ml_parser.ml
     ml_lexer.ml
@@ -32,7 +33,7 @@ FS_FILES[] =
 FS_RESOURCES_FILES[]=
     horsform
     cpdaform
-    lmdtermform
+    termform
 
 FS_DLLREFS[]=
     Microsoft.GLEE

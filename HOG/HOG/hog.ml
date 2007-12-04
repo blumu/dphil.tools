@@ -1,11 +1,10 @@
 (* namespace Comlab.Hogrammar *)
 
 open Type
+open Lnf
 
 (****** Data-types ******)
-type ident = string;;
-type terminal = ident;;
-type nonterminal = ident;;
+
 type alphabet = (ident * typ) list;;
 
 (* applicative term *)
@@ -69,13 +68,6 @@ let nonterminal_type rs nt =
   with Not_found -> raise (Wrong_nonterminal_name nt)
 ;;
 
-(* Create an association list mapping parameters name in p to 
-  the type of the correspding parameter in type t *)
-let rec create_paramtyplist nt p t = match p,t with
-  | [],Gr -> []
-  | x::q, Ar(l,r) -> (x,l)::(create_paramtyplist nt q r)
-  | _ -> failwith ("Type of non-terminal "^nt^" does not match with the number of specified parameters.")
-;;
 
 
 (** Check that rs is a well-defined recursion scheme.
@@ -92,7 +84,7 @@ let rs_check rs =
      - appterm must be of ground type
   *)
   let check_eq ((nt,para,appterm) as eq) =
-    let partypelst = create_paramtyplist nt para (nonterminal_type rs nt) in
+    let partypelst = create_param_typ_list para (nonterminal_type rs nt) in
     let var_type x =  List.assoc x partypelst in
     let rec typecheck_term = function
           Tm(f) -> terminal_type rs f
@@ -153,12 +145,12 @@ in
 ;;
 
 
-(** Retrieve the operator and the operands from an applicative term.
+(** Decompose an term 'op e1 .... ek' into its constituents parts. 
    @return a pair (op,operands) where op is the operator (a terminal, variable or non-terminal) and
-   operands is the list of operands terms. **)
-let rec appterm_operator_operands t = match t with
+    operands is the list of operands terms. **)
+let rec applicative_decomposition t = match t with
  Tm(_) | Var(_) | Nt(_) -> t,[]
- | App(a,b) -> let op,oper = appterm_operator_operands a in op,oper@[b]
+ | App(a,b) -> let op,oper = applicative_decomposition a in op,oper@[b]
 ;;
 
 (* Perform a reduction on the applicative term appterm (which must not contain any free variable) *)
@@ -252,20 +244,6 @@ let appterm_order rs fvtypes t = typeorder (appterm_type rs fvtypes t);;
 *)
 
 
-(** Long normal form (lnf) **)
-
-(* We define the type of the right-hand side of a rule in lnf that we call RHS for short. It is given by:
-   - the top abstraction: a list of abstracted variables,
-   - the (leftmost) operator : either @, a variable or a nonterminal,
-   - the list of operands that are themselves of the type RHS. *)
-type lnfrhs = lnfabstractpart  * lnfapplicativepart
-and lnfabstractpart = ident list
-and lnfapplicativepart = 
-    LnfAppVar of ident * lnfrhs list
-  | LnfAppNt of nonterminal * lnfrhs list
-  | LnfAppTm of terminal * lnfrhs list
-;;
-type lnfrule = nonterminal * lnfrhs ;;
 
 
 (** [get_parameter_type rs x] returns the type of the formal parameter [x].
@@ -286,6 +264,7 @@ let get_parameter_type rs x =
    with Not_found -> failwith ("get_parameter_type: formal parameter '"^x^"' not used in the recursion scheme.")
 ;;
 
+(** Long normal form (lnf) **)
 
 (* For the creation of fresh variables *)
 let freshvar = ref 0;;
@@ -294,314 +273,57 @@ let new_freshvar() = incr(freshvar); "#"^(string_of_int !freshvar) ;;
 (** [rule_to_lnf rs rule] converts a grammar rule into LNF
    @param rs is the recursion scheme
    @param rule is the rule to be converted
-   @return (nt,lnfrule),vartypes 
-    where [nt] is the nonterminal, lnfrule is the applicative term in LNF,
-    and [vartypes] is an association list mapping variable names to their type
+   @return lnfrule,var_to_types 
+    where [lnfrule] is the rule in LNF,
+    and [var_to_types] is an association list mapping variable (i.e. the parameters of the rule) to their type
     (possibly containing new fresh variables introduced during the eta-expansion
 **)
 let rule_to_lnf rs (nt,param,rhs) = 
   (* create the association list mapping parameters' name to their type *)
-  let fvtypes = create_paramtyplist nt param (nonterminal_type rs nt) in
+  let fvtypes = create_param_typ_list param (nonterminal_type rs nt) in
   let newvarstypes = ref [] in
   let rec lnf appterm = lnf_aux (appterm_type rs fvtypes appterm) appterm
   and lnf_aux typ appterm =     
-    let op,operands = appterm_operator_operands appterm in
-      (* Create a list of fresh variables Phi_1 ... Phi_n where n is the arity of appterm *)
+    (* decompose the term in the form e_0 e_1 ... e_k *)
+    let op,operands = applicative_decomposition appterm in
+    (* Create a list of fresh variables Phi_1 ... Phi_n where n is the arity of appterm *)
     let absvars = Array.to_list (Array.init (typearity typ) (fun i -> new_freshvar()) ) in
-      (* create an association list mapping Phi_1 ... Phi_n to their respective types *)
-    let absvars_types = create_paramtyplist "#not a nt#" absvars typ
-      (* compute the lnfs of the operands *)
+    (* create an association list mapping Phi_1 ... Phi_n to their respective types *)
+    let absvars_types = create_param_typ_list absvars typ
+    (* compute the lnfs of the operands *)
     and lnfoperands = List.map lnf operands in
-      (* add 'lnf(Phi_1) ... lnf(Phi_n)'  to the list of operands *)    
+    (* add 'lnf(Phi_1) ... lnf(Phi_n)'  to the list of operands *)    
     let lnfoperands_ext = lnfoperands@(List.map (function (v,t) -> lnf_aux t (Var(v))) absvars_types) in
       newvarstypes := !newvarstypes@absvars_types; (* accumulates the list of created fresh variables *)
       match op with
           Tm(t)  -> absvars, LnfAppTm(t, lnfoperands_ext)
 	    | Var(v) -> absvars, LnfAppVar(v, lnfoperands_ext)
 	    | Nt(nt) -> absvars, LnfAppNt(nt, lnfoperands_ext)
-	    | App(_) -> failwith "eq_to_lnf: appterm_operator_operands returned wrong operator."
+	    | App(_) -> (* this cannot be reached *)
+	                failwith "eq_to_lnf: the operator calculated by applicative_decomposition is inconsistent!"
   in  
-    (nt, (param, (snd (lnf rhs)))),(* the first element of the pair returned by 'lnf appterm' (the list of abstracted variables)  must be empty since the rhs of the rule is of order 0 *) 
+    (nt, (param, (snd (lnf rhs)))),(* the first componebt of the pair returned by 'lnf rhs' 
+                                      (the list of abstracted variables)  is necessarily 
+                                      empty since the rhs of the rule is of order 0 *) 
     fvtypes@(!newvarstypes)  (* the association list mapping variables to their type *)
 ;;
 
 (** Convert a recscheme to lnf.
     @return (lnfrules,vartm_types) where 
     [lnfrules] is a list of rules in lnf and
-    [vartm_types] is an association list mapping variable and terminal names to their type. **)
+    [vartm_types] is an association list mapping variables (i.e. parameters of the rules) 
+                  and terminal names to their type. **)
 let rs_to_lnf rs = 
   let vartypes = ref [] in
   freshvar := 0; (* reinit the counter for the creation of fresh variables *)
   (List.map (function rule -> let lnfrule,newvtypes = rule_to_lnf rs rule in
-                             vartypes := !vartypes@newvtypes;
-                             lnfrule ) rs.rules
+                              vartypes := !vartypes@newvtypes;
+                              lnfrule ) rs.rules
   ) , !vartypes@rs.sigma
 ;;
 
 
-let lnf_to_string ((nt,lnfrhs):lnfrule) =
-  let rec rhs_to_string (abs_part,app_part) =
-    "\\"^(String.concat " " abs_part)^"."^(
-      match app_part with
-	  LnfAppTm(x,operands)
-	|LnfAppVar(x,operands)
-	|LnfAppNt(x,operands) -> let p = String.concat " " (List.map rhs_to_string operands) in
-            "("^x^(if p = "" then "" else " "^p)^")")  
-  in
-    nt^" = "^(rhs_to_string lnfrhs)
-;;
 
-
-
-(****** Computation graphs *****)
-
-
-(** Content of the node of the graph **)
-type nodecontent = 
-    NCntApp
-  | NCntAbs of ident * ident list
-  | NCntVar of ident
-  | NCntTm of terminal
-;;
-
-(** The set of nodes is represented by an array of node contents **)
-type cg_nodes = nodecontent array;;
-
-
-(** The set of edges is represented by a map from node to an array of target nodes id **)
-    (*IF-OCAML*) 
-    module NodeEdgeMap = Map.Make(struct type t = int let compare = Pervasives.compare end) 
-    type cg_edges = (int array) NodeEdgeMap.t;;
-    (*ENDIF-OCAML*)
-    (*F# 
-    let NodeEdgeMap = Map.Make((Pervasives.compare : int -> int -> int))
-    type cg_edges = Tagged.Map<int,int array,System.Collections.Generic.IComparer<int>>;;
-    F#*)
-
-(** The type of a computation graph **)
-type computation_graph = cg_nodes * cg_edges;;
-
-
-(** [graph_addedge edges src tar] adds an edge going from [src] to [tar] in the graph [gr].
-    @param edges is the reference to a Map from node id to array of edges
-    @param src is the source of the new edge
-    @param tar is the target of the new edge
-    **)
-let graph_addedge (edges: cg_edges ref) source target =
-    edges :=  NodeEdgeMap.add source (Array.append (try NodeEdgeMap.find source !edges
-                                                    with Not_found -> [||])
-                                                   [|target|]) !edges;
-;;
-
-(** [graph_childnode edges nodeid i] returns the i^th child of node [nodeid]**)
-let graph_childnode edges nodeid i =
-    (try 
-        NodeEdgeMap.find nodeid edges
-    with Not_found -> failwith "function child: the node does not exist or does not have any child!" ).(i)
-;;
-
-
-(** [graph_n_children edges nodeid] returns the number of children of the node [nodeid]**)
-let graph_n_children edges nodeid =
-    try  Array.length (NodeEdgeMap.find nodeid edges)
-    with Not_found -> 0
-;;
-
-
-(** [graph_node_type varstype node] returns the type of node [node]
-    @param vartm_types is an association list mapping variable and terminal names to types
-    @param node is the requested node
-    @return the type of the node    
-    @note The type of a node is defined as follows:
-        - type( @ ) is the ground type 
-        - type( x:A ) = A where x is a variable or a terminal
-        - type( \lambda x_1:A_1 ... x_n:A_n ) = A_1 -> ... -> A_n -> o
-        **)
-let rec graph_node_type vartm_types = function 
-        NCntApp -> Gr
-      | NCntVar(x) | NCntTm(x)  -> List.assoc x vartm_types
-      | NCntAbs(_,[]) -> Gr
-      | NCntAbs(_,x::vars) ->  Ar((List.assoc x vartm_types), (graph_node_type vartm_types (NCntAbs("",vars))))
-;;
-
-
-(** [lnf_to_graph rs lnfrules] converts rules in lnf into a computation graph.
-    @param lnfrules the rules of the recursion scheme in LNF
-    @return the compuation graph (nodes,edges)
-**)
-let lnf_to_graph lnfrules =
-    (* The list of created nodes *)
-    let nodes = ref [] in
-    (* The edges: a map from node ids to array of edges *)
-    let edges = ref (NodeEdgeMap.empty) in
-    
-   
-    (* number of nodes created *)
-    let nnodes = ref 0 in
-
-    (* The first nodes of the graph are the non-terminal nodes.
-       Create them and return an association list mapping non-terminal to their corresponding nodeid.
-     *)
-    let nt_nodeid = List.map (function nt,(abs_part,_) -> 
-                                incr(nnodes);
-                                nodes := (NCntAbs(nt, abs_part))::!nodes;
-                                nt,(!nnodes-1) ) lnfrules in
-    
-    (* [create_subgraph nt rhs] creates the subgraph corresponding to the
-       lnf term [rhs]. When set to a value different from "", the parameter [nt] specifies that 
-       the subgraph to be created corresponds to the non-terminal [nt]. In such case, the root node is
-       marked with [nt]. 
-       Return the id of the root of the created subgraph. *)
-    let rec create_subgraph nt (abs_part,app_part) =
-        match app_part with
-          (* If it's a non-terminal of ground type then there is no need to create an extra abstraction node,
-             just fetch the nodeid from the association table *)
-          LnfAppNt(nt, []) -> List.assoc nt nt_nodeid;
-        | LnfAppVar(x, operands) | LnfAppTm(x, operands) | LnfAppNt(x, operands) ->
-            let absnode_id = 
-                if nt = "" then 
-                begin
-                    incr(nnodes);
-                    nodes := (NCntAbs(nt, abs_part))::!nodes;
-                    !nnodes-1;
-                end
-                else
-                begin
-                    List.assoc nt nt_nodeid
-                end
-            in
-             
-            
-            let appnode_id = !nnodes in
-            incr(nnodes);
-            nodes := (match app_part with
-                          LnfAppNt(_,_) -> NCntApp
-                        | LnfAppTm(tm,_) -> NCntTm(tm)
-                        | LnfAppVar(x,_) -> NCntVar(x)
-                        )::(!nodes);
-
-            graph_addedge edges absnode_id appnode_id;
-            
-            (* If it is an @ node then add the edge pointing to the operator *)
-            (match app_part with LnfAppNt(_) -> 
-                graph_addedge edges appnode_id (List.assoc x nt_nodeid);
-             | _ -> ());
-
-            List.iter (function u -> graph_addedge edges appnode_id (create_subgraph "" u)) operands;
-            absnode_id
-    in
-
-    (* create the subgraph of each non-terminal *)
-    List.iter (function nt,rhs -> let _ = create_subgraph nt rhs in ()) lnfrules;
-    (Array.of_list (List.rev !nodes)),!edges
-;;
-
-
-let array_find_index f a =
-  let rec array_find_index_ i =
-    if f a.(i) then i else array_find_index_ (i+1)
-  in
-  try array_find_index_ 0 with _ -> raise Not_found;;
-  
-  
-(** [hors_to_latexcompgraph lnfrules] Create Latex code (using the pstricks package) to draw the computation graph
-    of the rules in eta normalform [lnfrules].
-    @param lnfrules rewriting rules in eta-long normal form
-    @return a string containing the latex code to draw the compuation graph.
-**)
-let lnfrules_to_latexcompgraph (lnfrules:lnfrule list) =
-    
-    let ar_lnfrules = Array.of_list lnfrules in
-    let nrules = Array.length ar_lnfrules in
-    (* return the index in ar_lnfrules from the NT ident *)
-    let index_of_nt name = array_find_index (function (n,_) -> name = n)  ar_lnfrules in
-    
-    (** Determine the NT that appear twice in the computation tree. Only the nodes
-        corresponding to those NT will be named in the pstricks code.
-        (It is necessary to name them in order to create the links in pstricks.) **)
-    let nt_occs = Array.create nrules 0 in 
-    
-    (** list of all the reachable non-terminals (from the initial non-term S) occurring more than once in the tree. **)
-    let rec calc_occ_in_rule i_rule =
-        (** count the occurrences of NTs in the right-hand side of the rule **)
-        let rec aux (_,app) =
-            match app with
-                 LnfAppNt(nt, operands) -> 
-                   let i_nt = index_of_nt nt in
-                   if nt_occs.(i_nt) = 0 then (** the NT has not been visited yet **)
-                        calc_occ_in_rule i_nt
-                   else (** the NT has already been visited therefore it appears twice in the comptree **)
-                        nt_occs.(i_nt) <- nt_occs.(i_nt) + 1;
-                   List.iter aux operands;
-               
-               | LnfAppTm(_, operands) | LnfAppVar(_, operands) -> List.iter aux operands 
-                
-        in nt_occs.(i_rule) <- 1;
-           aux (snd (ar_lnfrules.(i_rule)))
-    in
-      calc_occ_in_rule 0; (** start with the initial non-terminal **)
-        
-    
-    let format_var x = if String.get x 0 = '#' then "\\theta_{"^(String.sub x 1 ((String.length x)-1))^"}" else x in
-
-    let nt_visited = Array.create nrules false in 
-
-    let name_cnt = ref (-1) in
-    let newname() = incr name_cnt; "n"^(string_of_int !name_cnt) in
-    (* list of arcs to be drawn with pstrick. It is a list of pairs of the form (source,target) *)
-    let arcs_list = ref [] in
-    
-    (* creation of pstricks node for variable and constant *)
-    let pst_node_var x = "\\TR{"^(format_var x)^"}"
-    and pst_node_const c = "\\TR{\\framebox{"^c^"}}" in
-        
-    (* [build_subgraph nt rhs] creates the latex code for the subgraph corresponding to the
-       lnf term [rhs]. *)
-    let rec build_nt_subgraph incomingedge_label i_nt =
-        let nt,(abs_part, app_part) = ar_lnfrules.(i_nt) in
-        nt_visited.(i_nt) <- true;
-        let optlambda = if nt_occs.(i_nt) > 1 then "[name="^(string_of_int i_nt)^"]" else ""
-        and edgelabel = if incomingedge_label = "" then "" else "\\ncput*{\\scriptstyle "^incomingedge_label^"}" in
-        "\\pstree{\\TR"^optlambda ^"{["^nt^"]\lambda "^(String.concat " " (List.map format_var abs_part))
-            ^"}"^edgelabel^"}{"^(build_subgraph_app app_part)^"}"
-
-    and build_subgraph_lmd (abs_part, app_part) =
-        match app_part with 
-        (* Special case when the applicative part is a ground type non-terminal *)
-        | LnfAppNt(nt, []) -> 
-            let i_nt = index_of_nt nt in
-            build_nt_subgraph "" i_nt
-        | _ -> "\\pstree{\\TR{\lambda "^(String.concat " " (List.map format_var abs_part))^"}}{"^(build_subgraph_app app_part)^"}"
-
-    and build_subgraph_app app_part =
-        match app_part with
-        (* ground type variable or constant *)
-          LnfAppVar(x, []) -> pst_node_var x
-        
-        | LnfAppTm(c, []) -> pst_node_const c
-               
-        | LnfAppNt(nt, operands) ->
-            let i_nt = index_of_nt nt in
-            if nt_visited.(i_nt) then
-            begin
-                let atnode_name = newname() in
-                arcs_list := (atnode_name, (string_of_int i_nt))::!arcs_list;
-                "\\pstree{\\TR[name="^atnode_name^"]{@}}{"^(String.concat " " (List.map build_subgraph_lmd operands))^"}"
-            end
-            else
-                "\\pstree{\\TR{@}}{"^(build_nt_subgraph "0" i_nt)^(String.concat " " (List.map build_subgraph_lmd operands))^"}"
-        
-        | LnfAppTm(c, operands) -> 
-            "\\pstree{"^(pst_node_const c)^"}"^"{"^(String.concat " " (List.map build_subgraph_lmd operands))^"}"
-        | LnfAppVar(x, operands) ->
-            "\\pstree{"^(pst_node_var x)^"}"^"{"^(String.concat " " (List.map build_subgraph_lmd operands))^"}"
-    in
-    
-    (* process the tree starting at its root *)
-    (build_nt_subgraph "" 0)^"\n"
-    (* create the latex code to draw the arcs *)
-    ^(String.concat "\n" (List.map (function (s,t) -> "\\ncarc{->}{"^s^"}{"^t^"}\\ncput*{\\scriptstyle 0}") !arcs_list))
-;;
 
 
 (**************** Validators ***********)

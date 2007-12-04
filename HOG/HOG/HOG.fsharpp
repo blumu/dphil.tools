@@ -40,7 +40,7 @@
     "StartAppPath" = ""
     "CustomStartupArguments" = ""
     }
-}
+} 
 "Files"
 {
     "common.ml"
@@ -51,11 +51,15 @@
     {
     "ProjRelPath" = "T"
     }
-    "ml_structs.mli"
+    "lnf.ml"
     {
     "ProjRelPath" = "T"
     }
-    "ml_structs.ml"
+    "coreml.mli"
+    {
+    "ProjRelPath" = "T"
+    }
+    "coreml.ml"
     {
     "ProjRelPath" = "T"
     }
@@ -159,6 +163,7 @@
     {
     "ProjRelPath" = "T"
     }
+
 }
 "ProjStartupServices"
 {

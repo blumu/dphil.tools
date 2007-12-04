@@ -4,7 +4,8 @@
 **)
 
 {
-open Ml_parser;; open Lexing;; open List;;
+open Ml_parser;;
+open Lexing;; open List;;
 open Hashtbl;;
 
 (* A little hash table to recognize keywords *)

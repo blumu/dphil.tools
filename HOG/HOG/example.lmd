@@ -1,5 +1,5 @@
 (* Example of a simply-typed term-in-context*)
-\varphi:(o-> o)->o |- 
+\varphi:(o-> o)->o, e:o |- 
 	\varphi (fun x -> 
 				(fun \psi -> 
 					\varphi (fun xp -> 

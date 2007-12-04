@@ -4,6 +4,7 @@
 **)
 
 open Type;;
+open Lnf;;
 
 type ident = string;;
 
@@ -15,7 +16,6 @@ type ml_expr =
   | Letrec of (ident * (ident list) * ml_expr) list  * ml_expr
   | If of ml_expr * ml_expr * ml_expr
   | MlInt of int 
-  | AnyInt
   | MlBool of bool
   | EqTest of ml_expr * ml_expr
   | Pred
@@ -27,3 +27,5 @@ type ml_termincontext = ml_context*ml_expr
 
 
 val string_of_mltermincontext : ml_termincontext -> string
+
+val lmdterm_to_lnf : ml_termincontext -> lnfrule

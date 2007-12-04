@@ -7,11 +7,12 @@ open System.Text
 open System.Windows.Forms
 open System.IO
 open Printf
-open Hog
-open Hocpda
+//open Hog
+//open Hocpda
 open Horsform
 open Type
-open Ml_structs
+open Lnf
+open Coreml
 
 let keywords = 
    [  "and";"as";
@@ -71,7 +72,7 @@ type TermForm =
 
     member this.InitializeComponent() =
         this.components <- new System.ComponentModel.Container();
-        let resources = new System.ComponentModel.ComponentResourceManager((type HorsForm)) 
+        let resources = new System.ComponentModel.ComponentResourceManager((type TermForm)) 
         
         this.outerSplitContainer <- new System.Windows.Forms.SplitContainer();
         this.valueTreeView <- new System.Windows.Forms.TreeView();
@@ -324,7 +325,7 @@ type TermForm =
 
             form.Text <- "Computation graph of "^this.filename;
             form.Size <- Size(700,800);
-            this.outputTextBox.Text <- "Rules in eta-long normal form:\n"^(String.concat "\n" (List.map lnf_to_string this.lnfrules));
+            this.outputTextBox.Text <- "Rules in eta-long normal form:\n"^(String.concat "\n" (List.map lnfrule_to_string this.lnfrules));
 
             buttonLatex.Location <- new System.Drawing.Point(1, 1)
             buttonLatex.Name <- "button1"
@@ -495,28 +496,16 @@ type TermForm =
         ignore(this.valueTreeView.Nodes.Add(rootNode));
         rootNode.Expand();
               
-        // check that the term is well-typed
-        (* let errors = lmd_check this.lmdterm in
-        if errors <> [] then
-          begin
-            let msg = "Typechecking error.\nList of errors:\n  "^(String.concat "\n  " errors) in
-            //Mainform.Debug_print msg;
-            failwith msg
-          end *)
-          
         // convert the term to LNF
-        (*let r,v = lmd_to_lnf this.lmdterm in
-
-        this.lnfrules <- r;
-        this.vartmtypes <- v;*)
+        this.lnfrules <- [lmdterm_to_lnf this.lmdterm]
         
         // create the computation graph from the LNF of the term
-        this.compgraph <- lnf_to_graph this.lnfrules;
+        this.compgraph <- lnfrs_to_graph this.lnfrules
 
         let SNode = new TreeNode("S")  
-        SNode.ImageKey <- "Help";
-        SNode.SelectedImageKey <- "Help";
-        SNode.Tag <- Nt("S");
-        ignore(rootNode.Nodes.Add(SNode)); 
-        this.valueTreeView.SelectedNode <- SNode;      
+        SNode.ImageKey <- "Help"
+        SNode.SelectedImageKey <- "Help"
+        SNode.Tag <- null
+        ignore(rootNode.Nodes.Add(SNode))
+        this.valueTreeView.SelectedNode <- SNode   
   end
