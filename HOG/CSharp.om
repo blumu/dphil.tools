@@ -1,0 +1,98 @@
+# by William Blum
+
+OMakeVersion(0.9.8.5, 0.9.8.5)
+
+open Dotnet
+
+
+.STATIC:
+    if $(not $(defined public.WINDOWS_SDK))
+        WINDOWS_SDK=C:\Program Files\Microsoft SDKs\Windows\v6.0
+        export
+    if $(not $(defined public.CSC_HOME))
+        CSC_HOME=C:\WINDOWS\Microsoft.NET\Framework\v2.0.50727
+        export
+    CSC="$(CSC_HOME)\csc.exe"
+    RESGEN="$(WINDOWS_SDK)\bin\resgen.exe"
+
+
+public.CSCFLAGS=--progress  --target-winexe
+public.CSC_DEBUG_FLAGS=/noconfig /nowarn:1701,1702 /errorreport:prompt /warn:4 /define:DEBUG;TRACE /debug+ /debug:full /optimize-
+public.CSC_RELEASE_FLAGS= 
+public.CSC_MONO_FLAGS=
+public.CSC_DOTNET_FLAGS=
+public.RESGEN_FLAGS=
+
+%.resources: %.resx
+    $(RESGEN) $(RESGEN_FLAGS) $<	
+
+
+public.OUTPUT(name) =
+        return(/out:$(name))
+
+public.TARGET_LIBRARY=/target:library
+        
+#### To build an .exe .net assembly
+####
+# Parameters:
+#  name
+#  files
+# Additional variables used:
+#  CSHARP_INCLUDEPATH
+#  CSHARP_OTHER_DLLREFS
+#  CSHARP_DLLREFS
+#  CSHARP_RESOURCES
+#  CSC_FLAGS
+public.CSharpDllAssembly(name, files) =  
+    protected.RCFILES =$(addsuffix .resources, $(CSHARP_RESOURCES))
+    protected.OTHER_DLLS =$(addsuffix .dll, $(CSHARP_OTHER_DLLREFS))
+    protected.DEP_DLLS=$(addsuffix .dll, $(CSHARP_DLLREFS))
+
+    protected.name = $(file $(name))
+    protected.MONODLL = $(file $(name)-mono$(EXT_DLL))
+    protected.DOTNETDLL  = $(file $(name)$(EXT_DLL))
+
+    if $(defined DEBUG)
+        CSCFLAGS+=$(CSC_DEBUG_FLAGS)
+        export
+    else
+        CSCFLAGS=$(CSC_RELEASE_FLAGS)
+        export
+    
+    
+    #
+    # Rules to build byte-code and native targets
+    #
+    # Create additionnal dummy resource files (this is necessary to overcome a bug in Mono)
+    foreach(res, $(CSHARP_RESOURCES))
+        $(res)+$(res).resx: $(res).resx
+            cp $(res).resx "$(res)+$(res).resx"
+    
+    protected.MONORCFILES=$(RCFILES)
+    foreach(res, $(CSHARP_RESOURCES))
+        MONORCFILES+="$(res)+$(res).resources"
+        export
+            
+    $(MONODLL): $(MONORCFILES) $(files) $(DEP_DLLS)
+        @echo "- C# compilation for Mono..."; \
+        $(CSC) $(CSCFLAGS) $(CSC_MONO_FLAGS)\
+                $(addprefix /lib:, $(CSHARP_INCLUDEPATH)) $(addprefix /reference:, $(OTHER_DLLS)) $(addprefix /reference:, $(DEP_DLLS)) \
+                $(addprefix /resource:, $(MONORCFILES)) \
+                $(OUTPUT $@) $(files)
+        @echo "***********************************************************" \
+        && echo "The assembly $(MONODLL) has been created successfuly" \
+        && echo "***********************************************************"  
+    
+    $(DOTNETDLL): $(RCFILES) $(files) $(DEP_DLLS)
+        @echo "- C# compilation for .NET..."
+        $(CSC) $(CSCFLAGS) $(CSC_DOTNET_FLAGS) \
+                $(addprefix /lib:, $(CSHARP_INCLUDEPATH)) $(addprefix /reference:, $(OTHER_DLLS)) $(addprefix /reference:,$(DEP_DLLS)) \
+                $(addprefix /resource:,$(RCFILES)) \
+                 $(TARGET_LIBRARY) $(OUTPUT $@) $(files)
+        @echo "***********************************************************" \
+        && echo "The assembly $(DOTNETDLL) has been created successfuly" \
+        && echo "***********************************************************"
+
+
+    return $(if $(defined MONO), $(MONODLL), $(DOTNETDLL)) 
+   

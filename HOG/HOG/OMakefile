@@ -1,9 +1,6 @@
 ########################################################################
 
   
-if $(not $(defined GLEE))
-    public.GLEE="C:\Program Files\Microsoft Research\GLEE\bin"
-    export
 
 PROGRAM=hog
 
@@ -37,11 +34,13 @@ FS_RESOURCES_FILES[]=
     cpdaform
     termform
 
-FS_DLLREFS[]=
+FS_DEP_DLLS[]=
+    ..\GUI\GUI
+    
+FS_OTHER_DLLREFS[]=
     Microsoft.GLEE
     Microsoft.GLEE.GraphViewerGDI
     Microsoft.GLEE.Drawing
-    GUI
 
 FS_INCLUDEPATH[]=
     $(GLEE)

@@ -6,8 +6,9 @@ By William Blum, 4th Dec 2007
     Requirement: + Omake build system
                     (http://omake.metaprl.org/index.html)
                  + Microsoft GLEE .NET graph layout engine
-                    (http://research.microsoft.com/~levnach/GLEEWebPage.htm)
-    To compile just run omake in the HOG subdirectory:
+                    (http://research.microsoft.com/~levnach/GLEEWebPage.htm)    
+    
+    To compile just run omake in the directory where you have uncompressed the HOG zip file:
         omake
         
     Optional parameters:

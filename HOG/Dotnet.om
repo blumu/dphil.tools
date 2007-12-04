@@ -1,0 +1,29 @@
+# by William Blum
+
+OMakeVersion(0.9.8.5, 0.9.8.5)
+
+open build/Common
+open configure/Configure
+
+################################################
+# Configuration.  
+# To build an assembly that is compatible with Mono, add the following command line switch to omake:
+#  MONO=
+
+# For a debug build, add the switch:
+#  DEBUG=
+
+if $(defined MONO)
+    @echo "Mono build"
+else
+    @echo ".Net build"
+
+
+if $(defined DEBUG)
+    @echo "Debug build"
+else
+    @echo "Release build"
+
+    
+#    
+#####################################

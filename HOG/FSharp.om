@@ -1,32 +1,26 @@
 # by William Blum
 
 OMakeVersion(0.9.8.5, 0.9.8.5)
+open Dotnet
 
-open build/Common
-open configure/Configure
-
-################################################
-# Configuration.  
-# To build an assembly that is compatible with Mono, add the following command line switch to omake:
-#  MONO=
-
-# For a debug build, add the switch:
-#  DEBUG=
-
-if $(defined MONO)
-    @echo "Mono build"
-else
-    @echo ".Net build"
-
-
-if $(defined DEBUG)
-    @echo "Debug build"
-else
-    @echo "Release build"
+.STATIC:
+    if $(not $(defined public.FSHARP_HOME))
+        FSHARP_HOME=C:\Program Files\FSharp-1.9.3.7
+        export
+    FSC="$(FSHARP_HOME)\bin\fsc.exe"
+    FSYACC="$(FSHARP_HOME)\bin\fsyacc.exe"
+    FSLEX="$(FSHARP_HOME)\bin\fslex.exe"
+    RESXC="$(FSHARP_HOME)\bin\resxc.exe"
 
     
-#    
-#####################################
+public.FSFLAGS=--fullpaths --progress --no-warn 40 --target-winexe
+public.FS_DEBUG_FLAGS=-Ooff -g
+public.FS_RELEASE_FLAGS=--standalone -O3
+public.FS_MONO_FLAGS=
+public.FS_DOTNET_FLAGS=
+public.FSYACCFLAGS=
+public.FSLEXFLAGS=
+public.FSRESXCFLAGS=
 
 
 %.ml %.mli: %.mly
@@ -39,39 +33,22 @@ else
     $(RESXC) $(FSRESXCFLAGS) $<	
 
 
-.STATIC:
-    if $(not $(defined public.FSHARP_HOME))
-        FSHARP_HOME=C:\Program Files\FSharp-1.9.3.7
-        export
-    FSC="$(FSHARP_HOME)\bin\fsc.exe"
-    FSYACC="$(FSHARP_HOME)\bin\fsyacc.exe"
-    FSLEX="$(FSHARP_HOME)\bin\fslex.exe"
-    RESXC="$(FSHARP_HOME)\bin\resxc.exe"
-
-    
-    
-public.FSFLAGS=--fullpaths --progress --no-warn 40 --target-winexe
-public.FS_MONO_FLAGS=
-public.FS_DOTNET_FLAGS=
-public.FSYACCFLAGS=
-public.FSLEXFLAGS=
-public.FSRESXCFLAGS=
-
-
-
+#### To build an .exe .net assembly
+####
 public.FSharpAssembly(name, files) =  
     protected.RCFILES  = $(addsuffix .resources, $(FS_RESOURCES_FILES))
-    protected.DLLS = $(addsuffix .dll, $(FS_DLLREFS))
+    protected.OTHER_DLLS = $(addsuffix .dll, $(FS_OTHER_DLLREFS))
+    protected.DEP_DLLS = $(addsuffix .dll, $(FS_DEP_DLLS))
 
     protected.name = $(file $(name))
     protected.MONOPROG = $(file $(name)-mono$(EXE))
     protected.DOTNETPROG  = $(file $(name)$(EXE))
 
     if $(defined DEBUG)
-        FSMOREFLAGS=-Ooff -g
+        FSFLAGS+=$(FS_DEBUG_FLAGS)
         export
     else
-        FSMOREFLAGS=--standalone -O3
+        FSFLAGS+=$(FS_RELEASE_FLAGS)
         export
 
         
@@ -88,26 +65,26 @@ public.FSharpAssembly(name, files) =
         MONORCFILES+="$(res)+$(res).resources"
         export
             
-    $(MONOPROG): $(MONORCFILES) $(files)
+    $(MONOPROG): $(MONORCFILES) $(files) $(DEP_DLLS)
         @echo "- F# compilation for Mono..."
-        $(FSC) $(FSFLAGS) $(FSMOREFLAGS) $(FS_MONO_FLAGS)\
-                $(mapprefix -I, $(FS_INCLUDEPATH)) $(mapprefix -r, $(DLLS)) \
+        $(FSC) $(FSFLAGS) $(FS_MONO_FLAGS)\
+                $(mapprefix -I, $(FS_INCLUDEPATH)) $(mapprefix -r, $(DEP_DLLS)) $(mapprefix -r, $(OTHER_DLLS)) \
                 $(mapprefix --resource, $(MONORCFILES)) \
                 $(files) -o $@
-        @echo "***********************************************************"
-        @echo "The assembly $(PROGRAM).exe) has been created successfuly"
-        @echo "***********************************************************"  
+        @echo "***********************************************************" \\
+        && echo "The assembly $(MONOPROG) has been created successfuly" \\
+        && echo "***********************************************************"  
 
                 
-    $(DOTNETPROG): $(RCFILES) $(files)
+    $(DOTNETPROG): $(RCFILES) $(files) $(DEP_DLLS)
         @echo "- F# compilation for .NET..."
-        $(FSC) $(FSFLAGS) $(FSMOREFLAGS) $(FS_DOTNET_FLAGS) \
-                $(mapprefix -I, $(FS_INCLUDEPATH)) $(mapprefix -r, $(DLLS)) \
+        $(FSC) $(FSFLAGS) $(FS_DOTNET_FLAGS) \
+                $(mapprefix -I, $(FS_INCLUDEPATH)) $(mapprefix -r, $(DEP_DLLS)) $(mapprefix -r, $(OTHER_DLLS)) \
                 $(mapprefix --resource, $(RCFILES)) \
                 $(files) -o $@
-        @echo "***********************************************************"
-        @echo "The assembly $(PROGRAM).exe) has been created successfuly"
-        @echo "***********************************************************"
+        @echo "***********************************************************" \
+        && echo "The assembly $(DOTNETPROG) has been created successfuly" \
+        && echo "***********************************************************"
 
     return $(if $(defined MONO), $(MONOPROG), $(DOTNETPROG)) 
    
