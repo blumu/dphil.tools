@@ -1,4 +1,4 @@
-(** $Id: $
+(** $Id$
 	Description: Eta-long normal form
 	Author:		William Blum
 **)

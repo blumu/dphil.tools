@@ -1,4 +1,4 @@
-(** $Id: $
+(** $Id$
 	Description: Main window
 	Author:		William Blum
 **)
