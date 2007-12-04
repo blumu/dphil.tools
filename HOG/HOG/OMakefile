@@ -11,11 +11,13 @@ FS_FILES[] =
     common.ml
     type.ml
     lnf.ml
+    texexportform.fs
+    traversal.ml
+    traversal_form.fs
     hog.mli
     hog.ml
     hocpda.ml
     cpdaform.fs
-    texexportform.fs
     horsform.fs
     parsing.ml
     hog_parser.mli
@@ -39,8 +41,14 @@ FS_DLLREFS[]=
     Microsoft.GLEE
     Microsoft.GLEE.GraphViewerGDI
     Microsoft.GLEE.Drawing
+    GUI
 
-FS_INCLUDEPATH=$(GLEE)
+FS_INCLUDEPATH[]=
+    $(GLEE)
+    ..\GUI\bin\Debug
+    
+    #..\GUI\bin\Release
+    
 
 .DEFAULT: $(FSharpAssembly $(PROGRAM), $(FS_FILES))
 

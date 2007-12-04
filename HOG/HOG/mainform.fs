@@ -63,8 +63,7 @@ let parse_file parser lexer (fname:string) =
 
             stream.Close();
             
-            (* Load the Windows form for the recursion scheme *)
-            Debug_print ("File content:\n "^text^"\n");
+            //Debug_print ("File content:\n "^text^"\n");
             Some(parsed_object)
 
         finally stream.Close();
@@ -88,7 +87,8 @@ let open_file filename =
             "rs" ->  
                      match parse_file Hog_parser.hog_specification Hog_lexer.token filename with
                          None -> ()
-                         | Some(o) -> let form = new Horsform.HorsForm(filename, o)
+                         | Some(o) -> (* Load the Windows form for the recursion scheme *)
+                                      let form = new Horsform.HorsForm(filename, o)
                                       ignore(form.Show())
           | "lmd" ->
                      match parse_file Ml_parser.term_in_context Ml_lexer.token filename with

@@ -1,18 +1,7 @@
 pushd HOG
-call build release
+::omake MONO=
+::omake
 popd
-@if ERRORLEVEL 1 goto exit
-
-pushd HOG
-call build mono_release
-popd
-@if ERRORLEVEL 1 goto exit
-
-call zip_exe.cmd
-@if ERRORLEVEL 1 goto exit
-
-call zip_src.cmd
-@if ERRORLEVEL 1 goto exit
 
 pscp hog_exe.zip hog_src.zip blum@mercury.comlab.ox.ac.uk:/auto/fs/websrc/oucl/work/william.blum/
 @if ERRORLEVEL 1 goto exit

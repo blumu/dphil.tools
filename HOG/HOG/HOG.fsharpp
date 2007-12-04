@@ -10,7 +10,7 @@
     "OptLevel" = "Off"
     "StrongNamingLevel" = "None"
     "OutputPath" = ""
-    "SearchPath" = "--target-winexe -r Microsoft.GLEE.dll -r Microsoft.GLEE.Drawing.dll -r Microsoft.GLEE.GraphViewerGDI.dll"
+    "SearchPath" = "-I \"C:\\Program Files\\Microsoft Research\\GLEE\\bin\\\" -I ..\\GUI\\bin\\Debug --target-winexe -r Microsoft.GLEE.dll -r Microsoft.GLEE.Drawing.dll -r Microsoft.GLEE.GraphViewerGDI.dll -r GUI.dll"
     "StrongNameFile" = ""
     "OutputBase" = ""
     "CustomCommandLine" = "DEBUG="
@@ -28,7 +28,7 @@
     "OptLevel" = "3"
     "StrongNamingLevel" = "None"
     "OutputPath" = ""
-    "SearchPath" = "-r Microsoft.GLEE.dll -r Microsoft.GLEE.Drawing.dll -r Microsoft.GLEE.GraphViewerGDI.dll"
+    "SearchPath" = "-I \"C:\\Program Files\\Microsoft Research\\GLEE\\bin\\\" -I ..\\GUI\\bin\\Release -r Microsoft.GLEE.dll -r Microsoft.GLEE.Drawing.dll -r Microsoft.GLEE.GraphViewerGDI.dll"
     "StrongNameFile" = ""
     "OutputBase" = ""
     "CustomCommandLine" = " "
@@ -55,6 +55,18 @@
     {
     "ProjRelPath" = "T"
     }
+    "texexportform.fs"
+    {
+    "ProjRelPath" = "T"
+    }
+    "traversal.ml"
+    {
+    "ProjRelPath" = "T"
+    }
+    "traversal_form.fs"
+    {
+    "ProjRelPath" = "T"
+    }
     "coreml.mli"
     {
     "ProjRelPath" = "T"
@@ -76,10 +88,6 @@
     "ProjRelPath" = "T"
     }
     "cpdaform.fs"
-    {
-    "ProjRelPath" = "T"
-    }
-    "texexportform.fs"
     {
     "ProjRelPath" = "T"
     }

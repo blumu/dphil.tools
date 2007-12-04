@@ -12,7 +12,6 @@ open System.Text
 open System.Windows.Forms
 open System.IO
 open Printf
-open Horsform
 open Type
 open Lnf
 open Coreml
@@ -62,6 +61,7 @@ let colorizeCode(rtb: # RichTextBox) =
 
 #light
 
+        
 type TermForm = 
   class
     inherit Form as base
@@ -295,73 +295,8 @@ type TermForm =
         this.graphButton.TabIndex <- 0;
         this.graphButton.Text <- "Computation graph";
         this.graphButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
-        this.graphButton.Click.Add(fun e -> 
-            // create a form
-            let form = new System.Windows.Forms.Form()
-            let viewer = new Microsoft.Glee.GraphViewerGdi.GViewer()
-            let panel1 = new System.Windows.Forms.Panel();
-            let buttonLatex = new System.Windows.Forms.Button()
-
-            form.SuspendLayout(); 
-
-            form.Text <- "Computation graph of "^this.filename;
-            form.Size <- Size(700,800);
-            this.outputTextBox.Text <- "Rules in eta-long normal form:\n"^(String.concat "\n" (List.map lnfrule_to_string this.lnfrules));
-
-            buttonLatex.Location <- new System.Drawing.Point(1, 1)
-            buttonLatex.Name <- "button1"
-            buttonLatex.Size <- new System.Drawing.Size(267, 23)
-            buttonLatex.TabIndex <- 2
-            buttonLatex.Text <- "Export to Latex"
-            buttonLatex.UseVisualStyleBackColor <- true
-            buttonLatex.Click.Add(fun e -> Texexportform.export_to_latex this.lnfrules)
-
-
-            // create a viewer object
-            panel1.SuspendLayout();
-            panel1.Anchor <- Enum.combine [ System.Windows.Forms.AnchorStyles.Top ; 
-                                            System.Windows.Forms.AnchorStyles.Bottom ; 
-                                            System.Windows.Forms.AnchorStyles.Left ; 
-                                            System.Windows.Forms.AnchorStyles.Right ];
-            panel1.Controls.Add(viewer);
-            panel1.Location <- new System.Drawing.Point(1, 29);
-            panel1.Margin <- new System.Windows.Forms.Padding(2, 2, 2, 2);
-            panel1.Name <- "panel1";
-            panel1.Size <- new System.Drawing.Size(972, 505);
-            panel1.TabIndex <- 4;
-            
-            // bind the graph to the viewer
-            viewer.Graph <- Horsform.compgraph_to_graphview this.compgraph;
-            viewer.AsyncLayout <- false;
-            viewer.AutoScroll <- true;
-            viewer.BackwardEnabled <- false;
-            viewer.Dock <- System.Windows.Forms.DockStyle.Fill;
-            viewer.ForwardEnabled <- false;
-            viewer.Location <- new System.Drawing.Point(0, 0);
-            viewer.MouseHitDistance <- 0.05;
-            viewer.Name <- "gViewer";
-            viewer.NavigationVisible <- true;
-            viewer.PanButtonPressed <- false;
-            viewer.SaveButtonVisible <- true;
-            viewer.Size <- new System.Drawing.Size(674, 505);
-            viewer.TabIndex <- 3;
-            viewer.ZoomF <- 1.0;
-            viewer.ZoomFraction <- 0.5;
-            viewer.ZoomWindowThreshold <- 0.05;
+        this.graphButton.Click.Add(fun e -> Traversal_form.ShowCompGraphTraversalWindow this.filename this.compgraph this.lnfrules);
         
-            //associate the viewer with the form
-            form.ClientSize <- new System.Drawing.Size(970, 532);
-            
-            form.Controls.Add(buttonLatex);
-            form.Controls.Add(panel1);            
-            panel1.ResumeLayout(false);
-            form.ResumeLayout(false);            
-            
-            //show the form
-            ignore(form.Show()); 
-        );
-
-      
         // 
         // outputTextBox
         // 
@@ -472,8 +407,12 @@ type TermForm =
               
         // convert the term to LNF
         //try 
-            this.lnfrules <- [lmdterm_to_lnf this.lmdterm]
+            this.lnfrules <- [lmdterm_to_lnf this.lmdterm];
         //with MissingVariableInContext -> ()
+        
+        this.outputTextBox.Text <- "Rules in eta-long normal form:\n"
+                                ^(String.concat "\n" (List.map lnfrule_to_string this.lnfrules));
+
         
         // create the computation graph from the LNF of the term
         this.compgraph <- lnfrs_to_graph this.lnfrules
