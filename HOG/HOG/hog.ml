@@ -1,4 +1,7 @@
-(* namespace Comlab.Hogrammar *)
+(** $Id$
+	Description: Higher-order recursion scheme
+	Author:		William Blum
+**)
 
 open Type
 open Lnf

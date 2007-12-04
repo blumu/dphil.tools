@@ -1,4 +1,8 @@
-﻿open System
+﻿(** $Id$
+	Description: Higher-order recursion scheme window
+	Author:		William Blum
+**)
+open System
 (* open System.Collections.Generic *)
 open System.ComponentModel
 open System.Data

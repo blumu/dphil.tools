@@ -1,4 +1,9 @@
-﻿open System
+﻿(** $Id$
+	Description: Lambda-term window
+	Author:		William Blum
+**)
+
+open System
 (* open System.Collections.Generic *)
 open System.ComponentModel
 open System.Data

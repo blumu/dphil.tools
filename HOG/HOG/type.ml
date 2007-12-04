@@ -1,5 +1,5 @@
 (** $Id$
-	Description: Structures for encoding simple-types
+	Description: Structures for encoding simple-types and polymorphic types
 	Author:		 William Blum
 **)
 

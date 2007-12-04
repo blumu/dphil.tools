@@ -1,5 +1,7 @@
-(* Interface File *)
-(* namespace Comlab *)
+(** $Id$
+	Description: Higher-order recursion scheme Interface File
+	Author:		William Blum
+**)
 open Type
 open Lnf
 
