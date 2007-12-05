@@ -17,9 +17,9 @@
     "CustomCompiler" = "c:\\Program Files\\OMake\\bin\\omake.exe"
     "DebugCheck" = "TRUE"
     "CustomCompilationCheck" = "TRUE"
-    "DebugStartMode" = "0"
-    "StartApp" = ""
-    "StartAppPath" = ""
+    "DebugStartMode" = "1"
+    "StartApp" = "d:\\documents\\dphil\\dev\\HOG\\bin\\Debug\\hog.exe"
+    "StartAppPath" = "d:\\documents\\dphil\\dev\\HOG\\examples"
     "CustomStartupArguments" = "example.lmd"
     }
     "Release|Win32"
@@ -36,7 +36,7 @@
     "DebugCheck" = "FALSE"
     "CustomCompilationCheck" = "TRUE"
     "DebugStartMode" = "0"
-    "StartApp" = ""
+    "StartApp" = "../bin/Release/hog.exe"
     "StartAppPath" = ""
     "CustomStartupArguments" = ""
     }
