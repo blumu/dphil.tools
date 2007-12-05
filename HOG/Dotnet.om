@@ -6,6 +6,12 @@ OMakeVersion(0.9.8.5, 0.9.8.5)
 open build/Common
 open configure/Configure
 
+
+.STATIC:
+    public.WINDOWS_SDK=$(getenv SDKTOOLS, C:\Program Files\Microsoft SDKs\Windows\v6.0)
+    RESGEN="$(WINDOWS_SDK)\bin\resgen.exe"
+    export
+
 ################################################
 # Configuration.  
 # To build an assembly that is compatible with Mono, add the following command line switch to omake:

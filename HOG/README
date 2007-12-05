@@ -4,13 +4,23 @@ By William Blum, 4th Dec 2007
 == Compilation:
 
     Requirement: + Omake build system
-                    (http://omake.metaprl.org/index.html)
+                    http://omake.metaprl.org/index.html
+                 + F# (tested with version 1.9.3.7):
+                    http://research.microsoft.com/fsharp/fsharp.aspx
+                 + C# compiler (included in the .Net 2.0 Framework)
+                    http://www.microsoft.com/downloads/details.aspx?familyid=0856eacb-4362-4b0d-8edd-aab15c5e04f5&displaylang=en
+                 + Microsoft Windows SDK (for the resgen.exe utility)
+                    http://www.microsoft.com/downloads/details.aspx?familyid=C2B1E300-F358-4523-B479-F53D234CDCCF&displaylang=en
                  + Microsoft GLEE .NET graph layout engine
-                    (http://research.microsoft.com/~levnach/GLEEWebPage.htm)    
+                    http://research.microsoft.com/~levnach/GLEEWebPage.htm
     
     To compile just run omake in the directory where you have uncompressed the HOG zip file:
         omake
-        
+
+    The following environment variables need to be set:
+        FXTOOLS (default to C:\WINDOWS\Microsoft.NET\Framework\v2.0.50727)
+        WINDOWS_SDK (default to C:\Program Files\Microsoft SDKs\Windows\v6.0)
+		
     Optional parameters:
         -for compatibility with the Mono platform:
             omake MONO=
