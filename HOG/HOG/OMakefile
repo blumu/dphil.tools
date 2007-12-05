@@ -35,7 +35,7 @@ FS_RESOURCES_FILES[]=
     termform
 
 FS_DEP_DLLS[]=
-    ..\GUI\GUI
+    GUI
     
 FS_OTHER_DLLREFS[]=
     Microsoft.GLEE
@@ -44,10 +44,6 @@ FS_OTHER_DLLREFS[]=
 
 FS_INCLUDEPATH[]=
     $(GLEE)
-    ..\GUI\bin\Debug
-    
-    #..\GUI\bin\Release
-    
 
 .DEFAULT: $(FSharpAssembly $(PROGRAM), $(FS_FILES))
 

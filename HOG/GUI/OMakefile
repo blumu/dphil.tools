@@ -13,12 +13,21 @@ CSHARP_OTHER_DLLREFS[]=
     Microsoft.GLEE
     Microsoft.GLEE.Drawing
     Microsoft.GLEE.GraphViewerGDI
+    System.Data
+    System.Deployment
+    System
+    System.Drawing
+    System.Windows.Forms
+    System.Xml
     
 FILES[] =
-    Traversal.Designer.cs
     Traversal.cs
+    Traversal.Designer.cs
     Program.cs
-
+    Properties\AssemblyInfo.cs
+    Properties\Resources.Designer.cs
+    Properties\Settings.Designer.cs
+     
 DLLNAME = GUI
 
 .DEFAULT: $(CSharpDllAssembly $(DLLNAME), $(FILES))

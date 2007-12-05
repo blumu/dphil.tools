@@ -1,4 +1,5 @@
 # by William Blum
+# Version of 05/12/2007
 
 OMakeVersion(0.9.8.5, 0.9.8.5)
 
@@ -16,9 +17,10 @@ open Dotnet
     RESGEN="$(WINDOWS_SDK)\bin\resgen.exe"
 
 
-public.CSCFLAGS=--progress  --target-winexe
-public.CSC_DEBUG_FLAGS=/noconfig /nowarn:1701,1702 /errorreport:prompt /warn:4 /define:DEBUG;TRACE /debug+ /debug:full /optimize-
-public.CSC_RELEASE_FLAGS= 
+
+public.CSCFLAGS=/noconfig /nowarn:1701,1702 /errorreport:prompt /warn:4 
+public.CSC_DEBUG_FLAGS= /define:DEBUG /define:TRACE /debug+ /debug:full /optimize- 
+public.CSC_RELEASE_FLAGS= /define:TRACE /debug:pdbonly /optimize+ 
 public.CSC_MONO_FLAGS=
 public.CSC_DOTNET_FLAGS=
 public.RESGEN_FLAGS=
@@ -28,7 +30,8 @@ public.RESGEN_FLAGS=
 
 
 public.OUTPUT(name) =
-        return(/out:$(name))
+    return(/out:$(file $(name)))
+    
 
 public.TARGET_LIBRARY=/target:library
         
@@ -49,14 +52,14 @@ public.CSharpDllAssembly(name, files) =
     protected.DEP_DLLS=$(addsuffix .dll, $(CSHARP_DLLREFS))
 
     protected.name = $(file $(name))
-    protected.MONODLL = $(file $(name)-mono$(EXT_DLL))
-    protected.DOTNETDLL  = $(file $(name)$(EXT_DLL))
+    protected.MONODLL = $(file $(OUTPUTDIR)/$(name)-mono$(EXT_DLL))
+    protected.DOTNETDLL  = $(file $(OUTPUTDIR)/$(name)$(EXT_DLL))
 
     if $(defined DEBUG)
         CSCFLAGS+=$(CSC_DEBUG_FLAGS)
         export
     else
-        CSCFLAGS=$(CSC_RELEASE_FLAGS)
+        CSCFLAGS+=$(CSC_RELEASE_FLAGS)
         export
     
     

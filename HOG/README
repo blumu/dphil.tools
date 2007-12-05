@@ -17,7 +17,10 @@ By William Blum, 4th Dec 2007
         -for debug build:
             omake DEBUG=
 
-        
+== Examples
+
+See the OMakefile used in the project HOG (http://william.famille-blum.org/research/hog_src.zip)
+
 == History
 0.0.2
     + New feature that lets you load a simply-typed lambda term-in-context and construct its compuation tree. A type inference algorithm is implemented to avoid to have to declare the type of the variable in the lambda abstractions.

@@ -1,4 +1,5 @@
 # by William Blum
+# Version of 05/12/2007
 
 OMakeVersion(0.9.8.5, 0.9.8.5)
 open Dotnet
@@ -38,11 +39,11 @@ public.FSRESXCFLAGS=
 public.FSharpAssembly(name, files) =  
     protected.RCFILES  = $(addsuffix .resources, $(FS_RESOURCES_FILES))
     protected.OTHER_DLLS = $(addsuffix .dll, $(FS_OTHER_DLLREFS))
-    protected.DEP_DLLS = $(addsuffix .dll, $(FS_DEP_DLLS))
+    protected.DEP_DLLS = $(addprefix $(OUTPUTDIR)/, $(addsuffix .dll, $(FS_DEP_DLLS)))
 
     protected.name = $(file $(name))
-    protected.MONOPROG = $(file $(name)-mono$(EXE))
-    protected.DOTNETPROG  = $(file $(name)$(EXE))
+    protected.MONOPROG = $(file $(OUTPUTDIR)/$(name)-mono$(EXE))
+    protected.DOTNETPROG  = $(file $(OUTPUTDIR)/$(name)$(EXE))
 
     if $(defined DEBUG)
         FSFLAGS+=$(FS_DEBUG_FLAGS)

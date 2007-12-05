@@ -1,4 +1,5 @@
 # by William Blum
+# Version of 05/12/2007
 
 OMakeVersion(0.9.8.5, 0.9.8.5)
 
@@ -24,6 +25,14 @@ if $(defined DEBUG)
 else
     @echo "Release build"
 
+if $(defined DEBUG)
+    public.OUTPUTDIR=$(dir $(ROOT)/bin/Debug)
+    export
+else
+    public.OUTPUTDIR=$(dir $(ROOT)/bin/Release)
+    export
+
+@mkdir -p $(OUTPUTDIR)
     
 #    
 #####################################
