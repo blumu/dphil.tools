@@ -14,7 +14,7 @@ CSHARP_OTHER_DLLREFS[]=
     Microsoft.GLEE.Drawing
     Microsoft.GLEE.GraphViewerGDI
     System.Data
-    System.Deployment
+#    System.Deployment
     System
     System.Drawing
     System.Windows.Forms
@@ -25,8 +25,8 @@ FILES[] =
     Traversal.Designer.cs
     Program.cs
     Properties\AssemblyInfo.cs
-    Properties\Resources.Designer.cs
-    Properties\Settings.Designer.cs
+#    Properties\Resources.Designer.cs
+#    Properties\Settings.Designer.cs
      
 DLLNAME = GUI
 

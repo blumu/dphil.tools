@@ -29,5 +29,15 @@ namespace GUI
         {
 
         }
+
+        private void splitter1_SplitterMoved(object sender, SplitterEventArgs e)
+        {
+
+        }
+
+        private void Traversal_Load(object sender, EventArgs e)
+        {
+
+        }
     }
 }

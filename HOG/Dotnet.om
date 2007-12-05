@@ -8,22 +8,50 @@ open configure/Configure
 
 
 .STATIC:
-    public.WINDOWS_SDK=$(getenv SDKTOOLS, C:\Program Files\Microsoft SDKs\Windows\v6.0)
-    RESGEN="$(WINDOWS_SDK)\bin\resgen.exe"
+    MONOCS_EXISTS = $(CheckProg mcs)
+    CSC_EXISTS = $(CheckProg csc)
+    RESGEN_EXISTS = $(CheckProg resgen.exe)    
     export
 
 ################################################
 # Configuration.  
-# To build an assembly that is compatible with Mono, add the following command line switch to omake:
-#  MONO=
 
-# For a debug build, add the switch:
+# To build using the Mono toolchain:
+#  WITHMONO=
+
+
+# Due to bug in the Mono implementation, assemblies created using the Microsoft toolchain (Framework SDK) are not 100% compatible with the Mono run-time. In particular .resx resources are not correctly handled by Mono. 
+# In order to build an assembly that is compatible with Mono, add the following command line switch to omake:
+#  FORMONO=
+
+
+# For a debug build:
 #  DEBUG=
 
-if $(defined MONO)
-    @echo "Mono build"
+
+if $(defined WITHMONO)
+    if $(MONOCS_EXISTS)
+        @echo "Build using Mono toolchain"
+        RESGEN=resgen
+        CSC=mcs
+        export
+    else
+        @echo "You requested to use the Mono toolchain but it cannot be found. Make sure that your path environement variable contains the path to mcs.exe."
+        exit(1)
+    export
 else
-    @echo ".Net build"
+    @echo "Build using Microsoft Framework Sdk toolchain"
+    public.WINDOWS_SDK=$(if $(RESGEN_EXISTS),$(EMPTY),$(getenv SDKTOOLS, C:\Program Files\Microsoft SDKs\Windows\v6.0))
+    RESGEN="$(WINDOWS_SDK)\bin\resgen.exe"
+    public.CSC_HOME=$(if $(CSC_EXISTS),$(EMPTY),$(getenv FXTOOLS, C:\WINDOWS\Microsoft.NET\Framework\v2.0.50727))
+    CSC="$(CSC_HOME)\csc.exe"
+    export
+
+
+if $(defined FORMONO)
+    @echo "CLR compatibility: Mono"
+else
+    @echo "CLR compatibility: .Net"
 
 
 if $(defined DEBUG)
@@ -32,10 +60,10 @@ else
     @echo "Release build"
 
 if $(defined DEBUG)
-    public.OUTPUTDIR=$(dir $(ROOT)/bin/Debug)
+    public.OUTPUTDIR=$(dir $(ROOT)/bin/Debug$(if $(defined MONO), Mono) )
     export
 else
-    public.OUTPUTDIR=$(dir $(ROOT)/bin/Release)
+    public.OUTPUTDIR=$(dir $(ROOT)/bin/Release$(if $(defined MONO), Mono ))
     export
 
 @mkdir -p $(OUTPUTDIR)

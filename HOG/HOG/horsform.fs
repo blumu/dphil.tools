@@ -306,7 +306,7 @@ type HorsForm =
         this.codeLabel.Text <- "Description of the recursion scheme:";
         
         
-          // 
+        // 
         // runButton
         // 
         this.runButton.Enabled <- true;
@@ -343,7 +343,7 @@ type HorsForm =
         this.graphButton.TabIndex <- 0;
         this.graphButton.Text <- "Computation graph";
         this.graphButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
-        this.graphButton.Click.Add(fun e -> Traversal_form.ShowCompGraphWindow this.filename this.compgraph this.lnfrules );
+        this.graphButton.Click.Add(fun e -> Traversal_form.ShowCompGraphWindow this.MdiParent this.filename this.compgraph this.lnfrules );
         
         //
         // cpdaButton
@@ -359,6 +359,7 @@ type HorsForm =
         this.cpdaButton.Click.Add( fun e -> //create the cpda form
                                             let form = new Cpdaform.CpdaForm("CPDA built from the recursion scheme "^this.filename,
                                                                              Hocpda.hors_to_cpda Ncpda this.hors this.compgraph this.vartmtypes)
+                                            form.MdiParent <- this.MdiParent;
                                             ignore(form.Show());
                                  );
 
@@ -376,6 +377,7 @@ type HorsForm =
         this.pdaButton.Click.Add( fun e -> //create the pda
                                             let form = new Cpdaform.CpdaForm("PDA built from the recursion scheme "^this.filename,
                                                                              Hocpda.hors_to_cpda Npda this.hors this.compgraph this.vartmtypes)
+                                            form.MdiParent <- this.MdiParent;
                                             ignore(form.Show());
                                  );
             
@@ -394,6 +396,7 @@ type HorsForm =
         this.np1pdaButton.Click.Add( fun e -> //create the pda
                                             let form = new Cpdaform.CpdaForm("n+1-PDA built from the recursion scheme "^this.filename,
                                                                              Hocpda.hors_to_cpda Np1pda this.hors this.compgraph this.vartmtypes)
+                                            form.MdiParent <- this.MdiParent;
                                             ignore(form.Show());
                                  );        
         

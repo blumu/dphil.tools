@@ -1,4 +1,4 @@
-(** $Id$
+﻿(** $Id$
 	Description: Eta-long normal form
 	Author:		William Blum
 **)
@@ -35,17 +35,27 @@ and lnfapplicativepart =
 (* A rule in LNF is given by its name (the nonterminal) and the right-hand side expression in eta-long nf *)
 type lnfrule = nonterminal * lnf;;
 
+
+(*IF-OCAML*) 
+let LAMBDA_SYMBOL = "\\";; (* Caml does not support sources in UTF-8 *)
+(*ENDIF-OCAML*)
+(*F# 
+let LAMBDA_SYMBOL = "λ";;
+ F#*) 
 let rec lnf_to_string (abs_part,app_part) =
-    "\\"^(String.concat " " abs_part)^"."
+    let bracketize_lnf t = "("^(lnf_to_string t)^")" in
+    LAMBDA_SYMBOL^(String.concat " " abs_part)^"."
         ^(match app_part with
-	         LnfAppTm(x,operands)
-	        |LnfAppVar(x,operands)
-	        |LnfAppNt(x,operands) -> 
-	                let p = String.concat " " (List.map lnf_to_string operands) in
-                                        "("^x^(if p = "" then "" else " "^p)^")"
+             LnfAppTm(x,[])
+            |LnfAppVar(x,[])
+            |LnfAppNt(x,[]) -> x
+            |LnfAppTm(x,operands)
+            |LnfAppVar(x,operands)
+            |LnfAppNt(x,operands) ->
+                    x^" "^(String.concat " " (List.map bracketize_lnf operands))
+            |LnfAppAbs(_,[]) -> failwith "Ill-formed eta-long nf!"
             |LnfAppAbs(abs,operands) ->
-                    let p = String.concat " " (List.map lnf_to_string operands) in
-                                        "("^(lnf_to_string abs)^(if p = "" then "" else " "^p)^")"
+                    (bracketize_lnf abs)^" "^(String.concat " " (List.map bracketize_lnf operands))
         )
 ;;
 

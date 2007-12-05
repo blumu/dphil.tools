@@ -55,7 +55,7 @@ let compgraph_to_graphview (nodes_content:cg_nodes,edges:cg_edges) =
     graph
 ;;
 
-let ShowCompGraphWindow filename compgraph lnfrules =
+let ShowCompGraphWindow mdiparent filename compgraph lnfrules =
     // create a form
     let form = new System.Windows.Forms.Form()
     let viewer = new Microsoft.Glee.GraphViewerGdi.GViewer()
@@ -63,7 +63,7 @@ let ShowCompGraphWindow filename compgraph lnfrules =
     let buttonLatex = new System.Windows.Forms.Button()
 
     form.SuspendLayout(); 
-
+    form.MdiParent <- mdiparent;
     form.Text <- "Computation graph of "^filename;
     form.Size <- Size(700,800);
     buttonLatex.Location <- new System.Drawing.Point(1, 1)
@@ -72,7 +72,7 @@ let ShowCompGraphWindow filename compgraph lnfrules =
     buttonLatex.TabIndex <- 2
     buttonLatex.Text <- "Export to Latex"
     buttonLatex.UseVisualStyleBackColor <- true
-    buttonLatex.Click.Add(fun e -> Texexportform.export_to_latex lnfrules)
+    buttonLatex.Click.Add(fun e -> Texexportform.LoadExportToLatexWindow mdiparent lnfrules )
 
 
     // create a viewer object
@@ -120,70 +120,8 @@ let ShowCompGraphWindow filename compgraph lnfrules =
 ;;
 
 
-let ShowCompGraphTraversalWindow filename compgraph lnfrules =
-
+let ShowCompGraphTraversalWindow mdiparent filename compgraph lnfrules =
     let form_trav = new Traversal.Traversal()
+    form_trav.MdiParent <- mdiparent;
     ignore(form_trav.Show()) 
-                                      
-    // create a form
-    let form = new System.Windows.Forms.Form()
-    let viewer = new Microsoft.Glee.GraphViewerGdi.GViewer()
-    let panel1 = new System.Windows.Forms.Panel();
-    let buttonLatex = new System.Windows.Forms.Button()
-
-    form.SuspendLayout(); 
-
-    form.Text <- "Computation graph of "^filename;
-    form.Size <- Size(700,800);
-    buttonLatex.Location <- new System.Drawing.Point(1, 1)
-    buttonLatex.Name <- "button1"
-    buttonLatex.Size <- new System.Drawing.Size(267, 23)
-    buttonLatex.TabIndex <- 2
-    buttonLatex.Text <- "Export to Latex"
-    buttonLatex.UseVisualStyleBackColor <- true
-    buttonLatex.Click.Add(fun e -> Texexportform.export_to_latex lnfrules)
-
-
-    // create a viewer object
-    panel1.SuspendLayout();
-    panel1.Anchor <- Enum.combine [ System.Windows.Forms.AnchorStyles.Top ; 
-                                    System.Windows.Forms.AnchorStyles.Bottom ; 
-                                    System.Windows.Forms.AnchorStyles.Left ; 
-                                    System.Windows.Forms.AnchorStyles.Right ];
-    panel1.Controls.Add(viewer);
-    panel1.Location <- new System.Drawing.Point(1, 29);
-    panel1.Margin <- new System.Windows.Forms.Padding(2, 2, 2, 2);
-    panel1.Name <- "panel1";
-    panel1.Size <- new System.Drawing.Size(972, 505);
-    panel1.TabIndex <- 4;
-
-    // bind the graph to the viewer
-    viewer.Graph <- compgraph_to_graphview compgraph;
-    viewer.AsyncLayout <- false;
-    viewer.AutoScroll <- true;
-    viewer.BackwardEnabled <- false;
-    viewer.Dock <- System.Windows.Forms.DockStyle.Fill;
-    viewer.ForwardEnabled <- false;
-    viewer.Location <- new System.Drawing.Point(0, 0);
-    viewer.MouseHitDistance <- 0.05;
-    viewer.Name <- "gViewer";
-    viewer.NavigationVisible <- true;
-    viewer.PanButtonPressed <- false;
-    viewer.SaveButtonVisible <- true;
-    viewer.Size <- new System.Drawing.Size(674, 505);
-    viewer.TabIndex <- 3;
-    viewer.ZoomF <- 1.0;
-    viewer.ZoomFraction <- 0.5;
-    viewer.ZoomWindowThreshold <- 0.05;
-
-    //associate the viewer with the form
-    form.ClientSize <- new System.Drawing.Size(970, 532);
-
-    form.Controls.Add(buttonLatex);
-    form.Controls.Add(panel1);            
-    panel1.ResumeLayout(false);
-    form.ResumeLayout(false);            
-
-    //show the form
-    ignore(form.Show())
 ;;

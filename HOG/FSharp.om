@@ -5,23 +5,26 @@ OMakeVersion(0.9.8.5, 0.9.8.5)
 open Dotnet
 
 .STATIC:
-    if $(not $(defined public.FSHARP_HOME))
-        FSHARP_HOME=C:\Program Files\FSharp-1.9.3.7
-        export
-    FSC="$(FSHARP_HOME)\bin\fsc.exe"
-    FSYACC="$(FSHARP_HOME)\bin\fsyacc.exe"
-    FSLEX="$(FSHARP_HOME)\bin\fslex.exe"
-    RESXC="$(FSHARP_HOME)\bin\resxc.exe"
+    FSC_EXISTS = $(CheckProg fsc)
+
+FSHARP_HOME=$(if $(FSC_EXISTS),$(EMPTY),$(getenv FSHARP_HOME, C:\Program Files\FSharp-1.9.3.7))
+FSC="$(FSHARP_HOME)\bin\fsc.exe"
+FSYACC="$(FSHARP_HOME)\bin\fsyacc.exe"
+FSLEX="$(FSHARP_HOME)\bin\fslex.exe"
+RESXC="$(FSHARP_HOME)\bin\resxc.exe"
 
     
 public.FSFLAGS=--fullpaths --progress --no-warn 40 --target-winexe
-public.FS_DEBUG_FLAGS=-Ooff -g
-public.FS_RELEASE_FLAGS=--standalone -O3
-public.FS_MONO_FLAGS=
-public.FS_DOTNET_FLAGS=
+if $(defined DEBUG)
+    FSFLAGS+=-Ooff -g
+    export
+else
+    FSFLAGS+=--standalone -O3
+    export
 public.FSYACCFLAGS=
 public.FSLEXFLAGS=
 public.FSRESXCFLAGS=
+public.RESGEN_FLAGS=
 
 
 %.ml %.mli: %.mly
@@ -31,7 +34,10 @@ public.FSRESXCFLAGS=
     $(FSLEX) $(FSLEXFLAGS) $< -o $@
 
 %.resources: %.resx
-    $(RESXC) $(FSRESXCFLAGS) $<	
+    $(RESXC) $(FSRESXCFLAGS) $<
+
+#%.resources: %.resx
+#    $(RESGEN) $(RESGEN_FLAGS) $<
 
 
 #### To build an .exe .net assembly
@@ -42,16 +48,13 @@ public.FSharpAssembly(name, files) =
     protected.DEP_DLLS = $(addprefix $(OUTPUTDIR)/, $(addsuffix .dll, $(FS_DEP_DLLS)))
 
     protected.name = $(file $(name))
-    protected.MONOPROG = $(file $(OUTPUTDIR)/$(name)-mono$(EXE))
-    protected.DOTNETPROG  = $(file $(OUTPUTDIR)/$(name)$(EXE))
-
-    if $(defined DEBUG)
-        FSFLAGS+=$(FS_DEBUG_FLAGS)
+    protected.PROG = $(file $(OUTPUTDIR)/$(name)$(EXE))
+    
+    if $(defined FORMONO)
+        foreach(res, $(FS_RESOURCES_FILES))
+            RCFILES+="$(res)+$(res).resources"
+            export
         export
-    else
-        FSFLAGS+=$(FS_RELEASE_FLAGS)
-        export
-
         
     #
     # Rules to build byte-code and native targets
@@ -60,32 +63,16 @@ public.FSharpAssembly(name, files) =
     foreach(res, $(FS_RESOURCES_FILES))
         $(res)+$(res).resx: $(res).resx
             cp $(res).resx "$(res)+$(res).resx"
-
-    protected.MONORCFILES=$(RCFILES)
-    foreach(res, $(FS_RESOURCES_FILES))
-        MONORCFILES+="$(res)+$(res).resources"
-        export
-            
-    $(MONOPROG): $(MONORCFILES) $(files) $(DEP_DLLS)
-        @echo "- F# compilation for Mono..."
-        $(FSC) $(FSFLAGS) $(FS_MONO_FLAGS)\
-                $(mapprefix -I, $(FS_INCLUDEPATH)) $(mapprefix -r, $(DEP_DLLS)) $(mapprefix -r, $(OTHER_DLLS)) \
-                $(mapprefix --resource, $(MONORCFILES)) \
-                $(files) -o $@
-        @echo "***********************************************************" \\
-        && echo "The assembly $(MONOPROG) has been created successfuly" \\
-        && echo "***********************************************************"  
-
                 
-    $(DOTNETPROG): $(RCFILES) $(files) $(DEP_DLLS)
-        @echo "- F# compilation for .NET..."
-        $(FSC) $(FSFLAGS) $(FS_DOTNET_FLAGS) \
+    $(PROG): $(RCFILES) $(files) $(DEP_DLLS)
+        @echo "- F# compilation..."
+        $(FSC) $(FSFLAGS) \
                 $(mapprefix -I, $(FS_INCLUDEPATH)) $(mapprefix -r, $(DEP_DLLS)) $(mapprefix -r, $(OTHER_DLLS)) \
                 $(mapprefix --resource, $(RCFILES)) \
                 $(files) -o $@
         @echo "***********************************************************" \
-        && echo "The assembly $(DOTNETPROG) has been created successfuly" \
+        && echo "The assembly $(PROG) has been created successfuly" \
         && echo "***********************************************************"
 
-    return $(if $(defined MONO), $(MONOPROG), $(DOTNETPROG)) 
+    return $(PROG) 
    

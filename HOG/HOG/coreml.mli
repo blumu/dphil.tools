@@ -7,7 +7,7 @@ open Type;;
 open Lnf;;
 
 type ident = string;;
-
+ 
 type ml_expr =
     MlVar of ident
   | Fun of ident * ml_expr
@@ -28,4 +28,5 @@ type ml_termincontext = ml_context*ml_expr
 
 val string_of_mltermincontext : ml_termincontext -> string
 
-val lmdterm_to_lnf : ml_termincontext -> lnfrule
+val lmdterm_to_lnf : ml_termincontext -> lnf
+ 

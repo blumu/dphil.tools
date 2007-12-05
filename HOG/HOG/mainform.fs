@@ -23,14 +23,14 @@ do Application.EnableVisualStyles();
 
    
 
-// RichTextBox - text area 
-let textB = new RichTextBox()
-textB.Dock <- DockStyle.Fill
-textB.ReadOnly <- true
+// RichtxtConsoleox - text area 
+let txtConsole = new RichTextBox()
+txtConsole.Dock <- DockStyle.Bottom
+txtConsole.ReadOnly <- true
 
 // text
-let setText s = textB.Text <- s; textB.SelectionStart <- textB.TextLength;
-let getText s = textB.Text
+let setText s = txtConsole.Text <- s; txtConsole.SelectionStart <- txtConsole.TextLength;
+let getText s = txtConsole.Text
 setText     "Console:\n"
 
 
@@ -81,6 +81,11 @@ let get_file_extension filename =
     with Not_found -> ""
 ;;
 
+ 
+let mainform = new System.Windows.Forms.Form()
+
+
+
 // open a file containing either a term or a Rec scheme
 let open_file filename =
     match (get_file_extension filename) with 
@@ -89,39 +94,41 @@ let open_file filename =
                          None -> ()
                          | Some(o) -> (* Load the Windows form for the recursion scheme *)
                                       let form = new Horsform.HorsForm(filename, o)
+                                      form.MdiParent <- mainform;
+                                      form.WindowState<-FormWindowState.Maximized;
                                       ignore(form.Show())
           | "lmd" ->
                      match parse_file Ml_parser.term_in_context Ml_lexer.token filename with
                          None -> ()
                          | Some(o) -> let form = new Lmdtermform.TermForm(filename, o)
+                                      form.MdiParent <- mainform;
+                                      form.WindowState<-FormWindowState.Maximized;
                                       ignore(form.Show())          
           
           | _ -> Debug_print("Unknown file format!\n")
 ;;
 
- 
-let mainform =
-    { new Form()
-      with OnLoad(_) =
-         if Array.length Sys.argv = 2 then
-             if Sys.argv.(1) = "-help" then
-                begin 
-                  printf "usage: hog.exe <file>\n";
-                  exit 1;
-                end
-              else
-                open_file Sys.argv.(1)
-      }
 
-mainform.Width  <- 400
-mainform.Height <- 300
+mainform.Load.Add( fun _ -> if Array.length Sys.argv = 2 then
+                             if Sys.argv.(1) = "-help" then
+                                begin 
+                                  printf "usage: hog.exe <file>\n";
+                                  exit 1;
+                                end
+                              else
+                                open_file Sys.argv.(1));
+mainform.IsMdiContainer <- true;
+mainform.Width  <- 1000
+mainform.Height <- 600
 mainform.Text <- "HOG Version "^VERSION
-mainform.Controls.Add(textB)
+mainform.Controls.Add(txtConsole)
 
 // menu bar and menus 
 let mMain = mainform.Menu <- new MainMenu()
 let mFile = mainform.Menu.MenuItems.Add("&File")
+let mWindowList = mainform.Menu.MenuItems.Add("&Window")
 let mHelp = mainform.Menu.MenuItems.Add("&Help")
+mWindowList.MdiList <- true
 
 // menu items 
 let miOpen  = new MenuItem("&Open scheme...")
@@ -133,6 +140,7 @@ mFile.MenuItems.Add(miOpen)
 mFile.MenuItems.Add(miOpenLmd)
 mFile.MenuItems.Add(miQuit)
 mHelp.MenuItems.Add(miAbout)
+
 
 
 type FileType = RecSchemeFile | TermFile

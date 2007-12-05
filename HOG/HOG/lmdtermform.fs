@@ -73,7 +73,7 @@ type TermForm =
         base.Dispose(disposing)
 
 
-    member this.InitializeComponent() =
+    member this.InitializeComponent lnfterm =
         this.components <- new System.ComponentModel.Container();
         let resources = new System.ComponentModel.ComponentResourceManager((type TermForm)) 
         
@@ -88,9 +88,7 @@ type TermForm =
         this.codeRichTextBox <- new System.Windows.Forms.RichTextBox();
         this.codeLabel <- new System.Windows.Forms.Label();
         this.graphButton <- new System.Windows.Forms.Button();
-        this.cpdaButton <- new System.Windows.Forms.Button();
-        this.pdaButton <- new System.Windows.Forms.Button();
-        this.np1pdaButton <- new System.Windows.Forms.Button();
+        this.playButton <- new System.Windows.Forms.Button();
         this.outputTextBox <- new System.Windows.Forms.RichTextBox();
         this.outputLabel <- new System.Windows.Forms.Label();
         this.outerSplitContainer.Panel1.SuspendLayout();
@@ -193,6 +191,7 @@ type TermForm =
         // rightContainer.Panel2
         // 
         this.rightContainer.Panel2.Controls.Add(this.graphButton);
+        this.rightContainer.Panel2.Controls.Add(this.playButton);
         this.rightContainer.Panel2.Controls.Add(this.outputTextBox);
         this.rightContainer.Panel2.Controls.Add(this.outputLabel);
         
@@ -295,8 +294,22 @@ type TermForm =
         this.graphButton.TabIndex <- 0;
         this.graphButton.Text <- "Computation graph";
         this.graphButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
-        this.graphButton.Click.Add(fun e -> Traversal_form.ShowCompGraphTraversalWindow this.filename this.compgraph this.lnfrules);
+        this.graphButton.Click.Add(fun e -> Traversal_form.ShowCompGraphWindow this.MdiParent this.filename this.compgraph ["",lnfterm]);
         
+        
+        //
+        // Play traversal
+        //
+        this.playButton.Enabled <- true;
+        this.playButton.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0uy);
+        this.playButton.Location <- new System.Drawing.Point(250, -1);
+        this.playButton.Name <- "playButton";
+        this.playButton.Size <- new System.Drawing.Size(100, 27);
+        this.playButton.TabIndex <- 0;
+        this.playButton.Text <- "Play";
+        this.playButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
+        this.playButton.Click.Add( fun e -> Traversal_form.ShowCompGraphTraversalWindow this.MdiParent this.filename this.compgraph lnfterm );
+                                 
         // 
         // outputTextBox
         // 
@@ -314,7 +327,7 @@ type TermForm =
         this.outputTextBox.ScrollBars <- System.Windows.Forms.RichTextBoxScrollBars.Both;
         this.outputTextBox.Size <- new System.Drawing.Size(680, 273);
         this.outputTextBox.TabIndex <- 2;
-        this.outputTextBox.WordWrap <- false;
+        this.outputTextBox.WordWrap <- true;
         // 
         // outputLabel
         // 
@@ -358,9 +371,7 @@ type TermForm =
     val mutable outputTextBox : System.Windows.Forms.RichTextBox;
     val mutable outputLabel : System.Windows.Forms.Label;
     val mutable graphButton : System.Windows.Forms.Button;
-    val mutable cpdaButton : System.Windows.Forms.Button;
-    val mutable pdaButton : System.Windows.Forms.Button;
-    val mutable np1pdaButton : System.Windows.Forms.Button;
+    val mutable playButton : System.Windows.Forms.Button;
     val mutable rightUpperSplitContainer : System.Windows.Forms.SplitContainer;
     val mutable pathTextBox : System.Windows.Forms.TextBox;
     val mutable pathLabel : System.Windows.Forms.Label;
@@ -369,7 +380,6 @@ type TermForm =
     val mutable imageList : System.Windows.Forms.ImageList;
     val mutable codeRichTextBox : System.Windows.Forms.RichTextBox;
     val mutable lmdterm : ml_termincontext;
-    val mutable lnfrules : lnfrule list;
     val mutable vartmtypes : (ident*typ) list;
     val mutable compgraph : computation_graph;
     val mutable filename : string;
@@ -380,9 +390,7 @@ type TermForm =
          rightContainer = null;
          outputTextBox = null;
          outputLabel =null;
-         cpdaButton = null;
-         pdaButton = null;
-         np1pdaButton = null;
+         playButton = null;
          graphButton = null;
          rightUpperSplitContainer =null;
          pathTextBox =null;
@@ -393,27 +401,25 @@ type TermForm =
          codeRichTextBox = null;
          components = null;
          lmdterm = newterm;
-         lnfrules = [];
          vartmtypes = [];
          compgraph = [||],NodeEdgeMap.empty;
          filename = "";
          }
        
        then 
-        this.InitializeComponent();
+        // convert the term to LNF
+        let lnfterm = //try 
+                        lmdterm_to_lnf this.lmdterm
+                      //with MissingVariableInContext -> 
+
+        this.InitializeComponent lnfterm;
 
         this.Text <- ("Simply-typed lambda term - "^filename);
         this.filename <- filename;
-              
-        // convert the term to LNF
-        //try 
-            this.lnfrules <- [lmdterm_to_lnf this.lmdterm];
-        //with MissingVariableInContext -> ()
-        
-        this.outputTextBox.Text <- "Rules in eta-long normal form:\n"
-                                ^(String.concat "\n" (List.map lnfrule_to_string this.lnfrules));
 
-        
+        this.outputTextBox.Text <- "Eta-long normal form:\n"
+                                ^(lnf_to_string lnfterm);
+
         // create the computation graph from the LNF of the term
-        this.compgraph <- lnfrs_to_graph this.lnfrules
+        this.compgraph <- lnfrs_to_graph [("",lnfterm)]
   end

@@ -6,19 +6,28 @@ OMakeVersion(0.9.8.5, 0.9.8.5)
 open Dotnet
 
 
-.STATIC:
-    public.CSC_HOME= $(getenv FXTOOLS, C:\WINDOWS\Microsoft.NET\Framework\v2.0.50727)
-    CSC="$(CSC_HOME)\csc.exe"
+if $(defined WITHMONO)
+    public.CSCFLAGS=-noconfig -nowarn:1701,1702  -warn:4 
+    if $(defined DEBUG)
+        CSCFLAGS+=-define:DEBUG -define:TRACE -debug+ -debug:full -optimize- 
+        export
+    else
+        CSCFLAGS+=-define:TRACE -debug:pdbonly -optimize+ 
+        export
+    public.RESGENFLAGS=
+    export
+else
+    public.CSCFLAGS=/noconfig /nowarn:1701,1702 /errorreport:prompt /warn:4 
+    if $(defined DEBUG)
+        CSCFLAGS+=/define:DEBUG /define:TRACE /debug+ /debug:full /optimize- 
+        export
+    else
+        CSCFLAGS+=/define:TRACE /debug:pdbonly /optimize+ 
+        export
+    public.RESGENFLAGS=
+    export
 
-
-
-public.CSCFLAGS=/noconfig /nowarn:1701,1702 /errorreport:prompt /warn:4 
-public.CSC_DEBUG_FLAGS= /define:DEBUG /define:TRACE /debug+ /debug:full /optimize- 
-public.CSC_RELEASE_FLAGS= /define:TRACE /debug:pdbonly /optimize+ 
-public.CSC_MONO_FLAGS=
-public.CSC_DOTNET_FLAGS=
-public.RESGEN_FLAGS=
-
+        
 %.resources: %.resx
     $(RESGEN) $(RESGEN_FLAGS) $<	
 
@@ -46,17 +55,14 @@ public.CSharpDllAssembly(name, files) =
     protected.DEP_DLLS=$(addsuffix .dll, $(CSHARP_DLLREFS))
 
     protected.name = $(file $(name))
-    protected.MONODLL = $(file $(OUTPUTDIR)/$(name)-mono$(EXT_DLL))
-    protected.DOTNETDLL  = $(file $(OUTPUTDIR)/$(name)$(EXT_DLL))
+    protected.DLLASM = $(file $(OUTPUTDIR)/$(name)$(EXT_DLL))
 
-    if $(defined DEBUG)
-        CSCFLAGS+=$(CSC_DEBUG_FLAGS)
+    if $(defined FORMONO)
+        foreach(res, $(CSHARP_RESOURCES))
+            RCFILES+="$(res)+$(res).resources"
+            export
         export
-    else
-        CSCFLAGS+=$(CSC_RELEASE_FLAGS)
-        export
-    
-    
+
     #
     # Rules to build byte-code and native targets
     #
@@ -65,31 +71,16 @@ public.CSharpDllAssembly(name, files) =
         $(res)+$(res).resx: $(res).resx
             cp $(res).resx "$(res)+$(res).resx"
     
-    protected.MONORCFILES=$(RCFILES)
-    foreach(res, $(CSHARP_RESOURCES))
-        MONORCFILES+="$(res)+$(res).resources"
-        export
-            
-    $(MONODLL): $(MONORCFILES) $(files) $(DEP_DLLS)
-        @echo "- C# compilation for Mono..."; \
-        $(CSC) $(CSCFLAGS) $(CSC_MONO_FLAGS)\
-                $(addprefix /lib:, $(CSHARP_INCLUDEPATH)) $(addprefix /reference:, $(OTHER_DLLS)) $(addprefix /reference:, $(DEP_DLLS)) \
-                $(addprefix /resource:, $(MONORCFILES)) \
-                $(OUTPUT $@) $(files)
-        @echo "***********************************************************" \
-        && echo "The assembly $(MONODLL) has been created successfuly" \
-        && echo "***********************************************************"  
-    
-    $(DOTNETDLL): $(RCFILES) $(files) $(DEP_DLLS)
-        @echo "- C# compilation for .NET..."
-        $(CSC) $(CSCFLAGS) $(CSC_DOTNET_FLAGS) \
+    $(DLLASM): $(RCFILES) $(files) $(DEP_DLLS)
+        @echo "- C# compilation..."
+        $(CSC) $(CSCFLAGS) $(CSCFLAGS) \
                 $(addprefix /lib:, $(CSHARP_INCLUDEPATH)) $(addprefix /reference:, $(OTHER_DLLS)) $(addprefix /reference:,$(DEP_DLLS)) \
                 $(addprefix /resource:,$(RCFILES)) \
-                 $(TARGET_LIBRARY) $(OUTPUT $@) $(files)
+                $(TARGET_LIBRARY) $(OUTPUT $@) $(files)
         @echo "***********************************************************" \
-        && echo "The assembly $(DOTNETDLL) has been created successfuly" \
+        && echo "The assembly $(DLLASM) has been created successfuly" \
         && echo "***********************************************************"
 
 
-    return $(if $(defined MONO), $(MONODLL), $(DOTNETDLL)) 
+    return $(DLLASM) 
    

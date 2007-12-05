@@ -122,9 +122,10 @@ let lnfrules_to_latexcompgraph (lnfrules:lnfrule list) =
 
 open System.Windows.Forms
 
-let export_to_latex (lnfrules:Lnf.lnfrule list) =
+let LoadExportToLatexWindow mdiparent (lnfrules:Lnf.lnfrule list) =
     let latexform = new System.Windows.Forms.Form()
     let latexoutput = new System.Windows.Forms.RichTextBox()
+    latexform.MdiParent <- mdiparent
     latexform.Text <- "Latex output"
     latexform.Size <- new System.Drawing.Size(800, 600);
     latexoutput.Dock <- System.Windows.Forms.DockStyle.Fill
@@ -150,3 +151,4 @@ $\\rput[t](0,0){"
     latexoutput.Text <- latex_preamb^(lnfrules_to_latexcompgraph lnfrules)^latex_post;
     latexform.Controls.Add(latexoutput)                                           
     ignore(latexform.Show())
+;;

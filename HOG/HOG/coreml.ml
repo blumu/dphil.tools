@@ -143,7 +143,7 @@ let rec annotml_applicative_decomposition t = match snd t with
    @param tmincontext the input term-in-context
    @return the LNF of [tmincontext].
 **)
-let lmdterm_to_lnf ((context,term):ml_termincontext) :lnfrule = 
+let lmdterm_to_lnf ((context,term):ml_termincontext) :lnf = 
     (* For the creation of fresh variables *)
     let freshvar = ref 0 in
     let new_freshvar() = incr(freshvar); "#"^(string_of_int !freshvar) in
@@ -175,7 +175,6 @@ let lmdterm_to_lnf ((context,term):ml_termincontext) :lnfrule =
                 | _ ->  failwith "unsupported Ml constructs!"
 
     in
-    "", (* => the lnf has no name *)
     lnf_of (annotate_term (context,term))
 ;;
 
