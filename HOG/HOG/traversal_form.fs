@@ -6,6 +6,7 @@
 #light
 open System.Drawing
 open System.Windows.Forms
+open System.Drawing
 open Traversal
 open Lnf
 open GUI
@@ -123,5 +124,69 @@ let ShowCompGraphWindow mdiparent filename compgraph lnfrules =
 let ShowCompGraphTraversalWindow mdiparent filename compgraph lnfrules =
     let form_trav = new Traversal.Traversal()
     form_trav.MdiParent <- mdiparent;
+    let trav = [|"voila",0; "salut",1; "toto",2|]
+    // bind the graph to the viewer
+    form_trav.gViewer.Graph <- compgraph_to_graphview compgraph;
+    form_trav.gViewer.AsyncLayout <- false;
+    form_trav.gViewer.AutoScroll <- true;
+    form_trav.gViewer.BackwardEnabled <- false;
+    form_trav.gViewer.Dock <- System.Windows.Forms.DockStyle.Fill;
+    form_trav.gViewer.ForwardEnabled <- false;
+    form_trav.gViewer.Location <- new System.Drawing.Point(0, 0);
+    form_trav.gViewer.MouseHitDistance <- 0.05;
+    form_trav.gViewer.Name <- "gViewer";
+    form_trav.gViewer.NavigationVisible <- true;
+    form_trav.gViewer.PanButtonPressed <- false;
+    form_trav.gViewer.SaveButtonVisible <- true;
+    form_trav.gViewer.Size <- new System.Drawing.Size(674, 505);
+    form_trav.gViewer.TabIndex <- 3;
+    form_trav.gViewer.ZoomF <- 1.0;
+    form_trav.gViewer.ZoomFraction <- 0.5;
+    form_trav.gViewer.ZoomWindowThreshold <- 0.05;
+    
+    form_trav.picTrav.Paint.Add( fun e -> 
+      let Width = float32 form_trav.picTrav.ClientSize.Width
+      and Height = float32 form_trav.picTrav.ClientSize.Height 
+      let backgroundColor = Color.Blue
+
+      let graphics = e.Graphics
+      
+      let penWidth = float32 1 
+      let pen = new Pen(Color.Black, float32 penWidth)
+
+      let fontHeight:float32 = float32 10.0
+      let font = new Font("Arial", fontHeight)
+
+      let brush = new SolidBrush(backgroundColor)
+      let textBrush = new SolidBrush(Color.Black);
+      graphics.SmoothingMode <- System.Drawing.Drawing2D.SmoothingMode.AntiAlias
+
+      //graphics.DrawEllipse(pen, (penWidth/(float32 2.0)), (penWidth/(float32 2.0)), (Width-penWidth),(Height-penWidth));
+      let pos = Array.create (Array.length trav) (Point(0,0))
+      let sep = float32 5.0
+      let x = ref sep
+      let f2 = float32 2.0
+      let link_vertical_distance = 5
+      let half_height = Height/f2
+      for i = 0 to (Array.length trav)-1 do 
+          let txt,link = trav.(i)
+          let textdim = graphics.MeasureString(txt, font);
+          let top_y = half_height-textdim.Height/f2
+          pos.(i) <- Point(int (!x+textdim.Width/f2), int top_y)
+          graphics.FillEllipse(brush, !x, top_y, textdim.Width, textdim.Height);
+          graphics.DrawEllipse(pen, !x, top_y, textdim.Width, textdim.Height);
+          graphics.DrawString(txt, font, textBrush, !x, top_y);
+          if link<>0 then
+            begin
+                let src = Point(int !x, int top_y)
+                let dst = pos.(i-link)
+                let tmp = src + Size(dst)
+                let mid = Point(tmp.X/2,tmp.Y/2-link_vertical_distance)
+                graphics.DrawCurve(pen, [|src;mid;dst|])
+            end
+            x:= !x + textdim.Width + sep;
+      done
+
+        );
     ignore(form_trav.Show()) 
 ;;

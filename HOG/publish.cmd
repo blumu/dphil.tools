@@ -8,6 +8,8 @@ pscp hog_exe.zip hog_src.zip blum@mercury.comlab.ox.ac.uk:/auto/fs/websrc/oucl/w
 plink blum@mercury.comlab.ox.ac.uk /users/blum/packbin/webpub /auto/fs/websrc/oucl/work/william.blum/hog_exe.zip /auto/fs/websrc/oucl/work/william.blum/hog_src.zip
 @if ERRORLEVEL 1 goto exit
 
+pscp hog_exe.zip hog_src.zip william@www.famille-blum.org:public_html/research/
+
 
 :success
 echo **************** Program built and published.

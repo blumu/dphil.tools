@@ -39,5 +39,20 @@ namespace GUI
         {
 
         }
+
+        private void splitContainer1_SplitterMoved(object sender, SplitterEventArgs e)
+        {
+
+        }
+
+        private void gViewer_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void picTrav_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }

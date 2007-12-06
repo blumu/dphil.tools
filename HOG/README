@@ -23,7 +23,9 @@ By William Blum, 4th Dec 2007
 		
     Optional parameters:
         -for compatibility with the Mono platform:
-            omake MONO=
+            omake FORMONO=
+        -for compilation with the Mono toolchain:
+            omake WITHMONO=
         -for debug build:
             omake DEBUG=
 
