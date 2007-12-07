@@ -6,6 +6,7 @@
 (** Long normal form (lnf) **)
 
 
+open Common
 open Type
 
 
@@ -36,12 +37,7 @@ and lnfapplicativepart =
 type lnfrule = nonterminal * lnf;;
 
 
-(*IF-OCAML*) 
-let LAMBDA_SYMBOL = "\\";; (* Caml does not support sources in UTF-8 *)
-(*ENDIF-OCAML*)
-(*F# 
-let LAMBDA_SYMBOL = "λ";;
- F#*) 
+
 let rec lnf_to_string (abs_part,app_part) =
     let bracketize_lnf t = "("^(lnf_to_string t)^")" in
     LAMBDA_SYMBOL^(String.concat " " abs_part)^"."
@@ -130,6 +126,7 @@ type cg_nodes = nodecontent array;;
 
 
 (** The set of edges is represented by a map from node to an array of target nodes id **)
+(*
     (*IF-OCAML*) 
     module NodeEdgeMap = Map.Make(struct type t = int let compare = Pervasives.compare end) 
     type cg_edges = (int array) NodeEdgeMap.t;;
@@ -138,34 +135,42 @@ type cg_nodes = nodecontent array;;
     let NodeEdgeMap = Map.Make((Pervasives.compare : int -> int -> int))
     type cg_edges = Tagged.Map<int,int array,System.Collections.Generic.IComparer<int>>;;
     F#*)
+*)  
+
+type cg_edges = int list array;;
 
 (** The type of a computation graph **)
 type computation_graph = cg_nodes * cg_edges;;
 
+(** [create_empy_graph] creates an empty graph **)
+let create_empty_graph() = [||],[||]
 
 (** [graph_addedge edges src tar] adds an edge going from [src] to [tar] in the graph [gr].
     @param edges is the reference to a Map from node id to array of edges
     @param src is the source of the new edge
     @param tar is the target of the new edge
     **)
-let graph_addedge (edges: cg_edges ref) source target =
-    edges :=  NodeEdgeMap.add source (Array.append (try NodeEdgeMap.find source !edges
+let graph_addedge (edges:cg_edges) source target =
+(*    edges :=  NodeEdgeMap.add source (Array.append (try NodeEdgeMap.find source !edges
                                                     with Not_found -> [||])
-                                                   [|target|]) !edges;
+                                                   [|target|]) !edges;*)
+    edges.(source) <- target::edges.(source)
 ;;
 
 (** [graph_childnode edges nodeid i] returns the i^th child of node [nodeid]**)
 let graph_childnode edges nodeid i =
-    (try 
+(*    (try 
         NodeEdgeMap.find nodeid edges
-    with Not_found -> failwith "function child: the node does not exist or does not have any child!" ).(i)
+    with Not_found -> failwith "function child: the node does not exist or does not have any child!" ).(i) *)
+    (Array.of_list (edges.(nodeid))).(i)
 ;;
 
 
 (** [graph_n_children edges nodeid] returns the number of children of the node [nodeid]**)
 let graph_n_children edges nodeid =
-    try  Array.length (NodeEdgeMap.find nodeid edges)
-    with Not_found -> 0
+    (*try  Array.length (NodeEdgeMap.find nodeid edges)
+    with Not_found -> 0 *)
+    List.length edges.(nodeid)
 ;;
 
 
@@ -185,30 +190,53 @@ let rec graph_node_type vartm_types = function
       | NCntAbs(_,x::vars) ->  Ar((List.assoc x vartm_types), (graph_node_type vartm_types (NCntAbs("",vars))))
 ;;
 
+(** [graph_node_label node] returns the label of [node] **)
+let graph_node_label = function 
+      NCntApp -> "@"
+    | NCntVar(x) | NCntTm(x)  -> x
+    | NCntAbs(_,vars) -> LAMBDA_SYMBOL^(String.concat " " vars)
+;;
+
 
 (** [lnfrs_to_graph rs lnfrules] converts rules in lnf into a computation graph.
     @param lnfrules the rules of the recursion scheme in LNF
     @return the compuation graph (nodes,edges)
 **)
 let lnfrs_to_graph lnfrules =
-    (* The list of created nodes *)
-    let nodes = ref [] in
-    (* The edges: a map from node ids to array of edges *)
-    let edges = ref (NodeEdgeMap.empty) in
+                                
+    (* Compute the number of nodes to be created in the graph *)
+    let rec calc_nb_nodes (_,app_part) =
+        match app_part with
+          LnfAppNt(nnt, []) -> 0
+        | LnfAppVar(_, operands) | LnfAppTm(_, operands)
+        | LnfAppNt(_, operands) ->
+            List.fold_left (fun acc u -> acc + calc_nb_nodes u) 2 operands
+        | LnfAppAbs(abs, operands) ->
+            List.fold_left (fun acc u -> acc + calc_nb_nodes u) (2+(calc_nb_nodes abs)) operands
+    in                                
+    (* number of nodes to be created in the graph *)
+    let nnodes = List.fold_left (fun acc (_,rhs) -> acc + calc_nb_nodes rhs) 0 lnfrules in
+    
+
+    (* The array of nodes *)
+    let nodes = Array.create nnodes NCntApp in
+    (* The array of edges list *)
+    let edges = Array.create nnodes [] in
        
     (* Number of nodes created *)
-    let nnodes = ref 0 in
+    let inode = ref (-1) in
     (* Node creation *)
-    let newnode node = 
-        nodes := node::!nodes;
-        incr(nnodes); !nnodes-1 in
+    let newnode node = incr(inode);
+                       nodes.(!inode) <- node; 
+                       !inode  in
 
     (* The first nodes of the graph are the non-terminal nodes.
-       Create them and return an association list mapping non-terminal to their corresponding nodeid.
+       [nt_nodeid] gives an association list mapping non-terminal to their corresponding nodeid.
      *)
     let nt_nodeid = List.map (function nt,(abs_part,_) -> 
                                 nt,(newnode (NCntAbs(nt, abs_part))) ) lnfrules in
-    
+                                
+
     (* [create_subgraph nodeid rhs] creates the subgraph corresponding to the
         lnf term [rhs]. [nodeid] is an optional argumet that specifies the node index in the array of nodes 
         that should be attributed to the root of created subgraph (in the case where the index has been reserved for it).
@@ -252,7 +280,7 @@ let lnfrs_to_graph lnfrules =
 
     (* create the subgraph of each non-terminal *)
     List.iter (function nt,rhs -> let _ = create_subgraph (Some(List.assoc nt nt_nodeid)) rhs in ()) lnfrules;
-    (Array.of_list (List.rev !nodes)),!edges
+    nodes,edges
 ;;
 
 

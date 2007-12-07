@@ -502,7 +502,7 @@ type HorsForm =
          hors = newhors;
          lnfrules = [];
          vartmtypes = [];
-         compgraph = [||],NodeEdgeMap.empty;
+         compgraph = create_empty_graph();
          filename = "";
          }
        

@@ -308,7 +308,7 @@ type TermForm =
         this.playButton.TabIndex <- 0;
         this.playButton.Text <- "Play";
         this.playButton.TextImageRelation <- System.Windows.Forms.TextImageRelation.ImageBeforeText;
-        this.playButton.Click.Add( fun e -> Traversal_form.ShowCompGraphTraversalWindow this.MdiParent this.filename this.compgraph lnfterm );
+        this.playButton.Click.Add( fun e -> Traversal_form.ShowCompGraphTraversalWindow this.MdiParent this.filename this.compgraph ["",lnfterm] );
                                  
         // 
         // outputTextBox
@@ -402,7 +402,7 @@ type TermForm =
          components = null;
          lmdterm = newterm;
          vartmtypes = [];
-         compgraph = [||],NodeEdgeMap.empty;
+         compgraph = create_empty_graph();
          filename = "";
          }
        

@@ -33,15 +33,20 @@ namespace GUI
             this.RightToolStripPanel = new System.Windows.Forms.ToolStripPanel();
             this.LeftToolStripPanel = new System.Windows.Forms.ToolStripPanel();
             this.ContentPanel = new System.Windows.Forms.ToolStripContentPanel();
-            this.pageSetupDialog1 = new System.Windows.Forms.PageSetupDialog();
-            this.button1 = new System.Windows.Forms.Button();
+            this.btExportGraph = new System.Windows.Forms.Button();
             this.panel1 = new System.Windows.Forms.Panel();
+            this.btExportTrav = new System.Windows.Forms.Button();
             this.splitContainer2 = new System.Windows.Forms.SplitContainer();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.gViewer = new Microsoft.Glee.GraphViewerGdi.GViewer();
             this.propertyGrid1 = new System.Windows.Forms.PropertyGrid();
+            this.panelTravLeft = new System.Windows.Forms.Panel();
+            this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
+            this.btAdd = new System.Windows.Forms.Button();
+            this.btBackspace = new System.Windows.Forms.Button();
+            this.nodeEditTextBox = new System.Windows.Forms.TextBox();
+            this.pichScroll = new System.Windows.Forms.HScrollBar();
             this.picTrav = new System.Windows.Forms.PictureBox();
-            this.button2 = new System.Windows.Forms.Button();
             this.panel1.SuspendLayout();
             this.splitContainer2.Panel1.SuspendLayout();
             this.splitContainer2.Panel2.SuspendLayout();
@@ -49,6 +54,8 @@ namespace GUI
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
             this.splitContainer1.SuspendLayout();
+            this.panelTravLeft.SuspendLayout();
+            this.tableLayoutPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picTrav)).BeginInit();
             this.SuspendLayout();
             // 
@@ -88,24 +95,34 @@ namespace GUI
             // 
             this.ContentPanel.Size = new System.Drawing.Size(178, 125);
             // 
-            // button1
+            // btExportGraph
             // 
-            this.button1.Location = new System.Drawing.Point(12, 12);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(136, 25);
-            this.button1.TabIndex = 5;
-            this.button1.Text = "Export graph to latex";
-            this.button1.UseVisualStyleBackColor = true;
+            this.btExportGraph.Location = new System.Drawing.Point(12, 12);
+            this.btExportGraph.Name = "btExportGraph";
+            this.btExportGraph.Size = new System.Drawing.Size(154, 25);
+            this.btExportGraph.TabIndex = 5;
+            this.btExportGraph.Text = "Export graph to LaTeX...";
+            this.btExportGraph.UseVisualStyleBackColor = true;
+            this.btExportGraph.Click += new System.EventHandler(this.button1_Click);
             // 
             // panel1
             // 
-            this.panel1.Controls.Add(this.button2);
-            this.panel1.Controls.Add(this.button1);
+            this.panel1.Controls.Add(this.btExportTrav);
+            this.panel1.Controls.Add(this.btExportGraph);
             this.panel1.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel1.Location = new System.Drawing.Point(0, 0);
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(755, 57);
             this.panel1.TabIndex = 5;
+            // 
+            // btExportTrav
+            // 
+            this.btExportTrav.Location = new System.Drawing.Point(226, 13);
+            this.btExportTrav.Name = "btExportTrav";
+            this.btExportTrav.Size = new System.Drawing.Size(157, 24);
+            this.btExportTrav.TabIndex = 6;
+            this.btExportTrav.Text = "Export traversal to LaTeX...";
+            this.btExportTrav.UseVisualStyleBackColor = true;
             // 
             // splitContainer2
             // 
@@ -120,10 +137,11 @@ namespace GUI
             // 
             // splitContainer2.Panel2
             // 
-            this.splitContainer2.Panel2.Controls.Add(this.picTrav);
+            this.splitContainer2.Panel2.Controls.Add(this.panelTravLeft);
             this.splitContainer2.Size = new System.Drawing.Size(755, 490);
-            this.splitContainer2.SplitterDistance = 303;
+            this.splitContainer2.SplitterDistance = 381;
             this.splitContainer2.TabIndex = 15;
+            this.splitContainer2.SplitterMoved += new System.Windows.Forms.SplitterEventHandler(this.splitContainer2_SplitterMoved);
             // 
             // splitContainer1
             // 
@@ -139,7 +157,7 @@ namespace GUI
             // splitContainer1.Panel2
             // 
             this.splitContainer1.Panel2.Controls.Add(this.propertyGrid1);
-            this.splitContainer1.Size = new System.Drawing.Size(755, 303);
+            this.splitContainer1.Size = new System.Drawing.Size(755, 381);
             this.splitContainer1.SplitterDistance = 513;
             this.splitContainer1.SplitterWidth = 5;
             this.splitContainer1.TabIndex = 12;
@@ -158,7 +176,7 @@ namespace GUI
             this.gViewer.NavigationVisible = true;
             this.gViewer.PanButtonPressed = false;
             this.gViewer.SaveButtonVisible = true;
-            this.gViewer.Size = new System.Drawing.Size(509, 299);
+            this.gViewer.Size = new System.Drawing.Size(509, 377);
             this.gViewer.TabIndex = 9;
             this.gViewer.ZoomF = 1;
             this.gViewer.ZoomFraction = 0.5;
@@ -170,27 +188,85 @@ namespace GUI
             this.propertyGrid1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.propertyGrid1.Location = new System.Drawing.Point(0, 0);
             this.propertyGrid1.Name = "propertyGrid1";
-            this.propertyGrid1.Size = new System.Drawing.Size(233, 299);
+            this.propertyGrid1.Size = new System.Drawing.Size(233, 377);
             this.propertyGrid1.TabIndex = 1;
+            // 
+            // panelTravLeft
+            // 
+            this.panelTravLeft.Controls.Add(this.tableLayoutPanel1);
+            this.panelTravLeft.Controls.Add(this.nodeEditTextBox);
+            this.panelTravLeft.Controls.Add(this.pichScroll);
+            this.panelTravLeft.Controls.Add(this.picTrav);
+            this.panelTravLeft.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.panelTravLeft.Location = new System.Drawing.Point(0, 0);
+            this.panelTravLeft.Name = "panelTravLeft";
+            this.panelTravLeft.Size = new System.Drawing.Size(755, 105);
+            this.panelTravLeft.TabIndex = 18;
+            // 
+            // tableLayoutPanel1
+            // 
+            this.tableLayoutPanel1.ColumnCount = 1;
+            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
+            this.tableLayoutPanel1.Controls.Add(this.btAdd, 0, 1);
+            this.tableLayoutPanel1.Controls.Add(this.btBackspace, 0, 0);
+            this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Right;
+            this.tableLayoutPanel1.Location = new System.Drawing.Point(721, 0);
+            this.tableLayoutPanel1.Margin = new System.Windows.Forms.Padding(0);
+            this.tableLayoutPanel1.Name = "tableLayoutPanel1";
+            this.tableLayoutPanel1.RowCount = 2;
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(34, 105);
+            this.tableLayoutPanel1.TabIndex = 20;
+            // 
+            // btAdd
+            // 
+            this.btAdd.Anchor = System.Windows.Forms.AnchorStyles.None;
+            this.btAdd.Location = new System.Drawing.Point(7, 63);
+            this.btAdd.Name = "btAdd";
+            this.btAdd.Size = new System.Drawing.Size(20, 30);
+            this.btAdd.TabIndex = 19;
+            this.btAdd.Text = "+";
+            this.btAdd.UseVisualStyleBackColor = true;
+            // 
+            // btBackspace
+            // 
+            this.btBackspace.Anchor = System.Windows.Forms.AnchorStyles.None;
+            this.btBackspace.Location = new System.Drawing.Point(7, 11);
+            this.btBackspace.Name = "btBackspace";
+            this.btBackspace.Size = new System.Drawing.Size(20, 30);
+            this.btBackspace.TabIndex = 18;
+            this.btBackspace.Text = "<";
+            this.btBackspace.UseVisualStyleBackColor = true;
+            // 
+            // nodeEditTextBox
+            // 
+            this.nodeEditTextBox.Location = new System.Drawing.Point(548, 30);
+            this.nodeEditTextBox.Name = "nodeEditTextBox";
+            this.nodeEditTextBox.Size = new System.Drawing.Size(66, 20);
+            this.nodeEditTextBox.TabIndex = 18;
+            this.nodeEditTextBox.Visible = false;
+            // 
+            // pichScroll
+            // 
+            this.pichScroll.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)
+                        | System.Windows.Forms.AnchorStyles.Right)));
+            this.pichScroll.Location = new System.Drawing.Point(0, 93);
+            this.pichScroll.Name = "pichScroll";
+            this.pichScroll.Size = new System.Drawing.Size(721, 12);
+            this.pichScroll.TabIndex = 17;
             // 
             // picTrav
             // 
-            this.picTrav.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.picTrav.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+                        | System.Windows.Forms.AnchorStyles.Left)
+                        | System.Windows.Forms.AnchorStyles.Right)));
             this.picTrav.Location = new System.Drawing.Point(0, 0);
+            this.picTrav.Margin = new System.Windows.Forms.Padding(3, 3, 3, 0);
             this.picTrav.Name = "picTrav";
-            this.picTrav.Size = new System.Drawing.Size(755, 183);
-            this.picTrav.TabIndex = 14;
+            this.picTrav.Size = new System.Drawing.Size(718, 93);
+            this.picTrav.TabIndex = 16;
             this.picTrav.TabStop = false;
-            this.picTrav.Click += new System.EventHandler(this.picTrav_Click);
-            // 
-            // button2
-            // 
-            this.button2.Location = new System.Drawing.Point(172, 12);
-            this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(91, 24);
-            this.button2.TabIndex = 6;
-            this.button2.Text = "button2";
-            this.button2.UseVisualStyleBackColor = true;
             // 
             // Traversal
             // 
@@ -210,6 +286,9 @@ namespace GUI
             this.splitContainer1.Panel1.ResumeLayout(false);
             this.splitContainer1.Panel2.ResumeLayout(false);
             this.splitContainer1.ResumeLayout(false);
+            this.panelTravLeft.ResumeLayout(false);
+            this.panelTravLeft.PerformLayout();
+            this.tableLayoutPanel1.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.picTrav)).EndInit();
             this.ResumeLayout(false);
 
@@ -222,15 +301,20 @@ namespace GUI
         public System.Windows.Forms.ToolStripPanel RightToolStripPanel;
         public System.Windows.Forms.ToolStripPanel LeftToolStripPanel;
         public System.Windows.Forms.ToolStripContentPanel ContentPanel;
-        public System.Windows.Forms.PageSetupDialog pageSetupDialog1;
-        public System.Windows.Forms.Button button1;
+        public System.Windows.Forms.Button btExportGraph;
         public System.Windows.Forms.Panel panel1;
-        private System.Windows.Forms.SplitContainer splitContainer2;
+        public System.Windows.Forms.SplitContainer splitContainer2;
         public System.Windows.Forms.SplitContainer splitContainer1;
         public Microsoft.Glee.GraphViewerGdi.GViewer gViewer;
-        private System.Windows.Forms.PropertyGrid propertyGrid1;
+        public System.Windows.Forms.PropertyGrid propertyGrid1;
+        public System.Windows.Forms.Button btExportTrav;
+        public System.Windows.Forms.Panel panelTravLeft;
+        public System.Windows.Forms.HScrollBar pichScroll;
         public System.Windows.Forms.PictureBox picTrav;
-        private System.Windows.Forms.Button button2;
+        public System.Windows.Forms.TextBox nodeEditTextBox;
+        public System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
+        public System.Windows.Forms.Button btAdd;
+        public System.Windows.Forms.Button btBackspace;
     }
 }
 

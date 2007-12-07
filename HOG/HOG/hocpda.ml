@@ -463,13 +463,13 @@ let hors_to_cpda kind hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartmtype
         
         (* Performs a depth-first browsing of the tree nodes. To avoid going into loops 
             we do not take the first edge (labelled 0) of an @-node. *)
-        Array.iteri (function childindex -> function nodeid ->
+        List.iteri (function childindex -> function nodeid ->
                             match nodes_content.(curnodeid),childindex with 
                               NCntApp, 0 -> ();
                             | NCntApp, _ -> compute_varinfo nodeid ((curnodeid,childindex)::path)
                             | _ -> compute_varinfo nodeid ((curnodeid,childindex+1)::path)
                      )
-                    (try NodeEdgeMap.find curnodeid edges with Not_found -> [||]);
+                    edges.(curnodeid);
     in
         (* Explore the sub-**tree** rooted at each non-terminal node *)
         Array.iteri (function inode -> (function NCntAbs(nt,_) when nt<>"" -> compute_varinfo inode []; | _ -> ()) ) nodes_content;

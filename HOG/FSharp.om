@@ -5,13 +5,12 @@ OMakeVersion(0.9.8.5, 0.9.8.5)
 open Dotnet
 
 .STATIC:
-    FSC_EXISTS = $(CheckProg fsc)
-
-FSHARP_HOME=$(if $(FSC_EXISTS),$(EMPTY),$(getenv FSHARP_HOME, C:\Program Files\FSharp-1.9.3.7))
-FSC="$(FSHARP_HOME)\bin\fsc.exe"
-FSYACC="$(FSHARP_HOME)\bin\fsyacc.exe"
-FSLEX="$(FSHARP_HOME)\bin\fslex.exe"
-RESXC="$(FSHARP_HOME)\bin\resxc.exe"
+    FSHARP_BIN = $(CheckProgDirEnvVar fsc,FSHARP_HOME,C:\Program Files\FSharp-1.9.3.7,/bin)
+    
+FSC="$(FSHARP_BIN)/fsc.exe"
+FSYACC="$(FSHARP_BIN)/fsyacc.exe"
+FSLEX="$(FSHARP_BIN)/fslex.exe"
+RESXC="$(FSHARP_BIN)/resxc.exe"
 
     
 public.FSFLAGS=--fullpaths --progress --no-warn 40 --target-winexe
@@ -42,6 +41,15 @@ public.RESGEN_FLAGS=
 
 #### To build an .exe .net assembly
 ####
+# Parameters:
+#  name
+#  files
+# Additional variables used:
+#  FS_INCLUDEPATH
+#  FS_OTHER_DLLREFS
+#  FS_DEP_DLLS
+#  FS_RESOURCES_FILES
+#  FSFLAGS
 public.FSharpAssembly(name, files) =  
     protected.RCFILES  = $(addsuffix .resources, $(FS_RESOURCES_FILES))
     protected.OTHER_DLLS = $(addsuffix .dll, $(FS_OTHER_DLLREFS))

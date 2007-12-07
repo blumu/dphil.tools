@@ -6,11 +6,42 @@ OMakeVersion(0.9.8.5, 0.9.8.5)
 open build/Common
 open configure/Configure
 
-
+# Check that the program 'prog' is in the path. If not
+# assumet that it is in the path given by the environement variable 'envar' in the subdirectory
+# 'subdir', taking 'default' as a default value if 'envar' is not defined.
+#
+# The function returns the directory where the executable file lies or just the empty string
+# if it is already in the environment PATH
+public.CheckProgDirEnvVar(prog,envvar,default,subdir) =
+    if $(CheckProg $(prog))
+        ret=
+        export
+    else
+        @echo "We will assume that $(prog) lies in the directory given by the $(envvar) environment variable."
+        ret=$(getenv $(envvar), $(default))\\$(subdir)
+        export
+    return $(ret)
+    
+# Check that the program 'prog' is in the path. If not
+# assumet that it is in the path given by the environement variable 'envar' in the subdirectory
+# 'subdir', taking 'default' as a default value if 'envar' is not defined.
+#
+# The function returns the path to the program executable file (inlcuding the filename part)
+# to be used for later execution.
+public.CheckProgEnvVar(prog,envvar,default,subdir) =
+    if $(CheckProg $(prog))
+        ret=$(prog)
+        export
+    else
+        @echo "We will assume that $(prog) lies in the directory given by the $(envvar) environment variable."
+        ret="$(getenv $(envvar), $(default))\\$(subdir)\\$(prog)$(EXE)"
+        export
+    return  $(ret)
+    
 .STATIC:
+    CSC = $(CheckProgEnvVar csc,FXTOOLS,C:\WINDOWS\Microsoft.NET\Framework\v2.0.50727,$(EMPTY))
+    RESGEN = $(CheckProgEnvVar resgen,SDKTOOLS,C:\Program Files\Microsoft SDKs\Windows\v6.0,bin)
     MONOCS_EXISTS = $(CheckProg mcs)
-    CSC_EXISTS = $(CheckProg csc)
-    RESGEN_EXISTS = $(CheckProg resgen.exe)    
     export
 
 ################################################
@@ -36,16 +67,11 @@ if $(defined WITHMONO)
         CSC=mcs
         export
     else
-        @echo "You requested to use the Mono toolchain but it cannot be found. Make sure that your path environement variable contains the path to mcs.exe."
+        @echo "You requested to use the Mono toolchain, however it has not been detected during OMake configuration. Make sure that your path environement variable contains the path to mcs.exe and reconfigure the project with 'omake -U'"
         exit(1)
     export
 else
     @echo "Build using Microsoft Framework Sdk toolchain"
-    public.WINDOWS_SDK=$(if $(RESGEN_EXISTS),$(EMPTY),$(getenv SDKTOOLS, C:\Program Files\Microsoft SDKs\Windows\v6.0))
-    RESGEN="$(WINDOWS_SDK)\bin\resgen.exe"
-    public.CSC_HOME=$(if $(CSC_EXISTS),$(EMPTY),$(getenv FXTOOLS, C:\WINDOWS\Microsoft.NET\Framework\v2.0.50727))
-    CSC="$(CSC_HOME)\csc.exe"
-    export
 
 
 if $(defined FORMONO)

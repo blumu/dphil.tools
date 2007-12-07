@@ -122,7 +122,7 @@ let lnfrules_to_latexcompgraph (lnfrules:lnfrule list) =
 
 open System.Windows.Forms
 
-let LoadExportToLatexWindow mdiparent (lnfrules:Lnf.lnfrule list) =
+let LoadExportToLatexWindow mdiparent preamble body postamble  =
     let latexform = new System.Windows.Forms.Form()
     let latexoutput = new System.Windows.Forms.RichTextBox()
     latexform.MdiParent <- mdiparent
@@ -131,7 +131,15 @@ let LoadExportToLatexWindow mdiparent (lnfrules:Lnf.lnfrule list) =
     latexoutput.Dock <- System.Windows.Forms.DockStyle.Fill
     latexoutput.Multiline <-  true
     latexoutput.ScrollBars <- RichTextBoxScrollBars.Vertical;
-    //latexoutput.WordWrap <- false;
+    //latexoutput.WordWrap <- false;  
+    latexoutput.Text <- preamble^body^postamble;
+    latexform.Controls.Add(latexoutput)                                           
+    ignore(latexform.Show())
+;;
+
+
+
+let LoadExportGraphToLatexWindow mdiparent (lnfrules:Lnf.lnfrule list) =
     let latex_preamb = "% Generated automatically by HOG
 % -*- TeX -*- -*- Soft -*-
 \\documentclass{article}
@@ -148,7 +156,39 @@ $\\rput[t](0,0){"
 \\end{center}
 \\end{document}
 "
-    latexoutput.Text <- latex_preamb^(lnfrules_to_latexcompgraph lnfrules)^latex_post;
-    latexform.Controls.Add(latexoutput)                                           
-    ignore(latexform.Show())
+    LoadExportToLatexWindow mdiparent latex_preamb (lnfrules_to_latexcompgraph lnfrules) latex_post
+
+
+let IntSet = Set.Make((Pervasives.compare : int -> int -> int))
+
+let t = IntSet.empty
+
+let traversal_to_latex trav =
+    let name_node i = "n"^(string_of_int i) in
+    "\\Pstr[0.7cm]{"
+    ^(fst (Common.array_fold_lefti (fun src (acc,named_nodes_set) node -> match node with
+                                                                              txt,0 when IntSet.mem src named_nodes_set -> ("{"^txt^"}"^acc), named_nodes_set
+                                                                            | txt,0 -> ("("^(name_node src)^")"^"{"^txt^"}"^acc), named_nodes_set
+                                                                            | txt,lnk -> let dst = src -lnk
+                                                                                         ("("^(name_node src)^"-"^(name_node dst)^")"^"{"^txt^"}"^acc), (IntSet.add dst named_nodes_set)
+                                   ) ("",IntSet.empty) trav)
+        )
+    ^"}"
+;;
+
+let LoadExportTraversalToLatexWindow mdiparent trav =
+    let latex_preamb = "% Generated automatically by HOG
+% -*- TeX -*- -*- Soft -*-
+\\documentclass{article}
+\\usepackage{pstring}
+
+\\begin{document}
+
+"
+
+    let latex_post = "
+
+\\end{document}
+"
+    LoadExportToLatexWindow mdiparent latex_preamb ("$"^(traversal_to_latex trav)^"$") latex_post
 ;;

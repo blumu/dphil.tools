@@ -48,7 +48,7 @@ public.TARGET_LIBRARY=/target:library
 #  CSHARP_OTHER_DLLREFS
 #  CSHARP_DLLREFS
 #  CSHARP_RESOURCES
-#  CSC_FLAGS
+#  CSCFLAGS
 public.CSharpDllAssembly(name, files) =  
     protected.RCFILES =$(addsuffix .resources, $(CSHARP_RESOURCES))
     protected.OTHER_DLLS =$(addsuffix .dll, $(CSHARP_OTHER_DLLREFS))
