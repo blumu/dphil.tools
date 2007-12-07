@@ -167,11 +167,11 @@ let traversal_to_latex trav =
     let name_node i = "n"^(string_of_int i) in
     "\\Pstr[0.7cm]{"
     ^(fst (Common.array_fold_lefti (fun src (acc,named_nodes_set) node -> match node with
-                                                                              txt,0 when IntSet.mem src named_nodes_set -> ("{"^txt^"}"^acc), named_nodes_set
-                                                                            | txt,0 -> ("("^(name_node src)^")"^"{"^txt^"}"^acc), named_nodes_set
+                                                                              txt,0 when IntSet.mem src named_nodes_set -> (acc^"{"^txt^"}"), named_nodes_set
+                                                                            | txt,0 -> (acc^"("^(name_node src)^")"^"{"^txt^"}"), named_nodes_set
                                                                             | txt,lnk -> let dst = src -lnk
-                                                                                         ("("^(name_node src)^"-"^(name_node dst)^")"^"{"^txt^"}"^acc), (IntSet.add dst named_nodes_set)
-                                   ) ("",IntSet.empty) trav)
+                                                                                         (acc^"("^(name_node src)^"-"^(name_node dst)^")"^"{"^txt^"}"), (IntSet.add dst named_nodes_set)
+                                   ) ("",IntSet.empty) (Array.rev trav))
         )
     ^"}"
 ;;

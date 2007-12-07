@@ -161,6 +161,9 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
     let edited_node = ref 0
     let travnode_selection = ref 0
     
+    let height_of_link link = (link/2+1)*link_vertical_distance
+    let longest_link = ref 0
+    
     let recreate_bbox (graphics:System.Drawing.Graphics) =
         if Array.length !trav > 0 then
             bboxes := Array.create (Array.length !trav) (System.Drawing.Rectangle(0,0,0,0))
@@ -171,12 +174,14 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
             let half_height = Height/2
 
             let x = ref (internodesep - margin)
+            longest_link := 0
             for i = 0 to (Array.length !trav)-1 do 
               let txt,link = (!trav).(i)
               let textdim = graphics.MeasureString(txt, font);
               let top_y = half_height+link_vertical_distance-(int (textdim.Height/f2))-margin
               (!bboxes).(i) <- Rectangle(!x, top_y, int textdim.Width + 2*margin, int textdim.Height + 2*margin)
               (!link_pos).(i) <- Point(!x+(int (textdim.Width/f2)), top_y)
+              longest_link := max !longest_link link
               x:= !x + int textdim.Width + internodesep
             done;
             form_trav.pichScroll.Minimum <- 0
@@ -187,16 +192,32 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
             form_trav.pichScroll.Minimum <- 0
             form_trav.pichScroll.Maximum <- 0
                 
-    let NodeFromPosition (pos:Point) =
+    let NodeFromClientPosition (pos:Point) =
         Array.find_index (function (a:Rectangle) -> a.Contains(pos+Size(form_trav.pichScroll.Value,0))) !bboxes
-        
+    
+    let ClientPositionFromNode inode =
+        let rc = (!bboxes).(inode) in
+        Point(rc.X, rc.Y)+Size(-form_trav.pichScroll.Value,0)
+    
+    
     let traversal_add_node node = 
         trav := Array.concat [!trav; [|node|]];
-        form_trav.pichScroll.Value <- max 0 (form_trav.pichScroll.Maximum-form_trav.pichScroll.LargeChange)
         bboxes:=[||]; // signal that the bbox need to be recomputed at the next repainting
+        form_trav.Refresh(); // redraw to recompute the bounding boxes
+        form_trav.pichScroll.Value <- max 0 (form_trav.pichScroll.Maximum-form_trav.pichScroll.LargeChange+1)
         
     
     let last_hovered_node = ref null : Microsoft.Glee.Drawing.Node ref
+
+    let ConfirmLabelEdit() = 
+        if form_trav.nodeEditTextBox.Visible then
+            form_trav.nodeEditTextBox.Visible <- false
+            if !edited_node< Array.length !trav then
+                let _,lnk = (!trav).(!edited_node) in
+                (!trav).(!edited_node) <- form_trav.nodeEditTextBox.Text,lnk
+                bboxes:=[||]
+                form_trav.picTrav.Refresh()
+                                                        
     
     // bind the graph to the viewer
     form_trav.gViewer.Graph <- compgraph_to_graphview compgraph;
@@ -252,7 +273,7 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
     form_trav.picTrav.MouseClick.Add ( fun e -> 
                 if e.Button = MouseButtons.Left then                   
                     try
-                        travnode_selection:= NodeFromPosition e.Location;
+                        travnode_selection:= NodeFromClientPosition e.Location;
                         form_trav.picTrav.Invalidate();
                     with Not_found -> ();
                     
@@ -260,7 +281,7 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
                     && (!travnode_selection < Array.length !trav) then
                     begin
                         try
-                            let sel = NodeFromPosition e.Location
+                            let sel = NodeFromClientPosition e.Location
                             if sel < !travnode_selection then
                               begin
                                 let txt,_ = (!trav).(!travnode_selection) in
@@ -274,27 +295,22 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
                 );
                 
     form_trav.picTrav.MouseDoubleClick.Add(fun e -> 
-                    try
-                        let i = NodeFromPosition e.Location
+                    try                        
+                        let i = NodeFromClientPosition e.Location
+                        ConfirmLabelEdit()
                         edited_node := i
-                        form_trav.nodeEditTextBox.Visible <- true 
                         form_trav.nodeEditTextBox.Width <- (!bboxes).(i).Width
-                        form_trav.nodeEditTextBox.Left <- (!bboxes).(i).Left
-                        form_trav.nodeEditTextBox.Top <- (!bboxes).(i).Top
+                        form_trav.nodeEditTextBox.Location <- ClientPositionFromNode i
+                        form_trav.nodeEditTextBox.Visible <- true 
+                        form_trav.nodeEditTextBox.Text <- fst (!trav).(i)
                         form_trav.nodeEditTextBox.Select()
                     with Not_found -> ()
                     );
 
     form_trav.nodeEditTextBox.KeyUp.Add( fun e -> if e.KeyCode = Keys.Return then
-                                                    if form_trav.nodeEditTextBox.Visible then
-                                                        form_trav.nodeEditTextBox.Visible <- false
-                                                        if !edited_node< Array.length !trav then
-                                                            let _,lnk = (!trav).(!edited_node) in
-                                                            (!trav).(!edited_node) <- form_trav.nodeEditTextBox.Text,lnk
-                                                            bboxes:=[||]
-                                                            form_trav.picTrav.Invalidate()
-                                                            
-                                         )
+                                                        ConfirmLabelEdit()
+                                                        
+            )
                 
     form_trav.picTrav.Paint.Add( fun e -> 
       let graphics = e.Graphics      
@@ -318,7 +334,7 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
                 let src = (!link_pos).(i)+Size(delta,0)
                 let dst = (!link_pos).(i-link)+Size(delta,0)
                 let tmp = src + Size(dst)
-                let mid = Point(tmp.X/2,tmp.Y/2- (link/2+1)*link_vertical_distance)
+                let mid = Point(tmp.X/2,tmp.Y/2- (height_of_link link))
                 graphics.DrawCurve(arrow_pen, [|src;mid;dst|])
             end
       
