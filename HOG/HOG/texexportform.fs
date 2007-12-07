@@ -2,6 +2,7 @@
 	Description: Exportation to Latex
 	Author:		William Blum
 **)
+open Traversal
 open Lnf
 
 (** find the index of the first occurrence of an element in an array **)
@@ -163,20 +164,23 @@ let IntSet = Set.Make((Pervasives.compare : int -> int -> int))
 
 let t = IntSet.empty
 
-let traversal_to_latex trav =
+let traversal_to_latex travnode_to_latex (trav:traversal) = 
     let name_node i = "n"^(string_of_int i) in
-    "\\Pstr[0.7cm]{"
-    ^(fst (Common.array_fold_lefti (fun src (acc,named_nodes_set) node -> match node with
-                                                                              txt,0 when IntSet.mem src named_nodes_set -> (acc^"{"^txt^"}"), named_nodes_set
-                                                                            | txt,0 -> (acc^"("^(name_node src)^")"^"{"^txt^"}"), named_nodes_set
-                                                                            | txt,lnk -> let dst = src -lnk
-                                                                                         (acc^"("^(name_node src)^"-"^(name_node dst)^")"^"{"^txt^"}"), (IntSet.add dst named_nodes_set)
+    let body = 
+    //for i= Array.length trav-1)-i to 0 do
+        (fst (Common.array_fold_lefti (fun i (acc,named_nodes_set) travnode -> let src = (Array.length trav-1)-i
+                                                                               let latex_label = "{"^(travnode_to_latex travnode)^"}"
+                                                                               match travnode.link with
+                                                                                      0 when IntSet.mem src named_nodes_set -> ("("^(name_node src)^")"^latex_label^"\ "^acc), named_nodes_set
+                                                                                    | 0 -> (latex_label^"\ "^acc), named_nodes_set
+                                                                                    | _ -> let dst = src -travnode.link
+                                                                                           ("("^(name_node src)^"-"^(name_node dst)^")"^latex_label^"\ "^acc), (IntSet.add dst named_nodes_set)
                                    ) ("",IntSet.empty) (Array.rev trav))
         )
-    ^"}"
+    "\\Pstr[0.7cm]{"^body^"}"
 ;;
 
-let LoadExportTraversalToLatexWindow mdiparent trav =
+let LoadExportTraversalToLatexWindow mdiparent travnode_to_latex trav =
     let latex_preamb = "% Generated automatically by HOG
 % -*- TeX -*- -*- Soft -*-
 \\documentclass{article}
@@ -190,5 +194,5 @@ let LoadExportTraversalToLatexWindow mdiparent trav =
 
 \\end{document}
 "
-    LoadExportToLatexWindow mdiparent latex_preamb ("$"^(traversal_to_latex trav)^"$") latex_post
+    LoadExportToLatexWindow mdiparent latex_preamb ("$"^(traversal_to_latex travnode_to_latex trav)^"$") latex_post
 ;;

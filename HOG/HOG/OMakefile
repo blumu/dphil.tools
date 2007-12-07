@@ -8,8 +8,8 @@ FS_FILES[] =
     common.ml
     type.ml
     lnf.ml
-    texexportform.fs
     traversal.ml
+    texexportform.fs
     traversal_form.fs
     hog.mli
     hog.ml

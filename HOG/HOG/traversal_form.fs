@@ -151,10 +151,12 @@ let selection_brush = new SolidBrush(backgroundColor)
 let textBrush = new SolidBrush(Color.Black);
 
 
+
+
 let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as compgraph) lnfrules =
     let form_trav = new Traversal.Traversal()
     form_trav.MdiParent <- mdiparent;
-    let trav = ref [||]
+    let trav = ref [||] : trav_node array ref
     let bboxes = ref [||]
     let link_pos = ref [||]
     
@@ -176,8 +178,9 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
             let x = ref (internodesep - margin)
             longest_link := 0
             for i = 0 to (Array.length !trav)-1 do 
-              let txt,link = (!trav).(i)
-              let textdim = graphics.MeasureString(txt, font);
+              let link = (!trav).(i).link
+              let label = (!trav).(i).label
+              let textdim = graphics.MeasureString(label, font);
               let top_y = half_height+link_vertical_distance-(int (textdim.Height/f2))-margin
               (!bboxes).(i) <- Rectangle(!x, top_y, int textdim.Width + 2*margin, int textdim.Height + 2*margin)
               (!link_pos).(i) <- Point(!x+(int (textdim.Width/f2)), top_y)
@@ -199,7 +202,11 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
         let rc = (!bboxes).(inode) in
         Point(rc.X, rc.Y)+Size(-form_trav.pichScroll.Value,0)
     
-    
+    let travnode_to_latex travnode =
+        match travnode.tag with
+         -1 -> travnode.label
+        | _ -> graphnodelabel_to_latex gr_nodes.(travnode.tag)
+            
     let traversal_add_node node = 
         trav := Array.concat [!trav; [|node|]];
         bboxes:=[||]; // signal that the bbox need to be recomputed at the next repainting
@@ -213,8 +220,9 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
         if form_trav.nodeEditTextBox.Visible then
             form_trav.nodeEditTextBox.Visible <- false
             if !edited_node< Array.length !trav then
-                let _,lnk = (!trav).(!edited_node) in
-                (!trav).(!edited_node) <- form_trav.nodeEditTextBox.Text,lnk
+                (!trav).(!edited_node) <- { tag=(!trav).(!edited_node).tag;
+                                            label=form_trav.nodeEditTextBox.Text;
+                                            link=(!trav).(!edited_node).link }
                 bboxes:=[||]
                 form_trav.picTrav.Refresh()
                                                         
@@ -248,7 +256,11 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
             let selected_node = !last_hovered_node in
             if selected_node <> null then
                 begin
-                    traversal_add_node (graph_node_label (gr_nodes.(int_of_string selected_node.Attr.Id)),0)
+                    let compgraph_nodeindex = int_of_string selected_node.Attr.Id
+                    traversal_add_node { label = graph_node_label gr_nodes.(compgraph_nodeindex);
+                                         tag = compgraph_nodeindex;
+                                         link = 0;}
+
                     form_trav.picTrav.Invalidate();
                 end
         );
@@ -264,11 +276,12 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
                                                end
                                     )
 
-    form_trav.btAdd.Click.Add(fun _ -> traversal_add_node ("...",0)
+    form_trav.btAdd.Click.Add(fun _ -> traversal_add_node {label="..."; link=0; tag = -1}
                                        form_trav.picTrav.Invalidate())
-    
+
+        
     form_trav.btExportGraph.Click.Add(fun _ -> Texexportform.LoadExportGraphToLatexWindow mdiparent lnfrules)
-    form_trav.btExportTrav.Click.Add(fun _ -> Texexportform.LoadExportTraversalToLatexWindow mdiparent !trav)
+    form_trav.btExportTrav.Click.Add(fun _ -> Texexportform.LoadExportTraversalToLatexWindow mdiparent travnode_to_latex !trav)
 
     form_trav.picTrav.MouseClick.Add ( fun e -> 
                 if e.Button = MouseButtons.Left then                   
@@ -284,12 +297,10 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
                             let sel = NodeFromClientPosition e.Location
                             if sel < !travnode_selection then
                               begin
-                                let txt,_ = (!trav).(!travnode_selection) in
-                                (!trav).(!travnode_selection) <- txt,!travnode_selection-sel
+                                (!trav).(!travnode_selection).link <- !travnode_selection-sel
                               end
                         with Not_found -> 
-                                let txt,_ = (!trav).(!travnode_selection) in
-                                (!trav).(!travnode_selection) <- txt,0;                        
+                                (!trav).(!travnode_selection).link <- 0;
                         form_trav.picTrav.Invalidate()
                     end
                 );
@@ -302,7 +313,7 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
                         form_trav.nodeEditTextBox.Width <- (!bboxes).(i).Width
                         form_trav.nodeEditTextBox.Location <- ClientPositionFromNode i
                         form_trav.nodeEditTextBox.Visible <- true 
-                        form_trav.nodeEditTextBox.Text <- fst (!trav).(i)
+                        form_trav.nodeEditTextBox.Text <- (!trav).(i).label
                         form_trav.nodeEditTextBox.Select()
                     with Not_found -> ()
                     );
@@ -321,12 +332,13 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
       
       let DrawNode i brush pen arrow_pen = 
           let delta = -form_trav.pichScroll.Value
-          let txt,link = (!trav).(i)
+          let label = (!trav).(i).label 
+          and link = (!trav).(i).link
           let mutable bbox = (!bboxes).(i)
           bbox.Offset(delta, 0);          
           graphics.FillEllipse(brush, bbox )
           graphics.DrawEllipse(pen, bbox )
-          TextRenderer.DrawText(e.Graphics, txt, font, bbox, 
+          TextRenderer.DrawText(e.Graphics, label, font, bbox, 
                                 SystemColors.ControlText, (Enum.combine [TextFormatFlags.VerticalCenter;TextFormatFlags.HorizontalCenter]));
 
           if link<>0 then
@@ -347,3 +359,4 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
     );
     ignore(form_trav.Show()) 
 ;;
+

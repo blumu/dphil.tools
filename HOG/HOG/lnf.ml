@@ -197,6 +197,12 @@ let graph_node_label = function
     | NCntAbs(_,vars) -> LAMBDA_SYMBOL^(String.concat " " vars)
 ;;
 
+(** [graphnodelabel_to_latex node] converts a node label into a latex command that prints the label **)
+let graphnodelabel_to_latex= function 
+      NCntApp -> "@"
+    | NCntVar(x) | NCntTm(x)  -> x
+    | NCntAbs(_,vars) -> "\lambda "^(String.concat " " vars)
+;;
 
 (** [lnfrs_to_graph rs lnfrules] converts rules in lnf into a computation graph.
     @param lnfrules the rules of the recursion scheme in LNF
