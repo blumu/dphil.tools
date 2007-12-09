@@ -1,0 +1,23 @@
+########################################################################
+
+FS_RESOURCES_FILES[] =
+   
+FS_DEP_DLLS[]=     
+    
+FS_OTHER_DLLREFS[]=
+    System.Data
+    System
+    System.Drawing
+    System.Windows.Forms
+    System.Xml
+    
+
+FS_INCLUDEPATH[]=
+    
+FILES[] =
+    AssemblyInfo.fs
+    pstringcontrol.fs
+     
+DLLNAME = Pstring
+
+.DEFAULT: $(FSharpDllAssembly $(DLLNAME), $(FILES))

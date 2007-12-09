@@ -6,20 +6,23 @@ open Dotnet
 
 .STATIC:
     FSHARP_BIN = $(CheckProgDirEnvVar fsc,FSHARP_HOME,C:\Program Files\FSharp-1.9.3.7,/bin)
-    
+
 FSC="$(FSHARP_BIN)/fsc.exe"
 FSYACC="$(FSHARP_BIN)/fsyacc.exe"
 FSLEX="$(FSHARP_BIN)/fslex.exe"
 RESXC="$(FSHARP_BIN)/resxc.exe"
 
     
-public.FSFLAGS=--fullpaths --progress --no-warn 40 --target-winexe
+public.FSFLAGS=--fullpaths --progress --no-warn 40
+#--standalone
 if $(defined DEBUG)
     FSFLAGS+=-Ooff -g
     export
 else
-    FSFLAGS+=--standalone -O3
+    FSFLAGS+=-O3 
     export
+public.FSFLAGS_EXE=--target-winexe
+public.FSFLAGS_DLL=-a  --target-dll
 public.FSYACCFLAGS=
 public.FSLEXFLAGS=
 public.FSRESXCFLAGS=
@@ -39,7 +42,7 @@ public.RESGEN_FLAGS=
 #    $(RESGEN) $(RESGEN_FLAGS) $<
 
 
-#### To build an .exe .net assembly
+#### To build an .exe .Net assembly
 ####
 # Parameters:
 #  name
@@ -74,7 +77,7 @@ public.FSharpAssembly(name, files) =
                 
     $(PROG): $(RCFILES) $(files) $(DEP_DLLS)
         @echo "- F# compilation..."
-        $(FSC) $(FSFLAGS) \
+        $(FSC) $(FSFLAGS) $(FSFLAGS_EXE) \
                 $(mapprefix -I, $(FS_INCLUDEPATH)) $(mapprefix -r, $(DEP_DLLS)) $(mapprefix -r, $(OTHER_DLLS)) \
                 $(mapprefix --resource, $(RCFILES)) \
                 $(files) -o $@
@@ -83,4 +86,53 @@ public.FSharpAssembly(name, files) =
         && echo "***********************************************************"
 
     return $(PROG) 
+    
+    
+ 
+#### To build an .dll .Net assembly
+####
+# Parameters:
+#  name
+#  files
+# Additional variables used:
+#  FS_INCLUDEPATH
+#  FS_OTHER_DLLREFS
+#  FS_DEP_DLLS
+#  FS_RESOURCES_FILES
+#  FSFLAGS
+public.FSharpDllAssembly(name, files) =  
+    protected.RCFILES  = $(addsuffix .resources, $(FS_RESOURCES_FILES))
+    protected.OTHER_DLLS = $(addsuffix .dll, $(FS_OTHER_DLLREFS))
+    protected.DEP_DLLS = $(addprefix $(OUTPUTDIR)/, $(addsuffix .dll, $(FS_DEP_DLLS)))
+
+    protected.name = $(file $(name))
+    protected.DLLASM = $(file $(OUTPUTDIR)/$(name)$(EXT_DLL))
+    
+    if $(defined FORMONO)
+        foreach(res, $(FS_RESOURCES_FILES))
+            RCFILES+="$(res)+$(res).resources"
+            export
+        export
+        
+    #
+    # Rules to build byte-code and native targets
+    #
+    # Create additionnal dummy resource files (this is necessary to overcome a bug in Mono)
+    foreach(res, $(FS_RESOURCES_FILES))
+        $(res)+$(res).resx: $(res).resx
+            cp $(res).resx "$(res)+$(res).resx"
+                
+    $(DLLASM): $(RCFILES) $(files) $(DEP_DLLS)
+        @echo "- F# compilation..."
+        $(FSC) $(FSFLAGS) $(FSFLAGS_DLL)\
+                $(mapprefix -I, $(FS_INCLUDEPATH)) $(mapprefix -r, $(DEP_DLLS)) $(mapprefix -r, $(OTHER_DLLS)) \
+                $(mapprefix --resource, $(RCFILES)) \
+                $(files) -o $@
+        @echo "***********************************************************" \
+        && echo "The assembly $(DLLASM) has been created successfuly" \
+        && echo "***********************************************************"
+
+    return $(DLLASM) 
+       
+    
    

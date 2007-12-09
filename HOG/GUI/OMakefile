@@ -5,14 +5,16 @@ CSHARP_RESOURCES[] =
 
 CSHARP_INCLUDEPATH[]=
     "$(GLEE)"
+    $(FSHARP_BIN)
     
-CSHARP_DLLREFS=
-  
+CSHARP_DLLREFS[]=
+    Pstring
     
 CSHARP_OTHER_DLLREFS[]=
     Microsoft.GLEE
     Microsoft.GLEE.Drawing
     Microsoft.GLEE.GraphViewerGDI
+    FSharp.Core
     System.Data
 #    System.Deployment
     System
@@ -23,8 +25,10 @@ CSHARP_OTHER_DLLREFS[]=
 FILES[] =
     Traversal.cs
     Traversal.Designer.cs
-    Program.cs
+    PstringUsercontrol.cs
+    PstringUsercontrol.Designer.cs
     Properties\AssemblyInfo.cs
+#    Program.cs
 #    Properties\Resources.Designer.cs
 #    Properties\Settings.Designer.cs
      

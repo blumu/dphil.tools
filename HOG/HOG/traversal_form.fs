@@ -226,6 +226,11 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
                 bboxes:=[||]
                 form_trav.picTrav.Refresh()
                                                         
+    form_trav.pstr <- new Pstring.PstringControl(["test"]);
+    form_trav.pstr.Location <- Point(50,50)
+    form_trav.pstr.Size <- Size(200,250)
+    form_trav.pstr.Dock <- DockStyle.Bottom    
+    form_trav.splitContainer1.Panel2.Controls.Add form_trav.pstr
     
     // bind the graph to the viewer
     form_trav.gViewer.Graph <- compgraph_to_graphview compgraph;
@@ -318,9 +323,10 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
                     with Not_found -> ()
                     );
 
-    form_trav.nodeEditTextBox.KeyUp.Add( fun e -> if e.KeyCode = Keys.Return then
-                                                        ConfirmLabelEdit()
-                                                        
+    form_trav.nodeEditTextBox.KeyUp.Add( fun e -> match e.KeyCode with
+                                                    Keys.Return -> ConfirmLabelEdit()
+                                                   | Keys.Escape -> form_trav.nodeEditTextBox.Visible <- false
+                                                   | _ -> ()
             )
                 
     form_trav.picTrav.Paint.Add( fun e -> 

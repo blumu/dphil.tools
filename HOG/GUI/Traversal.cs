@@ -1,11 +1,10 @@
 using System;
-using System.Collections.Generic;
+//using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
-
 namespace GUI
 {
     public partial class Traversal : Form
@@ -61,6 +60,16 @@ namespace GUI
         }
 
         private void button1_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void panelTravLeft_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
+
+        private void splitContainer1_Panel2_Paint(object sender, PaintEventArgs e)
         {
 
         }

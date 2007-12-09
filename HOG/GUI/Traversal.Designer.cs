@@ -157,6 +157,7 @@ namespace GUI
             // splitContainer1.Panel2
             // 
             this.splitContainer1.Panel2.Controls.Add(this.propertyGrid1);
+            this.splitContainer1.Panel2.Paint += new System.Windows.Forms.PaintEventHandler(this.splitContainer1_Panel2_Paint);
             this.splitContainer1.Size = new System.Drawing.Size(755, 381);
             this.splitContainer1.SplitterDistance = 513;
             this.splitContainer1.SplitterWidth = 5;
@@ -185,10 +186,10 @@ namespace GUI
             // 
             // propertyGrid1
             // 
-            this.propertyGrid1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.propertyGrid1.Dock = System.Windows.Forms.DockStyle.Top;
             this.propertyGrid1.Location = new System.Drawing.Point(0, 0);
             this.propertyGrid1.Name = "propertyGrid1";
-            this.propertyGrid1.Size = new System.Drawing.Size(233, 377);
+            this.propertyGrid1.Size = new System.Drawing.Size(233, 200);
             this.propertyGrid1.TabIndex = 1;
             // 
             // panelTravLeft
@@ -202,6 +203,7 @@ namespace GUI
             this.panelTravLeft.Name = "panelTravLeft";
             this.panelTravLeft.Size = new System.Drawing.Size(755, 105);
             this.panelTravLeft.TabIndex = 18;
+            this.panelTravLeft.Paint += new System.Windows.Forms.PaintEventHandler(this.panelTravLeft_Paint);
             // 
             // tableLayoutPanel1
             // 
@@ -241,6 +243,8 @@ namespace GUI
             // 
             // nodeEditTextBox
             // 
+            this.nodeEditTextBox.AcceptsReturn = true;
+            this.nodeEditTextBox.CausesValidation = false;
             this.nodeEditTextBox.Location = new System.Drawing.Point(548, 30);
             this.nodeEditTextBox.Name = "nodeEditTextBox";
             this.nodeEditTextBox.Size = new System.Drawing.Size(66, 20);
@@ -315,6 +319,7 @@ namespace GUI
         public System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
         public System.Windows.Forms.Button btAdd;
         public System.Windows.Forms.Button btBackspace;
+        public Pstring.PstringControl pstr;
     }
 }
 

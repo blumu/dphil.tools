@@ -7,6 +7,6 @@ if $(not $(defined GLEE))
 ########################################################################
 # Subdirectories.
 
-.SUBDIRS: HOG GUI
+.SUBDIRS: HOG GUI PstringControl
 
 .DEFAULT: HOG

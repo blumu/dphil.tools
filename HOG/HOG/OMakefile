@@ -35,6 +35,7 @@ FS_RESOURCES_FILES[]=
     termform
 
 FS_DEP_DLLS[]=
+    Pstring
     GUI
     
 FS_OTHER_DLLREFS[]=

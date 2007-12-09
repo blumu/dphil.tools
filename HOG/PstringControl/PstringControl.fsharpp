@@ -1,0 +1,60 @@
+"General"
+{
+"ProjectIdGuid" = "{A88D8F27-0A03-4AEC-A514-C2798160387E}"
+}
+"Configurations"
+{
+    "Debug|Win32"
+    {
+    "ProjectType" = "EXE"
+    "OptLevel" = "Off"
+    "StrongNamingLevel" = "None"
+    "OutputPath" = ""
+    "SearchPath" = ""
+    "StrongNameFile" = ""
+    "OutputBase" = ""
+    "CustomCommandLine" = "DEBUG="
+    "CustomCompiler" = "c:\\Program Files\\OMake\\bin\\omake.exe"
+    "DebugCheck" = "TRUE"
+    "CustomCompilationCheck" = "TRUE"
+    "DebugStartMode" = "0"
+    "StartApp" = ""
+    "StartAppPath" = ""
+    "CustomStartupArguments" = ""
+    }
+    "Release|Win32"
+    {
+    "ProjectType" = "EXE"
+    "OptLevel" = "3"
+    "StrongNamingLevel" = "None"
+    "OutputPath" = ""
+    "SearchPath" = ""
+    "StrongNameFile" = ""
+    "OutputBase" = ""
+    "CustomCommandLine" = " "
+    "CustomCompiler" = "c:\\Program Files\\OMake\\bin\\omake.exe"
+    "DebugCheck" = "FALSE"
+    "CustomCompilationCheck" = "TRUE"
+    "DebugStartMode" = "0"
+    "StartApp" = ""
+    "StartAppPath" = ""
+    "CustomStartupArguments" = ""
+    }
+}
+"Files"
+{
+    "pstringcontrol.fs"
+    {
+    "ProjRelPath" = "T"
+    }
+    "assemblyinfo.fs"
+    {
+    "ProjRelPath" = "T"
+    }
+}
+"ProjStartupServices"
+{
+}
+"Globals"
+{
+}

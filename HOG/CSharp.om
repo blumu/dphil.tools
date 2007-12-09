@@ -52,7 +52,7 @@ public.TARGET_LIBRARY=/target:library
 public.CSharpDllAssembly(name, files) =  
     protected.RCFILES =$(addsuffix .resources, $(CSHARP_RESOURCES))
     protected.OTHER_DLLS =$(addsuffix .dll, $(CSHARP_OTHER_DLLREFS))
-    protected.DEP_DLLS=$(addsuffix .dll, $(CSHARP_DLLREFS))
+    protected.DEP_DLLS = $(addprefix $(OUTPUTDIR)/, $(addsuffix .dll, $(CSHARP_DLLREFS)))
 
     protected.name = $(file $(name))
     protected.DLLASM = $(file $(OUTPUTDIR)/$(name)$(EXT_DLL))
@@ -73,7 +73,7 @@ public.CSharpDllAssembly(name, files) =
     
     $(DLLASM): $(RCFILES) $(files) $(DEP_DLLS)
         @echo "- C# compilation..."
-        $(CSC) $(CSCFLAGS) $(CSCFLAGS) \
+        $(CSC) $(CSCFLAGS) \
                 $(addprefix /lib:, $(CSHARP_INCLUDEPATH)) $(addprefix /reference:, $(OTHER_DLLS)) $(addprefix /reference:,$(DEP_DLLS)) \
                 $(addprefix /resource:,$(RCFILES)) \
                 $(TARGET_LIBRARY) $(OUTPUT $@) $(files)
