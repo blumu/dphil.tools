@@ -55,12 +55,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="PstringUsercontrol.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="PstringUsercontrol.Designer.cs">
-      <DependentUpon>PstringUsercontrol.cs</DependentUpon>
-    </Compile>
     <Compile Include="Traversal.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -68,10 +62,6 @@
       <DependentUpon>Traversal.cs</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <EmbeddedResource Include="PstringUsercontrol.resx">
-      <SubType>Designer</SubType>
-      <DependentUpon>PstringUsercontrol.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="Traversal.resx">
       <SubType>Designer</SubType>
       <DependentUpon>Traversal.cs</DependentUpon>
@@ -80,6 +70,10 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UserControl1.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>UserControl1.cs</DependentUpon>
     </EmbeddedResource>
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -95,6 +89,12 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <Compile Include="UserControl1.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UserControl1.Designer.cs">
+      <DependentUpon>UserControl1.cs</DependentUpon>
     </Compile>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

@@ -7,26 +7,41 @@
 
 namespace Pstring
 
-
-
+type NodeClickEventArgs =
+    class
+        val node : int
+        new (_node:int) as this =
+         {   node = _node; }
+         then ()
+    end
+     
 type pstring_node = string
 type pstring = pstring_node list
 
+type NodeClickHandler = IHandlerEvent<NodeClickEventArgs> 
+//delegate 
 type PstringControl = 
   class
     inherit System.Windows.Forms.UserControl as base
 
-    val mutable components: System.ComponentModel.Container;
-    override this.Dispose(disposing) =
-        if (disposing && (match this.components with null -> false | _ -> true)) then
-          this.components.Dispose();
-        base.Dispose(disposing)
+        
+    val mutable public components : System.ComponentModel.Container;
+        override this.Dispose(disposing) =
+            if (disposing && (match this.components with null -> false | _ -> true)) then
+              this.components.Dispose();
+            base.Dispose(disposing)
 
-    val mutable nodeEditTextBox : System.Windows.Forms.TextBox
-    val mutable pichScroll : System.Windows.Forms.HScrollBar
-    val mutable picTrav : System.Windows.Forms.PictureBox
+    val mutable public nodeEditTextBox : System.Windows.Forms.TextBox
+    val mutable public pichScroll : System.Windows.Forms.HScrollBar
+    val mutable public picTrav : System.Windows.Forms.PictureBox
+
+    // Events
+    val mutable private nodeClickEventPair : (PstringControl * NodeClickEventArgs -> unit) * IHandlerEvent<NodeClickEventArgs>
+
+    member x.nodeClick with get() = snd x.nodeClickEventPair
 
     member this.InitializeComponent() =
+    
         this.nodeEditTextBox <- new System.Windows.Forms.TextBox()
         this.pichScroll <- new System.Windows.Forms.HScrollBar()
         this.picTrav <- new System.Windows.Forms.PictureBox()
@@ -64,6 +79,8 @@ type PstringControl =
         this.picTrav.Size <- new System.Drawing.Size(820, 216);
         this.picTrav.TabIndex <- 19;
         this.picTrav.TabStop <- false;
+        this.picTrav.MouseClick.Add(fun _ -> (fst this.nodeClickEventPair)(this, NodeClickEventArgs(8))
+                                    );
         // 
         // PstringUsercontrol
         // 
@@ -84,8 +101,12 @@ type PstringControl =
             nodeEditTextBox = null;
             pichScroll = null;
             picTrav = null;
+            nodeClickEventPair = Microsoft.FSharp.Control.IEvent.create_HandlerEvent()
            }
-        then 
+        then
+            // Create the events
+            //this.nodeclick <- fst nodeClickEvent
+
             this.InitializeComponent(); 
         
   end

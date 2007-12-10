@@ -227,6 +227,7 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
                 form_trav.picTrav.Refresh()
                                                         
     form_trav.pstr <- new Pstring.PstringControl(["test"]);
+    form_trav.pstr.nodeClick.Add(fun _ -> ignore( MessageBox.Show("salut","test", MessageBoxButtons.OK, MessageBoxIcon.Exclamation)))
     form_trav.pstr.Location <- Point(50,50)
     form_trav.pstr.Size <- Size(200,250)
     form_trav.pstr.Dock <- DockStyle.Bottom    
