@@ -68,6 +68,7 @@ let selection_brush = new SolidBrush(backgroundColor)
 let textBrush = new SolidBrush(Color.Black);
 let height_of_link link = link*link_vertical_increment
 
+// The Pointer-string control
 type PstringControl = 
   class
     inherit System.Windows.Forms.UserControl as base
@@ -203,7 +204,30 @@ type PstringControl =
             this.Invalidate()
            end
     
+
+    member private this.NodeFromClientPosition (pos:Point) =
+        Array.find_index (function (a:Rectangle) -> a.Contains(pos+Size(this.hScroll.Value,0))) this.bboxes
     
+    member private this.ClientPositionFromNode inode =
+        let rc = this.bboxes.(inode) in
+        Point(rc.X, rc.Y)+Size(-this.hScroll.Value,0)
+    
+    // Cancel the renaming of the node label
+    member public this.CancelLabelEdit() = 
+        this.nodeEditTextBox.Visible <- false
+
+    // called to start editing the selected node
+    // @param i is the node index
+    member public this.EditLabel() =
+        if this.selected_node < Array.length this.sequence then
+            let i = this.selected_node
+            this.edited_node <- i
+            this.nodeEditTextBox.Width <- this.bboxes.(i).Width
+            this.nodeEditTextBox.Location <- this.ClientPositionFromNode i
+            this.nodeEditTextBox.Visible <- true 
+            this.nodeEditTextBox.Text <- this.sequence.(i).label
+            this.nodeEditTextBox.Select()
+
     // is the control selected?
     val mutable private selection_active : bool
     
@@ -215,12 +239,17 @@ type PstringControl =
     // called by the list container when this pstring control is deselected by the user
     member public this.Deselection() =
         this.selection_active <- false
+        this.CancelLabelEdit()
         this.Invalidate()
     
-
+    // prevents the arrow keys from being intercepted
+    override this.IsInputKey (k:Keys) = match k with
+                                          | Keys.Left | Keys.Right -> true
+                                          | _ -> base.IsInputKey k
+    // form initialization
     member this.InitializeComponent() =
     
-        this.nodeEditTextBox <- new System.Windows.Forms.TextBox()
+        //this.nodeEditTextBox <- 
         this.hScroll <- new System.Windows.Forms.HScrollBar()
 
         this.SuspendLayout();
@@ -234,6 +263,11 @@ type PstringControl =
         this.nodeEditTextBox.Size <- new System.Drawing.Size(66, 20);
         this.nodeEditTextBox.TabIndex <- 21;
         this.nodeEditTextBox.Visible <- false;
+        // remove the beeps when the user press Escape or return
+        this.nodeEditTextBox.KeyPress.Add (fun e ->  match int_of_char e.KeyChar with
+                                                      13 | 27 -> e.Handled <- true;
+                                                     | _ -> () //base.OnKeyPress (e)
+                                            );
         
         // 
         // hScroll
@@ -258,15 +292,8 @@ type PstringControl =
         this.ResumeLayout(false);
         this.PerformLayout();
 
-
-        let NodeFromClientPosition (pos:Point) =
-            Array.find_index (function (a:Rectangle) -> a.Contains(pos+Size(this.hScroll.Value,0))) this.bboxes
-        
-        let ClientPositionFromNode inode =
-            let rc = this.bboxes.(inode) in
-            Point(rc.X, rc.Y)+Size(-this.hScroll.Value,0)
-
-
+            
+        // Rename the selected node label with the content of the edit textbox
         let ConfirmLabelEdit() = 
             if this.nodeEditTextBox.Visible then
                 this.nodeEditTextBox.Visible <- false
@@ -277,11 +304,12 @@ type PstringControl =
                     this.recompute_bbox()
                     this.Invalidate()
   
-        this.MouseClick.Add ( fun e -> 
-                    this.nodeEditTextBox.Visible <- false
+        this.MouseDown.Add ( fun e -> 
+                    this.CancelLabelEdit()
                     if e.Button = MouseButtons.Left then                   
                         try
-                            this.selected_node <- NodeFromClientPosition e.Location;
+                            this.selected_node <- this.NodeFromClientPosition e.Location;
+                            // Triger the node_click event
                             (fst this.nodeClickEventPair)(this, NodeClickEventArgs(this.selected_node))
                             this.Invalidate();
                         with Not_found -> ();
@@ -290,7 +318,7 @@ type PstringControl =
                         && (this.selected_node < Array.length this.sequence) then
                         begin
                             try
-                                let sel = NodeFromClientPosition e.Location
+                                let sel = this.NodeFromClientPosition e.Location
                                 if sel < this.selected_node then
                                   begin
                                     let node = this.sequence.(this.selected_node)
@@ -308,30 +336,44 @@ type PstringControl =
                         end
                     );
                     
-        this.MouseDoubleClick.Add(fun e -> 
-                        try                        
-                            let i = NodeFromClientPosition e.Location
-                            ConfirmLabelEdit()
-                            this.edited_node <- i
-                            this.nodeEditTextBox.Width <- this.bboxes.(i).Width
-                            this.nodeEditTextBox.Location <- ClientPositionFromNode i
-                            this.nodeEditTextBox.Visible <- true 
-                            this.nodeEditTextBox.Text <- this.sequence.(i).label
-                            this.nodeEditTextBox.Select()
-                        with Not_found -> ()
-                        );
+        this.MouseDoubleClick.Add(fun e -> this.EditLabel() );
 
-        this.nodeEditTextBox.KeyUp.Add( fun e -> match e.KeyCode with
-                                                        Keys.Return -> ConfirmLabelEdit()
-                                                       | Keys.Escape -> this.nodeEditTextBox.Visible <- false
+        this.Leave.Add(fun _ -> this.selection_active<-false;
+                                this.Invalidate());
+        this.Enter.Add(fun _ -> this.selection_active<-true;
+                                this.Invalidate()
+                                );
+
+        this.KeyDown.Add( fun e -> if this.selection_active then
+                                     match e.KeyCode with 
+                                         Keys.PageUp -> let node = this.sequence.(this.selected_node)
+                                                        if this.selected_node -node.link-1 >= 0 then
+                                                          this.sequence.(this.selected_node) <- {link = node.link+1; tag = node.tag; label=node.label}
+                                                          this.recompute_bbox()
+                                                          this.Invalidate()
+                                        | Keys.PageDown -> let node = this.sequence.(this.selected_node)
+                                                           if node.link > 0 then
+                                                             this.sequence.(this.selected_node) <- {link = node.link-1; tag = node.tag; label=node.label}
+                                                             this.recompute_bbox()
+                                                             this.Invalidate()
+                                        | Keys.Left when this.selected_node > 0 ->   this.selected_node <- this.selected_node-1
+                                                                                     this.Invalidate()
+                                        | Keys.Right when this.selected_node < (Array.length this.sequence)-1 -> this.selected_node <- this.selected_node+1
+                                                                                                                 this.Invalidate()
+                                        | _ -> ()
+                           )
+                                      
+        this.nodeEditTextBox.KeyUp.Add( fun e -> if this.selection_active then
+                                                   match e.KeyCode with
+                                                         Keys.Return -> ConfirmLabelEdit()
+                                                       | Keys.Escape -> this.CancelLabelEdit()
                                                        | _ -> ()
-                )
-        this.nodeEditTextBox.Leave.Add(fun _ -> this.nodeEditTextBox.Visible <- false);
+                                    )
+        this.nodeEditTextBox.Leave.Add(fun _ -> this.CancelLabelEdit());
 
         this.Resize.Add(fun _ -> if not this.autosize then this.recompute_bbox()
                                 );
     
-        this.Leave.Add(fun _ -> this.Invalidate());
         
         this.hScroll.ValueChanged.Add( fun _ -> this.Invalidate());
                     
@@ -381,7 +423,7 @@ type PstringControl =
 
     new (pstr:pstring) as this =
         {   components = null;
-            nodeEditTextBox = null;
+            nodeEditTextBox = new System.Windows.Forms.TextBox ();
             hScroll = null;
             sequence=pstr;
             bboxes=[||];

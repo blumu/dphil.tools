@@ -111,7 +111,7 @@ namespace GUI
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 70F));
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 138F));
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 138F));
-            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 50F));
+            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 353F));
             this.tableLayoutPanel1.Controls.Add(this.btAdd, 0, 1);
             this.tableLayoutPanel1.Controls.Add(this.btBackspace, 0, 0);
             this.tableLayoutPanel1.Controls.Add(this.btExportGraph, 5, 0);
@@ -189,7 +189,7 @@ namespace GUI
             // 
             this.btHerProj.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.btHerProj.Location = new System.Drawing.Point(269, 4);
-            this.btHerProj.Margin = new System.Windows.Forms.Padding(0, 0, 0, 0);
+            this.btHerProj.Margin = new System.Windows.Forms.Padding(0);
             this.btHerProj.Name = "btHerProj";
             this.btHerProj.Size = new System.Drawing.Size(121, 23);
             this.btHerProj.TabIndex = 8;
@@ -210,11 +210,11 @@ namespace GUI
             // 
             this.btSubtermProj.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.btSubtermProj.Location = new System.Drawing.Point(269, 37);
-            this.btSubtermProj.Margin = new System.Windows.Forms.Padding(0, 0, 0, 0);
+            this.btSubtermProj.Margin = new System.Windows.Forms.Padding(0);
             this.btSubtermProj.Name = "btSubtermProj";
             this.btSubtermProj.Size = new System.Drawing.Size(121, 23);
             this.btSubtermProj.TabIndex = 9;
-            this.btSubtermProj.Text = "&Subterm Projection";
+            this.btSubtermProj.Text = "&Subterm projection";
             this.btSubtermProj.UseVisualStyleBackColor = true;
             // 
             // btPview

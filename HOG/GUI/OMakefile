@@ -25,6 +25,8 @@ CSHARP_OTHER_DLLREFS[]=
 FILES[] =
     Traversal.cs
     Traversal.Designer.cs
+    Lambdaterm.cs
+    Lambdaterm.Designer.cs
     Properties\AssemblyInfo.cs
 #    Program.cs
 #    Properties\Resources.Designer.cs
