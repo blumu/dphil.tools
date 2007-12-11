@@ -32,7 +32,6 @@ FS_FILES[] =
 FS_RESOURCES_FILES[]=
     horsform
     cpdaform
-    termform
 
 FS_DEP_DLLS[]=
     Pstring

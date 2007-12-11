@@ -166,6 +166,7 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
         form_trav.btSubtermProj.Enabled <- true
         ctrl.Selection();
         selection := Some(ctrl)
+        ctrl.Select();
 
     // change the current selection
     let change_selection_pstrcontrol (ctrl:Pstring.PstringControl) =
@@ -178,48 +179,58 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
     // add an event handler to the a given pstring control in order to detect selection
     // of the control by the user
     let add_selection_eventhandler (ctrl: Pstring.PstringControl) =
-                        ctrl.Click.Add(fun _ -> match !selection with
-                                                     Some(cursel) when cursel = ctrl -> ()
-                                                   | None -> select_pstrcontrol ctrl;
-                                                   | Some(cursel) -> change_selection_pstrcontrol ctrl
-                                                    );
+                        ctrl.Click.Add(fun _ -> change_selection_pstrcontrol ctrl );
     
 
-
+    // Create a new pstring control and add it to the list
+    let createAndAddPstringCtrl seq =
+        let new_pstr = ref (new Pstring.PstringControl(seq))
+        (!new_pstr).AutoSize <- true
+        (!new_pstr).TabStop <- false
+        add_selection_eventhandler !new_pstr
+        form_trav.seqflowPanel.Controls.Add !new_pstr
+        !new_pstr
     
     // create a default pstring
-    let first = ref (new Pstring.PstringControl([||]))
-    (!first).AutoSize <- true
-    add_selection_eventhandler !first
-    select_pstrcontrol !first
+    let first = createAndAddPstringCtrl [||]
+    select_pstrcontrol first
     //(!first).nodeClick.Add(fun _ -> 
     //        ignore( MessageBox.Show("salut","test", MessageBoxButtons.OK, MessageBoxIcon.Exclamation)))
+    let entered = ref false
+    form_trav.seqflowPanel.Click.Add(fun _ -> if !entered then
+                                                 unselect_pstrcontrol()
+                                              else
+                                                 match !selection with
+                                                    None -> ()
+                                                  | Some(cursel) -> select_pstrcontrol cursel;
+                                              )
     
-    form_trav.seqflowPanel.Controls.Add (!first)
-    
-    form_trav.seqflowPanel.Click.Add(fun _ -> unselect_pstrcontrol())
-     
+    form_trav.seqflowPanel.Enter.Add( fun _ ->
+                                                 entered := true
+            )
+    form_trav.seqflowPanel.Leave.Add( fun _ -> 
+                                                 entered := false
+            )
+        
     form_trav.btPview.Click.Add(fun _ -> 
                     match !selection with 
                         None -> ()
-                      | Some(ctrl) ->
-                        let new_pstr = ref (new Pstring.PstringControl(ctrl.Sequence))
-                        (!new_pstr).AutoSize <- true
-                        add_selection_eventhandler !new_pstr
-                        form_trav.seqflowPanel.Controls.Add !new_pstr
-                        change_selection_pstrcontrol !new_pstr
+                      | Some(ctrl) -> let new_pstr = createAndAddPstringCtrl ctrl.Sequence
+                                      change_selection_pstrcontrol new_pstr
                 );
                 
-    
+    form_trav.btOview.Click.Add(fun _ -> 
+                    match !selection with 
+                        None -> ()
+                      | Some(ctrl) -> let new_pstr = createAndAddPstringCtrl ctrl.Sequence
+                                      change_selection_pstrcontrol new_pstr                        
+                );
+                    
     form_trav.btDuplicate.Click.Add(fun _ -> 
                     match !selection with 
                         None -> ()
-                      | Some(ctrl) ->
-                        let new_pstr = ref (new Pstring.PstringControl(ctrl.Sequence))
-                        (!new_pstr).AutoSize <- true
-                        add_selection_eventhandler !new_pstr
-                        form_trav.seqflowPanel.Controls.Add !new_pstr
-                        change_selection_pstrcontrol !new_pstr
+                      | Some(ctrl) -> let new_pstr = createAndAddPstringCtrl ctrl.Sequence
+                                      change_selection_pstrcontrol new_pstr
                 );
 
     form_trav.btDelete.Click.Add(fun _ -> 
@@ -231,24 +242,33 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
                 );
 
     form_trav.btNew.Click.Add(fun _ -> 
-                        let new_pstr = ref (new Pstring.PstringControl([||]))
-                        (!new_pstr).AutoSize <- true
-                        add_selection_eventhandler !new_pstr
-                        form_trav.seqflowPanel.Controls.Add !new_pstr
-                        change_selection_pstrcontrol !new_pstr
-                );
-                
-    form_trav.btOview.Click.Add(fun _ -> 
-                    match !selection with 
-                        None -> ()
-                      | Some(ctrl) ->
-                        let mutable new_pstr = new Pstring.PstringControl([||]);
-                        new_pstr.AutoSize <- true
-                        add_selection_eventhandler new_pstr
-                        form_trav.seqflowPanel.Controls.Add (new_pstr)
+                        let new_pstr = createAndAddPstringCtrl [||]
                         change_selection_pstrcontrol new_pstr
                 );
+                
+    form_trav.btBackspace.Click.Add(fun _ -> match !selection with 
+                                                None -> ()
+                                              | Some(ctrl) -> ctrl.remove_last_node())
+
+    form_trav.btAdd.Click.Add(fun _ ->  match !selection with 
+                                                None -> ()
+                                              | Some(ctrl) -> ctrl.add_node {label="..."; link=0; tag = box (-1)} )
+
+    form_trav.btEditLabel.Click.Add(fun _ ->  match !selection with 
+                                                None -> ()
+                                              | Some(ctrl) -> ctrl.EditLabel(); )
     
+
+    form_trav.seqflowPanel.PreviewKeyDown.Add( fun e -> 
+                                                   match e.KeyCode with 
+                                                     Keys.Up -> let i = match !selection with 
+                                                                          None -> -1
+                                                                        | Some(ctrl) -> form_trav.seqflowPanel.Controls.GetChildIndex(ctrl)
+                                                                if i+1 < form_trav.seqflowPanel.Controls.Count then
+                                                                  change_selection_pstrcontrol (form_trav.seqflowPanel.Controls.Item(i+1):?> Pstring.PstringControl )
+                                                    
+                                                    | _ -> () )
+
     // bind the graph to the viewer
     form_trav.gViewer.Graph <- compgraph_to_graphview compgraph;
     form_trav.gViewer.AsyncLayout <- false;
@@ -291,13 +311,6 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
         );
     
     
-    form_trav.btBackspace.Click.Add(fun _ -> match !selection with 
-                                                None -> ()
-                                              | Some(ctrl) -> ctrl.remove_last_node())
-
-    form_trav.btAdd.Click.Add(fun _ ->  match !selection with 
-                                                None -> ()
-                                              | Some(ctrl) -> ctrl.add_node {label="..."; link=0; tag = box (-1)} )
 
     let travnode_to_latex travnode =
         let gr_inode = (unbox travnode.tag) : int

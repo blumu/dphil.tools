@@ -422,7 +422,7 @@ let hors_to_cpda kind hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartmtype
     (* order of the generated CPDA/PDA *)
     let ordercpda = match kind with Ncpda | Npda -> order | Np1pda -> order+1 in
     
-    (* Compute an array [varsinfo] of 4-tuples given information about each node of the computation graph.
+    (* Compute an array [varsinfo] of 4-tuples giving information about each node of the computation graph.
        For a variable node x the tuple is (b,p,i,j) where:
         - b is the nodeid of the binder of x
         - p is the span of the variable x (distance between x and its binder in the path to the root)

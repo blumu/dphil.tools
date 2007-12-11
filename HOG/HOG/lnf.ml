@@ -154,7 +154,7 @@ let graph_addedge (edges:cg_edges) source target =
 (*    edges :=  NodeEdgeMap.add source (Array.append (try NodeEdgeMap.find source !edges
                                                     with Not_found -> [||])
                                                    [|target|]) !edges;*)
-    edges.(source) <- target::edges.(source)
+    edges.(source) <- edges.(source)@[target]
 ;;
 
 (** [graph_childnode edges nodeid i] returns the i^th child of node [nodeid]**)
