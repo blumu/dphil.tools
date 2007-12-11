@@ -1,6 +1,6 @@
 ﻿(** $Id$
-	Description: Lambda-term window
-	Author:		William Blum
+    Description: Lambda-term window
+    Author:      William Blum
 **)
 
 open System

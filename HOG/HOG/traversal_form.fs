@@ -7,11 +7,10 @@
 open Common
 open System.Drawing
 open System.Windows.Forms
-open System.Drawing
 open Traversal
 open Lnf
 open GUI
- 
+open Pstring
 
 (** Create the graph view of the computation graph
     @param graph the computation graph
@@ -123,115 +122,132 @@ let ShowCompGraphWindow mdiparent filename compgraph lnfrules =
 ;;
 
 
-let f2 = float32 2.0
-let margin = 3
-let internodesep = 10
-let link_vertical_distance = 5
-
-let penWidth = float32 1 
-let pen = new Pen(Color.Black, penWidth)
-
-let mutable selection_pen = new Pen(Color.Blue, float32 2.0)
-selection_pen.DashStyle <-  System.Drawing.Drawing2D.DashStyle.Dash
-selection_pen.DashOffset <- float32 2.0
-
-let arrow_pen = new Pen(Color.Black, penWidth)
-arrow_pen.EndCap <- System.Drawing.Drawing2D.LineCap.ArrowAnchor
-
-let selection_arrow_pen = new Pen(Color.Blue, float32 2.0)
-selection_arrow_pen.EndCap <- System.Drawing.Drawing2D.LineCap.ArrowAnchor
-
-
-let fontHeight:float32 = float32 10.0
-let font = new Font("Arial", fontHeight)
-
-let backgroundColor = Color.Azure
-let brush = new SolidBrush(backgroundColor)
-let selection_brush = new SolidBrush(backgroundColor)
-let textBrush = new SolidBrush(Color.Black);
 
 
 
 
 let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as compgraph) lnfrules =
     let form_trav = new Traversal.Traversal()
+
     form_trav.MdiParent <- mdiparent;
-    let trav = ref [||] : trav_node array ref
-    let bboxes = ref [||]
-    let link_pos = ref [||]
     
-    let edited_node = ref 0
-    let travnode_selection = ref 0
+    // this holds the Pstring control that is currently selected.
+    let selection : Pstring.PstringControl option ref = ref None
     
-    let height_of_link link = (link/2+1)*link_vertical_distance
-    let longest_link = ref 0
-    
-    let recreate_bbox (graphics:System.Drawing.Graphics) =
-        if Array.length !trav > 0 then
-            bboxes := Array.create (Array.length !trav) (System.Drawing.Rectangle(0,0,0,0))
-            link_pos := Array.create (Array.length !trav) (Point(0,0))
+    // unselect the currently selected pstring control
+    let unselect_pstrcontrol() =
+        match !selection with
+          None -> ()
+        | Some(ctrl) -> 
+            form_trav.btDelete.Enabled <- false
+            form_trav.btDuplicate.Enabled <- false
+            form_trav.btOview.Enabled <- false
+            form_trav.btPview.Enabled <- false
+            form_trav.btBackspace.Enabled <- false
+            form_trav.btEditLabel.Enabled <- false
+            form_trav.btExportTrav.Enabled <- false
+            form_trav.btHerProj.Enabled <- false
+            form_trav.btAdd.Enabled <- false
+            form_trav.btSubtermProj.Enabled <- false
+            ctrl.Deselection();
+            selection := None
 
-            let Width = form_trav.picTrav.ClientSize.Width
-            and Height = form_trav.picTrav.ClientSize.Height 
-            let half_height = Height/2
+    // select a pstring control
+    let select_pstrcontrol (ctrl:Pstring.PstringControl) =
+        form_trav.btDelete.Enabled <- true
+        form_trav.btDuplicate.Enabled <- true
+        form_trav.btOview.Enabled <- true
+        form_trav.btPview.Enabled <- true
+        form_trav.btBackspace.Enabled <- true
+        form_trav.btEditLabel.Enabled <- true
+        form_trav.btExportTrav.Enabled <- true
+        form_trav.btHerProj.Enabled <- true
+        form_trav.btAdd.Enabled <- true
+        form_trav.btSubtermProj.Enabled <- true
+        ctrl.Selection();
+        selection := Some(ctrl)
 
-            let x = ref (internodesep - margin)
-            longest_link := 0
-            for i = 0 to (Array.length !trav)-1 do 
-              let link = (!trav).(i).link
-              let label = (!trav).(i).label
-              let textdim = graphics.MeasureString(label, font);
-              let top_y = half_height+link_vertical_distance-(int (textdim.Height/f2))-margin
-              (!bboxes).(i) <- Rectangle(!x, top_y, int textdim.Width + 2*margin, int textdim.Height + 2*margin)
-              (!link_pos).(i) <- Point(!x+(int (textdim.Width/f2)), top_y)
-              longest_link := max !longest_link link
-              x:= !x + int textdim.Width + internodesep
-            done;
-            form_trav.pichScroll.Minimum <- 0
-            form_trav.pichScroll.Maximum <- max 0 ((!bboxes).((Array.length !trav)-1).Right)
-            form_trav.pichScroll.LargeChange <- Width;
-            form_trav.pichScroll.SmallChange <- (!bboxes).(0).Width
-        else 
-            form_trav.pichScroll.Minimum <- 0
-            form_trav.pichScroll.Maximum <- 0
+    // change the current selection
+    let change_selection_pstrcontrol (ctrl:Pstring.PstringControl) =
+        match !selection with
+              None -> select_pstrcontrol ctrl
+            | Some(cursel) -> cursel.Deselection();
+                              ctrl.Selection();
+                              selection := Some(ctrl)
+    
+    // add an event handler to the a given pstring control in order to detect selection
+    // of the control by the user
+    let add_selection_eventhandler (ctrl: Pstring.PstringControl) =
+                        ctrl.Click.Add(fun _ -> match !selection with
+                                                     Some(cursel) when cursel = ctrl -> ()
+                                                   | None -> select_pstrcontrol ctrl;
+                                                   | Some(cursel) -> change_selection_pstrcontrol ctrl
+                                                    );
+    
+
+
+    
+    // create a default pstring
+    let first = ref (new Pstring.PstringControl([||]))
+    (!first).AutoSize <- true
+    add_selection_eventhandler !first
+    select_pstrcontrol !first
+    //(!first).nodeClick.Add(fun _ -> 
+    //        ignore( MessageBox.Show("salut","test", MessageBoxButtons.OK, MessageBoxIcon.Exclamation)))
+    
+    form_trav.seqflowPanel.Controls.Add (!first)
+    
+    form_trav.seqflowPanel.Click.Add(fun _ -> unselect_pstrcontrol())
+     
+    form_trav.btPview.Click.Add(fun _ -> 
+                    match !selection with 
+                        None -> ()
+                      | Some(ctrl) ->
+                        let new_pstr = ref (new Pstring.PstringControl(ctrl.Sequence))
+                        (!new_pstr).AutoSize <- true
+                        add_selection_eventhandler !new_pstr
+                        form_trav.seqflowPanel.Controls.Add !new_pstr
+                        change_selection_pstrcontrol !new_pstr
+                );
                 
-    let NodeFromClientPosition (pos:Point) =
-        Array.find_index (function (a:Rectangle) -> a.Contains(pos+Size(form_trav.pichScroll.Value,0))) !bboxes
     
-    let ClientPositionFromNode inode =
-        let rc = (!bboxes).(inode) in
-        Point(rc.X, rc.Y)+Size(-form_trav.pichScroll.Value,0)
-    
-    let travnode_to_latex travnode =
-        match travnode.tag with
-         -1 -> travnode.label
-        | _ -> graphnodelabel_to_latex gr_nodes.(travnode.tag)
-            
-    let traversal_add_node node = 
-        trav := Array.concat [!trav; [|node|]];
-        bboxes:=[||]; // signal that the bbox need to be recomputed at the next repainting
-        form_trav.Refresh(); // redraw to recompute the bounding boxes
-        form_trav.pichScroll.Value <- max 0 (form_trav.pichScroll.Maximum-form_trav.pichScroll.LargeChange+1)
-        
-    
-    let last_hovered_node = ref null : Microsoft.Glee.Drawing.Node ref
+    form_trav.btDuplicate.Click.Add(fun _ -> 
+                    match !selection with 
+                        None -> ()
+                      | Some(ctrl) ->
+                        let new_pstr = ref (new Pstring.PstringControl(ctrl.Sequence))
+                        (!new_pstr).AutoSize <- true
+                        add_selection_eventhandler !new_pstr
+                        form_trav.seqflowPanel.Controls.Add !new_pstr
+                        change_selection_pstrcontrol !new_pstr
+                );
 
-    let ConfirmLabelEdit() = 
-        if form_trav.nodeEditTextBox.Visible then
-            form_trav.nodeEditTextBox.Visible <- false
-            if !edited_node< Array.length !trav then
-                (!trav).(!edited_node) <- { tag=(!trav).(!edited_node).tag;
-                                            label=form_trav.nodeEditTextBox.Text;
-                                            link=(!trav).(!edited_node).link }
-                bboxes:=[||]
-                form_trav.picTrav.Refresh()
-                                                        
-    form_trav.pstr <- new Pstring.PstringControl(["test"]);
-    form_trav.pstr.nodeClick.Add(fun _ -> ignore( MessageBox.Show("salut","test", MessageBoxButtons.OK, MessageBoxIcon.Exclamation)))
-    form_trav.pstr.Location <- Point(50,50)
-    form_trav.pstr.Size <- Size(200,250)
-    form_trav.pstr.Dock <- DockStyle.Bottom    
-    form_trav.splitContainer1.Panel2.Controls.Add form_trav.pstr
+    form_trav.btDelete.Click.Add(fun _ -> 
+                    match !selection with 
+                        None -> ()
+                      | Some(ctrl) ->
+                        unselect_pstrcontrol()
+                        form_trav.seqflowPanel.Controls.Remove(ctrl)
+                );
+
+    form_trav.btNew.Click.Add(fun _ -> 
+                        let new_pstr = ref (new Pstring.PstringControl([||]))
+                        (!new_pstr).AutoSize <- true
+                        add_selection_eventhandler !new_pstr
+                        form_trav.seqflowPanel.Controls.Add !new_pstr
+                        change_selection_pstrcontrol !new_pstr
+                );
+                
+    form_trav.btOview.Click.Add(fun _ -> 
+                    match !selection with 
+                        None -> ()
+                      | Some(ctrl) ->
+                        let mutable new_pstr = new Pstring.PstringControl([||]);
+                        new_pstr.AutoSize <- true
+                        add_selection_eventhandler new_pstr
+                        form_trav.seqflowPanel.Controls.Add (new_pstr)
+                        change_selection_pstrcontrol new_pstr
+                );
     
     // bind the graph to the viewer
     form_trav.gViewer.Graph <- compgraph_to_graphview compgraph;
@@ -251,6 +267,8 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
     form_trav.gViewer.ZoomF <- 1.0;
     form_trav.gViewer.ZoomFraction <- 0.5;
     form_trav.gViewer.ZoomWindowThreshold <- 0.05;
+
+    let last_hovered_node = ref null : Microsoft.Glee.Drawing.Node ref
     form_trav.gViewer.SelectionChanged.Add(fun _ -> let selection = form_trav.gViewer.SelectedObject
                                                     if selection = null then
                                                       last_hovered_node := null
@@ -259,111 +277,39 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
                                           );
                                           
     form_trav.gViewer.MouseClick.Add(fun _ -> 
-            let selected_node = !last_hovered_node in
-            if selected_node <> null then
-                begin
-                    let compgraph_nodeindex = int_of_string selected_node.Attr.Id
-                    traversal_add_node { label = graph_node_label gr_nodes.(compgraph_nodeindex);
-                                         tag = compgraph_nodeindex;
-                                         link = 0;}
-
-                    form_trav.picTrav.Invalidate();
-                end
+            match !selection with 
+                None -> ()
+               | Some(ctrl) ->
+                let selected_node = !last_hovered_node in
+                if selected_node <> null then
+                    begin
+                        let compgraph_nodeindex = int_of_string selected_node.Attr.Id
+                        ctrl.add_node { label = graph_node_label gr_nodes.(compgraph_nodeindex);
+                                             tag = box compgraph_nodeindex;
+                                             link = 0;}
+                    end
         );
     
-    form_trav.picTrav.Resize.Add(fun _ -> bboxes:=[||]);
     
-    form_trav.pichScroll.ValueChanged.Add( fun _ -> form_trav.picTrav.Invalidate());
-    
-    form_trav.btBackspace.Click.Add(fun _ -> if Array.length !trav > 0 then
-                                               begin 
-                                                trav := Array.sub !trav 0 ((Array.length !trav)-1)
-                                                form_trav.picTrav.Invalidate()
-                                               end
-                                    )
+    form_trav.btBackspace.Click.Add(fun _ -> match !selection with 
+                                                None -> ()
+                                              | Some(ctrl) -> ctrl.remove_last_node())
 
-    form_trav.btAdd.Click.Add(fun _ -> traversal_add_node {label="..."; link=0; tag = -1}
-                                       form_trav.picTrav.Invalidate())
+    form_trav.btAdd.Click.Add(fun _ ->  match !selection with 
+                                                None -> ()
+                                              | Some(ctrl) -> ctrl.add_node {label="..."; link=0; tag = box (-1)} )
 
-        
+    let travnode_to_latex travnode =
+        let gr_inode = (unbox travnode.tag) : int
+        match gr_inode with
+         -1 -> travnode.label
+        | _ -> graphnodelabel_to_latex gr_nodes.(gr_inode)
+
     form_trav.btExportGraph.Click.Add(fun _ -> Texexportform.LoadExportGraphToLatexWindow mdiparent lnfrules)
-    form_trav.btExportTrav.Click.Add(fun _ -> Texexportform.LoadExportTraversalToLatexWindow mdiparent travnode_to_latex !trav)
+    form_trav.btExportTrav.Click.Add(fun _ -> match !selection with 
+                                                None -> ()
+                                              | Some(ctrl) -> Texexportform.LoadExportTraversalToLatexWindow mdiparent travnode_to_latex ctrl.Sequence)
 
-    form_trav.picTrav.MouseClick.Add ( fun e -> 
-                if e.Button = MouseButtons.Left then                   
-                    try
-                        travnode_selection:= NodeFromClientPosition e.Location;
-                        form_trav.picTrav.Invalidate();
-                    with Not_found -> ();
-                    
-                else if  e.Button = MouseButtons.Right 
-                    && (!travnode_selection < Array.length !trav) then
-                    begin
-                        try
-                            let sel = NodeFromClientPosition e.Location
-                            if sel < !travnode_selection then
-                              begin
-                                (!trav).(!travnode_selection).link <- !travnode_selection-sel
-                              end
-                        with Not_found -> 
-                                (!trav).(!travnode_selection).link <- 0;
-                        form_trav.picTrav.Invalidate()
-                    end
-                );
-                
-    form_trav.picTrav.MouseDoubleClick.Add(fun e -> 
-                    try                        
-                        let i = NodeFromClientPosition e.Location
-                        ConfirmLabelEdit()
-                        edited_node := i
-                        form_trav.nodeEditTextBox.Width <- (!bboxes).(i).Width
-                        form_trav.nodeEditTextBox.Location <- ClientPositionFromNode i
-                        form_trav.nodeEditTextBox.Visible <- true 
-                        form_trav.nodeEditTextBox.Text <- (!trav).(i).label
-                        form_trav.nodeEditTextBox.Select()
-                    with Not_found -> ()
-                    );
-
-    form_trav.nodeEditTextBox.KeyUp.Add( fun e -> match e.KeyCode with
-                                                    Keys.Return -> ConfirmLabelEdit()
-                                                   | Keys.Escape -> form_trav.nodeEditTextBox.Visible <- false
-                                                   | _ -> ()
-            )
-                
-    form_trav.picTrav.Paint.Add( fun e -> 
-      let graphics = e.Graphics      
-      graphics.SmoothingMode <- System.Drawing.Drawing2D.SmoothingMode.AntiAlias
-
-      if (Array.length !bboxes) = 0 then 
-        recreate_bbox graphics
-      
-      let DrawNode i brush pen arrow_pen = 
-          let delta = -form_trav.pichScroll.Value
-          let label = (!trav).(i).label 
-          and link = (!trav).(i).link
-          let mutable bbox = (!bboxes).(i)
-          bbox.Offset(delta, 0);          
-          graphics.FillEllipse(brush, bbox )
-          graphics.DrawEllipse(pen, bbox )
-          TextRenderer.DrawText(e.Graphics, label, font, bbox, 
-                                SystemColors.ControlText, (Enum.combine [TextFormatFlags.VerticalCenter;TextFormatFlags.HorizontalCenter]));
-
-          if link<>0 then
-            begin
-                let src = (!link_pos).(i)+Size(delta,0)
-                let dst = (!link_pos).(i-link)+Size(delta,0)
-                let tmp = src + Size(dst)
-                let mid = Point(tmp.X/2,tmp.Y/2- (height_of_link link))
-                graphics.DrawCurve(arrow_pen, [|src;mid;dst|])
-            end
-      
-      for i = 0 to (Array.length !trav)-1 do 
-        if i <> !travnode_selection then DrawNode i brush pen arrow_pen
-      done
-      // Draw the selected node after the other nodes have been drawn
-      if !travnode_selection < Array.length !trav then
-        DrawNode !travnode_selection selection_brush selection_pen selection_arrow_pen
-    );
     ignore(form_trav.Show()) 
 ;;
 

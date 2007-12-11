@@ -1,6 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
+# SharpDevelop 2.1.0.2429
 Project("{94D665CA-D915-4DE1-AA53-913450A1AE2D}") = "HOG", "HOG\HOG.fsharpp", "{39D89C93-C1C8-409F-BD13-4658370848F2}"
 	ProjectSection(WebsiteProperties) = preProject
 		Debug.AspNetCompiler.Debug = "True"
@@ -70,6 +71,8 @@ Global
 		{A88D8F27-0A03-4AEC-A514-C2798160387E}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{A88D8F27-0A03-4AEC-A514-C2798160387E}.Release|Win32.ActiveCfg = Release|Win32
 		{A88D8F27-0A03-4AEC-A514-C2798160387E}.Release|Win32.Build.0 = Release|Win32
+		{A88D8F27-0A03-4AEC-A514-C2798160387E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A88D8F27-0A03-4AEC-A514-C2798160387E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

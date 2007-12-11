@@ -1,6 +1,6 @@
 ﻿(** $Id$
-	Description: Common functions
-	Author:		William Blum
+    Description:    Common functions
+    Author:         William Blum
 **)
 
 // function to detect if the assembly is running on Mono
@@ -25,3 +25,12 @@ let LAMBDA_SYMBOL = "λ";;
     (fun acc x ->
       let res = f !i acc x in i := !i + 1; res)
     acc arr
+
+
+(** find the index of the first occurrence of an element in an array **)
+let array_find_index f a =
+  let rec array_find_index_ i =
+    if f a.(i) then i else array_find_index_ (i+1)
+  in
+  try array_find_index_ 0 with _ -> raise Not_found;;
+  

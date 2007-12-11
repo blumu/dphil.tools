@@ -4,14 +4,9 @@
 **)
 open Traversal
 open Lnf
+open Pstring
 
-(** find the index of the first occurrence of an element in an array **)
-let array_find_index f a =
-  let rec array_find_index_ i =
-    if f a.(i) then i else array_find_index_ (i+1)
-  in
-  try array_find_index_ 0 with _ -> raise Not_found;;
-  
+
   
 (** [hors_to_latexcompgraph lnfrules] Create Latex code (using the pstricks package) to draw the computation graph
     of the rules in eta normalform [lnfrules].
@@ -23,7 +18,7 @@ let lnfrules_to_latexcompgraph (lnfrules:lnfrule list) =
     let ar_lnfrules = Array.of_list lnfrules in
     let nrules = Array.length ar_lnfrules in
     (* return the index in ar_lnfrules from the NT ident *)
-    let index_of_nt name = array_find_index (function (n,_) -> name = n)  ar_lnfrules in
+    let index_of_nt name = Common.array_find_index (function (n,_) -> name = n)  ar_lnfrules in
     
     (** Determine the NT that appears twice in the computation tree. Only the nodes
         corresponding to those NT will be named in the pstricks code.
@@ -164,7 +159,7 @@ let IntSet = Set.Make((Pervasives.compare : int -> int -> int))
 
 let t = IntSet.empty
 
-let traversal_to_latex travnode_to_latex (trav:traversal) = 
+let traversal_to_latex travnode_to_latex (trav:Pstring.pstring) = 
     let name_node i = "n"^(string_of_int i) in
     let body = 
     //for i= Array.length trav-1)-i to 0 do
@@ -180,7 +175,7 @@ let traversal_to_latex travnode_to_latex (trav:traversal) =
     "\\Pstr[0.7cm]{"^body^"}"
 ;;
 
-let LoadExportTraversalToLatexWindow mdiparent travnode_to_latex trav =
+let LoadExportTraversalToLatexWindow mdiparent travnode_to_latex (trav:Pstring.pstring) =
     let latex_preamb = "% Generated automatically by HOG
 % -*- TeX -*- -*- Soft -*-
 \\documentclass{article}

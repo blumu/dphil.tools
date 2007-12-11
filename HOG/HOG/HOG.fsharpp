@@ -28,7 +28,7 @@
     "OptLevel" = "3"
     "StrongNamingLevel" = "None"
     "OutputPath" = ""
-    "SearchPath" = "-I \"C:\\Program Files\\Microsoft Research\\GLEE\\bin\\\" -I bin\\Release\\bin -r Microsoft.GLEE.dll -r Microsoft.GLEE.Drawing.dll -r Microsoft.GLEE.GraphViewerGDI.dll -r Pstring.dll"
+    "SearchPath" = "-I \"C:\\Program Files\\Microsoft Research\\GLEE\\bin\\\" -I bin\\Release\\ -r Microsoft.GLEE.dll -r Microsoft.GLEE.Drawing.dll -r Microsoft.GLEE.GraphViewerGDI.dll -r Pstring.dll"
     "StrongNameFile" = ""
     "OutputBase" = ""
     "CustomCommandLine" = " "
