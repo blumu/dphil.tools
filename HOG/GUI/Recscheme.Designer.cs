@@ -57,6 +57,7 @@ namespace GUI
             // btRun
             // 
             this.btRun.Image = global::GUI.Properties.Resources.run;
+            this.btRun.ImageKey = "(none)";
             this.btRun.Location = new System.Drawing.Point(6, 4);
             this.btRun.Name = "btRun";
             this.btRun.Size = new System.Drawing.Size(129, 30);
