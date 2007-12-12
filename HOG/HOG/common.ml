@@ -42,3 +42,16 @@ let array_find_index f a =
   in
   try array_find_index_ 0 with _ -> raise Not_found;;
   
+  
+
+(** [array_map_filteri f a] is the canonical combination of Array.mapi and Array.filteri.
+    @param f maps element of the list [a] to an optional value of a generic type
+    @param l is the input array **)
+let rec array_map_filteri f a = 
+    let aux i acc x =
+        match f i x with 
+          None -> acc
+        | Some(u) -> Array.concat [acc;[|u|]]
+    in array_fold_lefti aux [||] a
+;;    
+  

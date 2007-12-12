@@ -197,6 +197,21 @@ let graph_node_label = function
     | NCntAbs(_,vars) -> LAMBDA_SYMBOL^(String.concat " " vars)
 ;;
 
+(** [graph_node_label_with_id nodes_array index] returns the label of the [index]th node in the
+    array nodes_array. The index of the node is added as a suffix to the label. **)
+let graph_node_label_with_idsuffix nodes_array index =
+    let node = nodes_array.(index)
+    and nodeid = string_of_int index in
+   (graph_node_label node)^" ["^
+    (match nodes_array.(index) with 
+        NCntApp -> nodeid
+      | NCntTm(tm) -> nodeid
+      | NCntVar(x) -> nodeid
+      | NCntAbs("",vars) -> nodeid
+      | NCntAbs(nt,vars) -> nt^":"^nodeid)^"]"
+;;
+
+
 (** [graphnodelabel_to_latex node] converts a node label into a latex command that prints the label **)
 let graphnodelabel_to_latex= function 
       NCntApp -> "@"
