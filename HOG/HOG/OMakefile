@@ -30,7 +30,7 @@ FS_FILES[] =
 
 
 FS_RESOURCES_FILES[]=
-    cpdaform
+    
 
 FS_DEP_DLLS[]=
     Pstring

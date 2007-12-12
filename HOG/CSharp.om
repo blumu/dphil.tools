@@ -28,15 +28,34 @@ else
     export
 
         
-%.resources: %.resx
-    $(RESGEN) $(RESGEN_FLAGS) $<
-
-
+# returns the output path for a given output filename  
 public.OUTPUT(name) =
     return(/out:$(file $(name)))
     
 
 public.TARGET_LIBRARY=/target:library
+
+
+############### Resources
+
+# Compile a .resx file into a .resources file
+# Parameters
+#   modulename is the name of the .net assembly
+#   relpath is the relative path to the resource file without the .resx extension
+public.DotnetResource(modulename, relpath) =
+    protected.splitpath = $(split /, $(relpath))
+    $(modulename).$(concat ., $(splitpath)).resources: $(relpath).resx
+        $(RESGEN) /useSourcePath $(RESGEN_FLAGS) $< $@
+
+
+%.resources: %.resx
+    $(RESGEN) $(RESGEN_FLAGS) $<
+
+
+
+
+
+
         
 #### To build an .exe .net assembly
 ####

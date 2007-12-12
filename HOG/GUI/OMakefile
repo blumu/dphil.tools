@@ -1,10 +1,18 @@
 ########################################################################
 
+
+
+    
+DotnetResource(GUI, Properties/Resources)
+DotnetResource(GUI, Traversal)
+DotnetResource(GUI, Recscheme)
+DotnetResource(GUI, Lambdaterm)
+    
 CSHARP_RESOURCES[] =
-    Traversal
-    Recscheme
-    Lambdaterm
-    Properties/Resources
+    GUI.Traversal
+    GUI.Recscheme
+    GUI.Lambdaterm
+    GUI.Properties.Resources
 
 CSHARP_INCLUDEPATH[]=
     "$(GLEE)"
@@ -41,6 +49,3 @@ DLLNAME = GUI
 .DEFAULT: $(CSharpDllAssembly $(DLLNAME), $(FILES))
 
 
-.SUBDIRS: Properties
-    %.resources: %.resx
-        $(RESGEN) $(RESGEN_FLAGS) $<

@@ -113,17 +113,18 @@ type HorsForm =
         // 
         // imageList
         // 
-        
-        (*this.components <- new System.ComponentModel.Container();
-        let resources = new System.ComponentModel.ComponentResourceManager((type HorsForm)) 
-        this.imageList.ImageStream <- (resources.GetObject("imageList.ImageStream") :?> System.Windows.Forms.ImageListStreamer);
+        this.imageList.Images.Add((GUI.Properties.Resources.roundquestionmark:>System.Drawing.Image));
+        this.imageList.Images.Add((GUI.Properties.Resources.books:>System.Drawing.Image));
+        this.imageList.Images.Add((GUI.Properties.Resources.closedbook:>System.Drawing.Image));
+        this.imageList.Images.Add((GUI.Properties.Resources.openbook:>System.Drawing.Image));
+        this.imageList.Images.Add((GUI.Properties.Resources.questionmark:>System.Drawing.Image));
+        this.imageList.Images.Add((GUI.Properties.Resources.run:>System.Drawing.Image));
         this.imageList.Images.SetKeyName(0, "Help");
         this.imageList.Images.SetKeyName(1, "BookStack");
         this.imageList.Images.SetKeyName(2, "BookClosed");
         this.imageList.Images.SetKeyName(3, "BookOpen");
         this.imageList.Images.SetKeyName(4, "Item");
-        this.imageList.Images.SetKeyName(5, "Run");*)
-        
+        this.imageList.Images.SetKeyName(5, "Run");        
 
         this.txtCode.Text <- (string_of_rs this.hors) ;
 
@@ -131,7 +132,6 @@ type HorsForm =
         // 
         // runButton
         // 
-        this.btRun.ImageKey <- "Run";
         this.btRun.Click.Add(fun e -> let node = this.valueTreeView.SelectedNode
                                       if is_expandable_treeviewnode node then
                                         begin

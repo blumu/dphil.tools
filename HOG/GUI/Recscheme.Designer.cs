@@ -56,12 +56,13 @@ namespace GUI
             // 
             // btRun
             // 
-            this.btRun.ImageList = this.imageList;
+            this.btRun.Image = global::GUI.Properties.Resources.run;
             this.btRun.Location = new System.Drawing.Point(6, 4);
             this.btRun.Name = "btRun";
             this.btRun.Size = new System.Drawing.Size(129, 30);
             this.btRun.TabIndex = 3;
             this.btRun.Text = "&Run";
+            this.btRun.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.btRun.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             this.btRun.UseVisualStyleBackColor = true;
             // 

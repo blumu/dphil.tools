@@ -163,7 +163,6 @@ type CpdaForm =
 
     member this.InitializeComponent() =
         this.components <- new System.ComponentModel.Container();
-        let resources = new System.ComponentModel.ComponentResourceManager((type CpdaForm)) 
         this.outerSplitContainer <- new System.Windows.Forms.SplitContainer();
         this.valueTreeView <- new System.Windows.Forms.TreeView();
         this.imageList <- new System.Windows.Forms.ImageList(this.components);
@@ -261,13 +260,19 @@ type CpdaForm =
         // imageList
         // 
         
-        this.imageList.ImageStream <- (resources.GetObject("imageList.ImageStream") :?> System.Windows.Forms.ImageListStreamer);
+        this.imageList.Images.Add((GUI.Properties.Resources.roundquestionmark:>System.Drawing.Image));
+        this.imageList.Images.Add((GUI.Properties.Resources.books:>System.Drawing.Image));
+        this.imageList.Images.Add((GUI.Properties.Resources.closedbook:>System.Drawing.Image));
+        this.imageList.Images.Add((GUI.Properties.Resources.openbook:>System.Drawing.Image));
+        this.imageList.Images.Add((GUI.Properties.Resources.questionmark:>System.Drawing.Image));
+        this.imageList.Images.Add((GUI.Properties.Resources.run:>System.Drawing.Image));
         this.imageList.Images.SetKeyName(0, "Help");
         this.imageList.Images.SetKeyName(1, "BookStack");
         this.imageList.Images.SetKeyName(2, "BookClosed");
         this.imageList.Images.SetKeyName(3, "BookOpen");
         this.imageList.Images.SetKeyName(4, "Item");
         this.imageList.Images.SetKeyName(5, "Run");
+
         
         // 
         // treeviewheadLabel
@@ -458,10 +463,9 @@ type CpdaForm =
         this.AutoScaleMode <- System.Windows.Forms.AutoScaleMode.Font;
         this.ClientSize <- new System.Drawing.Size(952, 682);
         this.Controls.Add(this.outerSplitContainer);
-        this.Font <- new System.Drawing.Font("Tahoma", 8.25F);
-        this.Icon <- (resources.GetObject("$this.Icon") :?> System.Drawing.Icon);
+        this.Font <- new System.Drawing.Font("Tahoma", 8.25F);        
+        //this.Icon <- (GUI.Properties.Resources.app:>System.Drawing.Icon)
         this.Name <- "DisplayForm";
-        this.Text <- "Samples";
         this.outerSplitContainer.Panel1.ResumeLayout(false);
         this.outerSplitContainer.Panel1.PerformLayout();
         this.outerSplitContainer.Panel2.ResumeLayout(false);

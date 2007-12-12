@@ -98,7 +98,6 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
-    <None Include="ClassDiagram1.cd" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -110,7 +109,22 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\run.png" />
+    <None Include="Resources\ico0.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\ico1.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\ico2.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\ico3.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\ico4.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\ico5.png" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
