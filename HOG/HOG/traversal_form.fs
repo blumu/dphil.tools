@@ -145,6 +145,22 @@ let ShowCompGraphWindow mdiparent filename compgraph lnfrules =
 ;;
 
 
+(****** Sequence transformations ******)
+
+(** P-View **)
+let seq_oview seq = seq
+
+(** O-View **)
+let seq_pview seq = seq
+
+(** Hereditary projection **)
+let seq_herproj seq = seq
+
+(** Subterm projection with respect to some reference root node **)
+let seq_subtermproj seq ref = seq
+
+
+
 (** Map a player to a node shape **)
 let player_to_shape = function Proponent -> ShapeRectangle
                                | Opponent -> ShapeOval
@@ -259,15 +275,30 @@ let ShowTraversalCalculatorWindow mdiparent filename ((gr_nodes,gr_edges) as com
     form_trav.btPview.Click.Add(fun _ -> 
                     match !selection with 
                         None -> ()
-                      | Some(ctrl) -> let new_pstr = createAndAddPstringCtrl ctrl.Sequence
+                      | Some(ctrl) -> let new_pstr = createAndAddPstringCtrl (seq_pview ctrl.Sequence)
                                       change_selection_pstrcontrol new_pstr
                 );
                 
     form_trav.btOview.Click.Add(fun _ -> 
                     match !selection with 
                         None -> ()
-                      | Some(ctrl) -> let new_pstr = createAndAddPstringCtrl ctrl.Sequence
+                      | Some(ctrl) -> let new_pstr = createAndAddPstringCtrl (seq_oview ctrl.Sequence)
                                       change_selection_pstrcontrol new_pstr                        
+                );
+                
+    form_trav.btHerProj.Click.Add(fun _ -> 
+                    match !selection with 
+                        None -> ()
+                      | Some(ctrl) -> let new_pstr = createAndAddPstringCtrl (seq_herproj ctrl.Sequence)
+                                      change_selection_pstrcontrol new_pstr                        
+                );
+                                
+    form_trav.btSubtermProj.Click.Add(fun _ -> 
+                    match !selection with 
+                        Some(ctrl) when ctrl.SelectedNodeIndex >= 0 ->
+                            let new_pstr = createAndAddPstringCtrl (seq_subtermproj ctrl.Sequence ctrl.SelectedNodeIndex)
+                            change_selection_pstrcontrol new_pstr
+                      | _ -> ()
                 );
                     
     form_trav.btDuplicate.Click.Add(fun _ -> 

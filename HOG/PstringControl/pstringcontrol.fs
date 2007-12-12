@@ -82,47 +82,55 @@ type PstringControl =
   class
     inherit System.Windows.Forms.UserControl as base
 
-        
     val mutable public components : System.ComponentModel.Container;
         override this.Dispose(disposing) =
             if (disposing && (match this.components with null -> false | _ -> true)) then
               this.components.Dispose();
             base.Dispose(disposing)
-
+            
+            
+    //// Controls
     val mutable public nodeEditTextBox : System.Windows.Forms.TextBox
     val mutable public hScroll : System.Windows.Forms.HScrollBar
     
-    // Events
+    //// Events
     val mutable private nodeClickEventPair : (PstringControl * NodeClickEventArgs -> unit) * IHandlerEvent<NodeClickEventArgs>
     member x.nodeClick with get() = snd x.nodeClickEventPair
 
-    val mutable private sequence : pstring
-    member x.Sequence with get() = Array.copy x.sequence
+    //// Properties
+    member public x.Sequence with get() = Array.copy x.sequence
 
-    val mutable autosize : bool
+    member public x.SelectedNodeIndex with get() = x.selected_node
+
+    val mutable private autosize : bool
     override x.AutoSize with get() = x.autosize
                          and set b = x.autosize <- b
                                      x.hScroll.Visible <- not b
                                      x.recompute_bbox()
 
-
-    val mutable nodesvalign : VerticalAlignement
+    val mutable private nodesvalign : VerticalAlignement
     member x.NodesVerticalAlignment with get() = x.nodesvalign
                                       and set a = x.nodesvalign <- a;
-
-    val mutable bboxes : Rectangle array    // bounding boxes of the nodes
-    val mutable prefix_bbox : Rectangle     // bounding box of the prefix string
-    val mutable link_anchors : Point array  // link anchor positions
-    val mutable edited_node : int           // index of the node currently edited
-    val mutable selected_node : int         // index of the selected node
-
-    // Pens and brushes
-    val mutable seq_unselection_pen : System.Drawing.Pen // pen of the color of the background    
 
     // Property to change the color of the background
     override x.BackColor with set c = x.seq_unselection_pen <- new Pen(c, seq_selection_pensize)
                          and get() = base.BackColor
 
+    //// Private variables
+    val mutable private sequence : pstring          // the sequence of nodes with links to be represented
+    val mutable private bboxes : Rectangle array    // bounding boxes of the nodes
+    val mutable private prefix_bbox : Rectangle     // bounding box of the prefix string
+    val mutable private link_anchors : Point array  // link anchor positions
+    val mutable private edited_node : int           // index of the node currently edited
+    val mutable private selected_node : int         // index of the selected node
+
+    // Pens and brushes
+    val mutable seq_unselection_pen : System.Drawing.Pen // pen of the color of the background    
+
+
+
+    //// Members
+    
     member private this.recompute_bbox() =
         let graphics = this.CreateGraphics()
 
@@ -207,14 +215,14 @@ type PstringControl =
         this.hScroll.LargeChange <- this.ClientRectangle.Width
         this.hScroll.SmallChange <- if Array.length this.bboxes > 0 then this.bboxes.(0).Width else 0
                 
-    member this.add_node node = 
+    member public this.add_node node = 
         this.sequence <- Array.concat [this.sequence; [|node|]];
         this.selected_node <- (Array.length this.sequence)-1
         this.recompute_bbox() // recompute the bounding boxes
         this.hScroll.Value <- max 0 (this.hScroll.Maximum-this.hScroll.LargeChange)
         this.Invalidate()
 
-    member this.remove_last_node() =
+    member public this.remove_last_node() =
         let n = Array.length this.sequence 
         if n > 0 then
            begin
@@ -461,6 +469,7 @@ type PstringControl =
                                         (if active_selection then selection_arrow_pen else inactive_selection_arrow_pen)
         );
 
+    //// Constructor
     new (pstr:pstring) as this =
         {   components = null;
             nodeEditTextBox = new System.Windows.Forms.TextBox ();

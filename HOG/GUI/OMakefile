@@ -1,19 +1,23 @@
 ########################################################################
 
 
-
+#foreach(res, $(CSHARP_RESOURCES))
     
-DotnetResource(GUI, Properties/Resources)
-DotnetResource(GUI, Traversal)
-DotnetResource(GUI, Recscheme)
-DotnetResource(GUI, Lambdaterm)
-    
-CSHARP_RESOURCES[] =
-    GUI.Traversal
-    GUI.Recscheme
-    GUI.Lambdaterm
-    GUI.Properties.Resources
 
+RESOURCES[] =
+    Properties/Resources
+    Traversal
+    Recscheme
+    Lambdaterm
+    Pda
+    
+    
+CSHARP_RESOURCES[]=
+
+foreach( x, $(RESOURCES))
+    CSHARP_RESOURCES+=$(NamespacedDotnetResource GUI, $(x))
+    export
+    
 CSHARP_INCLUDEPATH[]=
     "$(GLEE)"
     $(FSHARP_BIN)

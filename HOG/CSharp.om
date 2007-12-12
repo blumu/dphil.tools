@@ -38,14 +38,22 @@ public.TARGET_LIBRARY=/target:library
 
 ############### Resources
 
-# Compile a .resx file into a .resources file
+# Compile a .resx file into a .resources file with the namespace naming conventing
+# (e.g. a resource with relative path subdir\file.resx in an assembly named 'Assembly' 
+#   will be compiled into Assembly.subdir.file.resources)
 # Parameters
 #   modulename is the name of the .net assembly
 #   relpath is the relative path to the resource file without the .resx extension
-public.DotnetResource(modulename, relpath) =
+# Return
+#   the name of the output file without the extension (e.g. Assembly.subdir.file)
+#
+public.NamespacedDotnetResource(modulename, relpath) =
     protected.splitpath = $(split /, $(relpath))
-    $(modulename).$(concat ., $(splitpath)).resources: $(relpath).resx
+    protected.output=$(modulename).$(concat ., $(splitpath))
+    $(output).resources: $(relpath).resx
         $(RESGEN) /useSourcePath $(RESGEN_FLAGS) $< $@
+
+    return $(output)
 
 
 %.resources: %.resx
