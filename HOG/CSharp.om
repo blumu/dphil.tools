@@ -29,7 +29,7 @@ else
 
         
 %.resources: %.resx
-    $(RESGEN) $(RESGEN_FLAGS) $<	
+    $(RESGEN) $(RESGEN_FLAGS) $<
 
 
 public.OUTPUT(name) =

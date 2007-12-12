@@ -30,7 +30,6 @@ FS_FILES[] =
 
 
 FS_RESOURCES_FILES[]=
-    horsform
     cpdaform
 
 FS_DEP_DLLS[]=
@@ -46,4 +45,5 @@ FS_INCLUDEPATH[]=
     $(GLEE)
 
 .DEFAULT: $(FSharpAssembly $(PROGRAM), $(FS_FILES))
+
 

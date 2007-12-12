@@ -17,8 +17,10 @@ type NodeClickEventArgs =
          {   node = _node; }
          then () 
     end
-     
-type pstring_node = { tag: obj; label: string; link:int }
+
+type Shapes = ShapeRectangle | ShapeOval
+
+type pstring_node = { tag: obj; label: string; link:int; shape:Shapes; color:Color }
 type pstring = pstring_node array
 
 
@@ -40,14 +42,19 @@ let penWidth = float32 1
 let pen = new Pen(Color.Black, penWidth)
 
 let selectcolor = Color.Blue
+let inactive_selectcolor = Color.Gray
 
 let mutable selection_pen = new Pen(selectcolor, float32 2.0)
 selection_pen.DashStyle <-  System.Drawing.Drawing2D.DashStyle.Dash
 selection_pen.DashOffset <- float32 2.0
 
 
+let mutable inactive_selection_pen = new Pen(inactive_selectcolor, float32 2.0)
+inactive_selection_pen.DashStyle <-  System.Drawing.Drawing2D.DashStyle.Dash
+inactive_selection_pen.DashOffset <- float32 2.0
+
+
 let seq_selection_pensize = float32 2
-let seq_unselection_pen =  new Pen(System.Drawing.SystemColors.Control, seq_selection_pensize)
 let mutable seq_selection_pen = new Pen(selectcolor, seq_selection_pensize)
 seq_selection_pen.DashStyle <-  System.Drawing.Drawing2D.DashStyle.Dash
 seq_selection_pen.DashOffset <- float32 2.0
@@ -58,13 +65,15 @@ arrow_pen.EndCap <- System.Drawing.Drawing2D.LineCap.ArrowAnchor
 let selection_arrow_pen = new Pen(selectcolor, float32 2.0)
 selection_arrow_pen.EndCap <- System.Drawing.Drawing2D.LineCap.ArrowAnchor
 
+let inactive_selection_arrow_pen = new Pen(inactive_selectcolor, float32 2.0)
+inactive_selection_arrow_pen.EndCap <- System.Drawing.Drawing2D.LineCap.ArrowAnchor
+
 
 let fontHeight:float32 = float32 10.0
 let font = new Font("Arial", fontHeight)
 
-let backgroundColor = Color.Azure
-let brush = new SolidBrush(backgroundColor)
-let selection_brush = new SolidBrush(backgroundColor)
+
+let selection_brush = new SolidBrush(selectcolor)
 let textBrush = new SolidBrush(Color.Black);
 let height_of_link link = link*link_vertical_increment
 
@@ -96,6 +105,7 @@ type PstringControl =
                                      x.hScroll.Visible <- not b
                                      x.recompute_bbox()
 
+
     val mutable nodesvalign : VerticalAlignement
     member x.NodesVerticalAlignment with get() = x.nodesvalign
                                       and set a = x.nodesvalign <- a;
@@ -105,6 +115,13 @@ type PstringControl =
     val mutable link_anchors : Point array  // link anchor positions
     val mutable edited_node : int           // index of the node currently edited
     val mutable selected_node : int         // index of the selected node
+
+    // Pens and brushes
+    val mutable seq_unselection_pen : System.Drawing.Pen // pen of the color of the background    
+
+    // Property to change the color of the background
+    override x.BackColor with set c = x.seq_unselection_pen <- new Pen(c, seq_selection_pensize)
+                         and get() = base.BackColor
 
     member private this.recompute_bbox() =
         let graphics = this.CreateGraphics()
@@ -192,13 +209,17 @@ type PstringControl =
                 
     member this.add_node node = 
         this.sequence <- Array.concat [this.sequence; [|node|]];
+        this.selected_node <- (Array.length this.sequence)-1
         this.recompute_bbox() // recompute the bounding boxes
         this.hScroll.Value <- max 0 (this.hScroll.Maximum-this.hScroll.LargeChange)
         this.Invalidate()
 
     member this.remove_last_node() =
-        if Array.length this.sequence > 0 then
-           begin 
+        let n = Array.length this.sequence 
+        if n > 0 then
+           begin
+            if this.selected_node = n-1 then
+               this.selected_node <- max 0 (n-2)
             this.sequence  <- Array.sub this.sequence 0 ((Array.length this.sequence)-1)
             this.recompute_bbox()
             this.Invalidate()
@@ -215,6 +236,7 @@ type PstringControl =
     // Cancel the renaming of the node label
     member public this.CancelLabelEdit() = 
         this.nodeEditTextBox.Visible <- false
+        this.Select()
 
     // called to start editing the selected node
     // @param i is the node index
@@ -229,29 +251,27 @@ type PstringControl =
             this.nodeEditTextBox.Select()
 
     // is the control selected?
-    val mutable private selection_active : bool
+    val mutable private control_selected : bool
     
     // called by the list container when this pstring control is selected by the user
     member public this.Selection() =
-        this.selection_active <- true
+        this.control_selected <- true
         this.Invalidate()
         
     // called by the list container when this pstring control is deselected by the user
     member public this.Deselection() =
-        this.selection_active <- false
+        this.control_selected <- false
         this.CancelLabelEdit()
         this.Invalidate()
+        
     
     // prevents the arrow keys from being intercepted
     override this.IsInputKey (k:Keys) = match k with
                                           | Keys.Left | Keys.Right -> true
+                                          | Keys.Up | Keys.Down -> true
                                           | _ -> base.IsInputKey k
     // form initialization
     member this.InitializeComponent() =
-    
-        //this.nodeEditTextBox <- 
-        this.hScroll <- new System.Windows.Forms.HScrollBar()
-
         this.SuspendLayout();
         // 
         // nodeEditTextBox
@@ -266,7 +286,7 @@ type PstringControl =
         // remove the beeps when the user press Escape or return
         this.nodeEditTextBox.KeyPress.Add (fun e ->  match int_of_char e.KeyChar with
                                                       13 | 27 -> e.Handled <- true;
-                                                     | _ -> () //base.OnKeyPress (e)
+                                                     | _ -> ()
                                             );
         
         // 
@@ -298,9 +318,13 @@ type PstringControl =
             if this.nodeEditTextBox.Visible then
                 this.nodeEditTextBox.Visible <- false
                 if this.edited_node< Array.length this.sequence then
-                    this.sequence.(this.edited_node) <- { tag=this.sequence.(this.edited_node).tag;
+                    let cur = this.sequence.(this.edited_node)
+                    this.sequence.(this.edited_node) <- { tag=cur.tag;
                                                           label=this.nodeEditTextBox.Text;
-                                                          link=this.sequence.(this.edited_node).link }
+                                                          link=cur.link;
+                                                          shape=cur.shape;
+                                                          color=cur.color }
+                    this.Select()
                     this.recompute_bbox()
                     this.Invalidate()
   
@@ -322,15 +346,19 @@ type PstringControl =
                                 if sel < this.selected_node then
                                   begin
                                     let node = this.sequence.(this.selected_node)
-                                    this.sequence.(this.selected_node) <- {link =this.selected_node-sel;
-                                                                           tag = node.tag;
-                                                                           label=node.label}
+                                    this.sequence.(this.selected_node) <- {link=this.selected_node-sel;
+                                                                           tag=node.tag;
+                                                                           label=node.label;
+                                                                           shape=node.shape;
+                                                                           color=node.color }
                                   end
                             with Not_found ->
                                     let node = this.sequence.(this.selected_node)
-                                    this.sequence.(this.selected_node) <- {link =0;
-                                                                                tag = node.tag;
-                                                                                label=node.label}
+                                    this.sequence.(this.selected_node) <- {link=0;
+                                                                           tag=node.tag;
+                                                                           label=node.label
+                                                                           shape=node.shape;
+                                                                           color=node.color}
                             this.recompute_bbox()
                             this.Invalidate()
                         end
@@ -338,37 +366,35 @@ type PstringControl =
                     
         this.MouseDoubleClick.Add(fun e -> this.EditLabel() );
 
-        this.Leave.Add(fun _ -> this.selection_active<-false;
-                                this.Invalidate());
-        this.Enter.Add(fun _ -> this.selection_active<-true;
-                                this.Invalidate()
-                                );
-
-        this.KeyDown.Add( fun e -> if this.selection_active then
-                                     match e.KeyCode with 
-                                         Keys.PageUp -> let node = this.sequence.(this.selected_node)
-                                                        if this.selected_node -node.link-1 >= 0 then
-                                                          this.sequence.(this.selected_node) <- {link = node.link+1; tag = node.tag; label=node.label}
-                                                          this.recompute_bbox()
-                                                          this.Invalidate()
-                                        | Keys.PageDown -> let node = this.sequence.(this.selected_node)
-                                                           if node.link > 0 then
-                                                             this.sequence.(this.selected_node) <- {link = node.link-1; tag = node.tag; label=node.label}
-                                                             this.recompute_bbox()
-                                                             this.Invalidate()
+        this.KeyDown.Add( fun e -> match e.KeyCode with 
+                                         Keys.PageUp when this.selected_node < Array.length this.sequence ->
+                                            let node = this.sequence.(this.selected_node)
+                                            if this.selected_node -node.link-1 >= 0 then
+                                              this.sequence.(this.selected_node) <- {link = node.link+1; tag = node.tag; label=node.label;shape=node.shape;color=node.color}
+                                              this.recompute_bbox()
+                                              this.Invalidate()
+                                        | Keys.PageDown when this.selected_node < Array.length this.sequence ->
+                                            let node = this.sequence.(this.selected_node)
+                                            if node.link > 0 then
+                                              this.sequence.(this.selected_node) <- {link = node.link-1; tag = node.tag; label=node.label;shape=node.shape;color=node.color}
+                                              this.recompute_bbox()
+                                              this.Invalidate()
                                         | Keys.Left when this.selected_node > 0 ->   this.selected_node <- this.selected_node-1
                                                                                      this.Invalidate()
-                                        | Keys.Right when this.selected_node < (Array.length this.sequence)-1 -> this.selected_node <- this.selected_node+1
+                                        | Keys.Right when this.selected_node < (Array.length this.sequence)-1 -> this.selected_node <- this.selected_node+1                                        
                                                                                                                  this.Invalidate()
+                                        | Keys.Enter -> if not this.nodeEditTextBox.Visible then
+                                                            this.EditLabel() 
+                                        | Keys.Back -> this.remove_last_node()
                                         | _ -> ()
                            )
                                       
-        this.nodeEditTextBox.KeyUp.Add( fun e -> if this.selection_active then
-                                                   match e.KeyCode with
-                                                         Keys.Return -> ConfirmLabelEdit()
-                                                       | Keys.Escape -> this.CancelLabelEdit()
-                                                       | _ -> ()
+        this.nodeEditTextBox.KeyDown.Add( fun e -> match e.KeyCode with
+                                                      Keys.Return -> ConfirmLabelEdit()
+                                                    | Keys.Escape -> this.CancelLabelEdit()
+                                                    | _ -> ()
                                     )
+
         this.nodeEditTextBox.Leave.Add(fun _ -> this.CancelLabelEdit());
 
         this.Resize.Add(fun _ -> if not this.autosize then this.recompute_bbox()
@@ -381,50 +407,64 @@ type PstringControl =
           let graphics = e.Graphics      
           graphics.SmoothingMode <- System.Drawing.Drawing2D.SmoothingMode.AntiAlias
 
+          let active_selection = this.Parent.ContainsFocus
+          
           let mutable rc = this.ClientRectangle
           rc.Width <- rc.Width -  int (seq_selection_pensize/float32 2.0)
           rc.Height <- rc.Height -  int (seq_selection_pensize/float32 2.0)
-          if this.selection_active then
-            graphics.DrawRectangle(seq_selection_pen,rc)
+          if this.control_selected then
+            if active_selection then
+                graphics.DrawRectangle(selection_pen,rc)
+            else
+                graphics.DrawRectangle(inactive_selection_pen,rc)
           else
-            graphics.DrawRectangle(seq_unselection_pen,rc)
+            graphics.DrawRectangle(this.seq_unselection_pen,rc)
           
           TextRenderer.DrawText(e.Graphics, prefix, font, this.prefix_bbox, 
-                                (if this.selection_active then selectcolor else SystemColors.ControlText), (Enum.combine [TextFormatFlags.VerticalCenter;TextFormatFlags.HorizontalCenter]));
+                                    (if this.control_selected then 
+                                        (if active_selection then selectcolor  else inactive_selectcolor)
+                                     else
+                                        SystemColors.ControlText),
+                                    (Enum.combine [TextFormatFlags.VerticalCenter;TextFormatFlags.HorizontalCenter]));
           
           let DrawNode i brush pen arrow_pen = 
               let delta = -this.hScroll.Value
-              let label = this.sequence.(i).label 
-              and link = this.sequence.(i).link
-              let mutable bbox = this.bboxes.(i)
-              bbox.Offset(delta, 0);          
-              graphics.FillEllipse(brush, bbox )
-              graphics.DrawEllipse(pen, bbox )
-              TextRenderer.DrawText(e.Graphics, label, font, bbox, 
+              let node = this.sequence.(i)
+              let mutable bbox = this.bboxes.(i)              
+              bbox.Offset(delta, 0);
+              match node.shape with
+                 ShapeRectangle -> graphics.FillRectangle(brush, bbox )
+                                   graphics.DrawRectangle(pen, bbox )
+                | ShapeOval -> graphics.FillEllipse(brush, bbox )
+                               graphics.DrawEllipse(pen, bbox )
+
+              TextRenderer.DrawText(e.Graphics, node.label, font, bbox, 
                                      SystemColors.ControlText,
                                      (Enum.combine [TextFormatFlags.VerticalCenter;TextFormatFlags.HorizontalCenter]));
 
-              if link<>0 then
+              if node.link<>0 then
                 begin
                     let src = this.link_anchors.(i)+Size(delta,0)
-                    let dst = this.link_anchors.(i-link)+Size(delta,0)
+                    let dst = this.link_anchors.(i-node.link)+Size(delta,0)
                     let tmp = src + Size(dst)
-                    let mid = Point(tmp.X/2,tmp.Y/2- (height_of_link link))
+                    let mid = Point(tmp.X/2,tmp.Y/2- (height_of_link node.link))
                     graphics.DrawCurve(arrow_pen, [|src;mid;dst|])
                 end
           
           for i = 0 to (Array.length this.sequence)-1 do 
-            if not this.selection_active || i <> this.selected_node then DrawNode i brush pen arrow_pen
+            if not this.control_selected || i <> this.selected_node then DrawNode i (new SolidBrush(this.sequence.(i).color)) pen arrow_pen
           done
           // Draw the selected node after the other nodes have been drawn
-          if this.selection_active && this.selected_node < Array.length this.sequence then
-            DrawNode this.selected_node selection_brush selection_pen selection_arrow_pen
+          if this.control_selected && this.selected_node < Array.length this.sequence then
+            DrawNode this.selected_node (new SolidBrush(this.sequence.(this.selected_node).color))
+                                        (if active_selection then selection_pen else inactive_selection_pen )
+                                        (if active_selection then selection_arrow_pen else inactive_selection_arrow_pen)
         );
 
     new (pstr:pstring) as this =
         {   components = null;
             nodeEditTextBox = new System.Windows.Forms.TextBox ();
-            hScroll = null;
+            hScroll = new System.Windows.Forms.HScrollBar();
             sequence=pstr;
             bboxes=[||];
             prefix_bbox=Rectangle(0,0,0,0)
@@ -432,12 +472,14 @@ type PstringControl =
             edited_node=0;
             selected_node=0;
             autosize=true;
-            selection_active=false;
+            control_selected=false;
+            seq_unselection_pen=null
             nodesvalign= Middle;
             // Create the events
             nodeClickEventPair = Microsoft.FSharp.Control.IEvent.create_HandlerEvent()
            }
         then
+            this.BackColor <- System.Drawing.SystemColors.Control
             this.InitializeComponent(); 
         
   end

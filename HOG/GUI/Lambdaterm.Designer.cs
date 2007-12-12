@@ -138,7 +138,7 @@ namespace GUI
         public System.Windows.Forms.Label label1;
         public System.Windows.Forms.RichTextBox codeRichTextBox;
         public System.Windows.Forms.Label label2;
-        private System.Windows.Forms.Panel panel1;
+        public System.Windows.Forms.Panel panel1;
         public System.Windows.Forms.Button btCalculator;
         public System.Windows.Forms.Button btExportGraph;
 

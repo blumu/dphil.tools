@@ -2,6 +2,9 @@
 
 CSHARP_RESOURCES[] =
     Traversal
+    Recscheme
+    Lambdaterm
+    Properties/Resources
 
 CSHARP_INCLUDEPATH[]=
     "$(GLEE)"
@@ -27,11 +30,17 @@ FILES[] =
     Traversal.Designer.cs
     Lambdaterm.cs
     Lambdaterm.Designer.cs
+    Recscheme.cs
+    Recscheme.Designer.cs
     Properties\AssemblyInfo.cs
-#    Program.cs
-#    Properties\Resources.Designer.cs
-#    Properties\Settings.Designer.cs
+    Properties\Resources.Designer.cs
+    Properties\Settings.Designer.cs
      
 DLLNAME = GUI
 
 .DEFAULT: $(CSharpDllAssembly $(DLLNAME), $(FILES))
+
+
+.SUBDIRS: Properties
+    %.resources: %.resx
+        $(RESGEN) $(RESGEN_FLAGS) $<

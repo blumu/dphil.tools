@@ -81,7 +81,7 @@ type TermForm =
         //
         // Play traversal
         //
-        this.btCalculator.Click.Add( fun e -> Traversal_form.ShowCompGraphTraversalWindow this.MdiParent this.filename this.compgraph ["",lnfterm] );
+        this.btCalculator.Click.Add( fun e -> Traversal_form.ShowTraversalCalculatorWindow this.MdiParent this.filename this.compgraph ["",lnfterm] );
 
     
     val mutable lmdterm : ml_termincontext;

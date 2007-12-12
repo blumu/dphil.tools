@@ -40,14 +40,14 @@ let print_appterm term = print_string (string_of_appterm term);;
 
 
 let string_of_rule rs ((nt,para,appterm):rule) = 
-    nt^" "^(List.fold_left (function acc -> function p -> acc^p^" ") "" para)^"= "^(string_of_appterm appterm)^"\n"
+    nt^" "^(List.fold_left (function acc -> function p -> acc^p^" ") "" para)^"= "^(string_of_appterm appterm)^Common.eol
 ;;
 let print_rule rs r = print_string (string_of_rule rs r);;
 
 let string_of_rs rs =
-    "Terminals:\n"^(string_of_alphabet rs.sigma)^
-    "Non-terminals:\n"^(string_of_alphabet rs.nonterminals)^
-    "Rules:\n"^(List.fold_left (function acc -> function r -> acc^(string_of_rule rs r)) "" rs.rules)
+    "Terminals:"^Common.eol^(string_of_alphabet rs.sigma)^
+    "Non-terminals:"^Common.eol^(string_of_alphabet rs.nonterminals)^
+    "Rules:"^Common.eol^(List.fold_left (function acc -> function r -> acc^(string_of_rule rs r)) "" rs.rules)
 ;;
 let print_rs rs = print_string (string_of_rs rs);;
 

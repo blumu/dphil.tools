@@ -7,6 +7,14 @@
 let IsRunningOnMono = 
     System.Type.GetType ("Mono.Runtime") <> null;;
     
+(** End-of-line sequence **)
+let eol =
+    (*IF-OCAML*) 
+     "\n"
+    (*ENDIF-OCAML*)
+    (*F# 
+    System.Environment.NewLine
+     F#*) ;;
     
 let string_of_char =
         String.make 1;;

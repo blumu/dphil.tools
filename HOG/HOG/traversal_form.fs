@@ -12,11 +12,24 @@ open Lnf
 open GUI
 open Pstring
 
+(** Convert a colors of type System.Drawing.Color to a color of type Microsoft.Glee.Drawing.Color **)
+let sysdrawingcolor_2_gleecolor (color:System.Drawing.Color) :Microsoft.Glee.Drawing.Color = 
+    Microsoft.Glee.Drawing.Color(color.R,color.G,color.B)
+
+(** Convert a shape of type Pstring.Shapes to a shape of type Microsoft.Glee.Drawing.Shape **)
+let pstringshape_2_gleeshape =
+    function  Pstring.Shapes.ShapeRectangle -> Microsoft.Glee.Drawing.Shape.Box
+             | Pstring.Shapes.ShapeOval -> Microsoft.Glee.Drawing.Shape.Circle
+
+
+                                
 (** Create the graph view of the computation graph
-    @param graph the computation graph
+    @param node_2_color a mapping from nodes to color
+    @param node_2_shape a mapping from nodes to shapes
+    @param graph the computation graph    
     @return the GLEE graph object representing the computation graph
 **)
-let compgraph_to_graphview (nodes_content:cg_nodes,edges:cg_edges) =
+let compgraph_to_graphview node_2_color node_2_shape (nodes_content:cg_nodes,edges:cg_edges) =
     (* create a graph object *)
     let gleegraph = new Microsoft.Glee.Drawing.Graph("graph") in
     
@@ -24,17 +37,15 @@ let compgraph_to_graphview (nodes_content:cg_nodes,edges:cg_edges) =
         let nodeid = string_of_int k in
         let node = gleegraph.AddNode nodeid in
         node.Attr.Id <- string_of_int k
+        node.Attr.Fillcolor <- sysdrawingcolor_2_gleecolor (node_2_color nodes_content.(k))
+        node.Attr.Shape <- pstringshape_2_gleeshape (node_2_shape nodes_content.(k))
         match nodes_content.(k) with 
             NCntApp -> node.Attr.Label <- "@"^" ["^nodeid^"]";
           | NCntTm(tm) -> node.Attr.Label <- tm^" ["^nodeid^"]";
-                          node.Attr.Fillcolor <- Microsoft.Glee.Drawing.Color.Salmon;
-                          node.Attr.Shape <- Microsoft.Glee.Drawing.Shape.Box;
                           node.Attr.LabelMargin <- 10;
           | NCntVar(x) -> node.Attr.Label <- x^" ["^nodeid^"]";
-                          node.Attr.Fillcolor <- Microsoft.Glee.Drawing.Color.Green;
           | NCntAbs("",vars) -> node.Attr.Label <- LAMBDA_SYMBOL^(String.concat " " vars)^" ["^nodeid^"]";
           | NCntAbs(nt,vars) -> node.Attr.Label <- LAMBDA_SYMBOL^(String.concat " " vars)^" ["^nt^":"^nodeid^"]";
-                                node.Attr.Fillcolor <- Microsoft.Glee.Drawing.Color.Yellow;
     done;
 
     let addtargets source targets =
@@ -57,6 +68,8 @@ let compgraph_to_graphview (nodes_content:cg_nodes,edges:cg_edges) =
     gleegraph
 ;;
 
+
+(** Loads a window showing a computation graph and permitting the user to export it to latex. **)
 let ShowCompGraphWindow mdiparent filename compgraph lnfrules =
     // create a form
     let form = new System.Windows.Forms.Form()
@@ -91,7 +104,17 @@ let ShowCompGraphWindow mdiparent filename compgraph lnfrules =
     panel1.TabIndex <- 4;
 
     // bind the graph to the viewer
-    viewer.Graph <- compgraph_to_graphview compgraph;
+    let nd_2_col = function  NCntApp -> System.Drawing.Color.White
+                            | NCntTm(tm) -> System.Drawing.Color.Salmon;
+                            | NCntVar(x) -> System.Drawing.Color.Green;
+                            | NCntAbs("",vars) -> System.Drawing.Color.White
+                            | NCntAbs(nt,vars) -> System.Drawing.Color.Yellow;
+
+
+    let nd_2_shape = function NCntVar(_) | NCntAbs(_,_) | NCntApp -> Pstring.Shapes.ShapeOval
+                                | NCntTm(_) -> Pstring.Shapes.ShapeRectangle
+          
+    viewer.Graph <- compgraph_to_graphview nd_2_col nd_2_shape compgraph;
     viewer.AsyncLayout <- false;
     viewer.AutoScroll <- true;
     viewer.BackwardEnabled <- false;
@@ -122,11 +145,15 @@ let ShowCompGraphWindow mdiparent filename compgraph lnfrules =
 ;;
 
 
+(** Map a player to a node shape **)
+let player_to_shape = function Proponent -> ShapeRectangle
+                               | Opponent -> ShapeOval
+(** Map a player to a node color **)
+let player_to_color = function Proponent -> Color.Coral
+                               | Opponent -> Color.CornflowerBlue
 
-
-
-
-let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as compgraph) lnfrules =
+(** Loads the traversal calculator window for a given computation graph. **)
+let ShowTraversalCalculatorWindow mdiparent filename ((gr_nodes,gr_edges) as compgraph) lnfrules =
     let form_trav = new Traversal.Traversal()
 
     form_trav.MdiParent <- mdiparent;
@@ -170,16 +197,14 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
 
     // change the current selection
     let change_selection_pstrcontrol (ctrl:Pstring.PstringControl) =
+        match !selection with None -> () | Some(cursel) -> cursel.Deselection()
+        select_pstrcontrol ctrl
+
+    // Give the focus back to the currently selected line
+    let refocus_pstrcontrol() =
         match !selection with
-              None -> select_pstrcontrol ctrl
-            | Some(cursel) -> cursel.Deselection();
-                              ctrl.Selection();
-                              selection := Some(ctrl)
-    
-    // add an event handler to the a given pstring control in order to detect selection
-    // of the control by the user
-    let add_selection_eventhandler (ctrl: Pstring.PstringControl) =
-                        ctrl.Click.Add(fun _ -> change_selection_pstrcontrol ctrl );
+            None -> ()
+            | Some(cursel) -> cursel.Select();
     
 
     // Create a new pstring control and add it to the list
@@ -187,30 +212,49 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
         let new_pstr = ref (new Pstring.PstringControl(seq))
         (!new_pstr).AutoSize <- true
         (!new_pstr).TabStop <- false
-        add_selection_eventhandler !new_pstr
+        (!new_pstr).BackColor <- form_trav.seqflowPanel.BackColor
+        // add an event handler to the a given pstring control in order to detect selection
+        // of the control by the user
+        (!new_pstr).MouseDown.Add(fun _ -> //match !selection with None -> () | Some(cursel) -> cursel.Deselection() );
+                                           change_selection_pstrcontrol !new_pstr );
+        (!new_pstr).KeyDown.Add( fun e -> match e.KeyCode with 
+                                              Keys.Up -> let i = match !selection with 
+                                                                          None -> -1
+                                                                        | Some(ctrl) -> form_trav.seqflowPanel.Controls.GetChildIndex(ctrl)
+                                                         if i-1 >=0 then
+                                                             change_selection_pstrcontrol (form_trav.seqflowPanel.Controls.Item(i-1):?> Pstring.PstringControl)
+                                            | Keys.Down -> let i = match !selection with 
+                                                                          None -> -1
+                                                                        | Some(ctrl) -> form_trav.seqflowPanel.Controls.GetChildIndex(ctrl)
+                                                           if i+1 < form_trav.seqflowPanel.Controls.Count then
+                                                             change_selection_pstrcontrol (form_trav.seqflowPanel.Controls.Item(i+1):?> Pstring.PstringControl)
+                                            | _ -> ()
+                               ); 
         form_trav.seqflowPanel.Controls.Add !new_pstr
         !new_pstr
     
-    // create a default pstring
-    let first = createAndAddPstringCtrl [||]
-    select_pstrcontrol first
+    // create a default pstring control
+    select_pstrcontrol (createAndAddPstringCtrl [||])
     //(!first).nodeClick.Add(fun _ -> 
     //        ignore( MessageBox.Show("salut","test", MessageBoxButtons.OK, MessageBoxIcon.Exclamation)))
-    let entered = ref false
-    form_trav.seqflowPanel.Click.Add(fun _ -> if !entered then
-                                                 unselect_pstrcontrol()
-                                              else
-                                                 match !selection with
-                                                    None -> ()
-                                                  | Some(cursel) -> select_pstrcontrol cursel;
+    
+    // The user has clicked in the void.
+    form_trav.seqflowPanel.MouseDown.Add(fun _ -> // if the control (or one of the controls it contains) already has the focus
+                                                  if form_trav.seqflowPanel.ContainsFocus then
+                                                     unselect_pstrcontrol() // then unselect the currently selected line
+                                                  else
+                                                     // otherwise gives the focus back to the currently selected line
+                                                     refocus_pstrcontrol()
                                               )
     
-    form_trav.seqflowPanel.Enter.Add( fun _ ->
-                                                 entered := true
-            )
-    form_trav.seqflowPanel.Leave.Add( fun _ -> 
-                                                 entered := false
-            )
+    form_trav.seqflowPanel.Enter.Add( fun _ -> match !selection with
+                                                  None -> ()
+                                                | Some(cursel) -> cursel.Invalidate();
+                                    )
+    form_trav.seqflowPanel.Leave.Add( fun _ -> match !selection with
+                                                  None -> ()
+                                                | Some(cursel) -> cursel.Invalidate();
+                                    )
         
     form_trav.btPview.Click.Add(fun _ -> 
                     match !selection with 
@@ -237,7 +281,18 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
                     match !selection with 
                         None -> ()
                       | Some(ctrl) ->
-                        unselect_pstrcontrol()
+                        let i = form_trav.seqflowPanel.Controls.GetChildIndex(ctrl)
+                        // last line removed?
+                        if i = form_trav.seqflowPanel.Controls.Count-1 then
+                          if i > 0 then
+                            // select the previous line if there is one
+                            change_selection_pstrcontrol (form_trav.seqflowPanel.Controls.Item(i-1):?>Pstring.PstringControl)
+                          else
+                            unselect_pstrcontrol() // removing the only remaining line: just unselect it
+                        else // it's not the last line that is removed
+                            // select the next line
+                            change_selection_pstrcontrol (form_trav.seqflowPanel.Controls.Item(i+1):?>Pstring.PstringControl)
+                        
                         form_trav.seqflowPanel.Controls.Remove(ctrl)
                 );
 
@@ -252,25 +307,16 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
 
     form_trav.btAdd.Click.Add(fun _ ->  match !selection with 
                                                 None -> ()
-                                              | Some(ctrl) -> ctrl.add_node {label="..."; link=0; tag = box (-1)} )
+                                              | Some(ctrl) -> ctrl.add_node {label="..."; link=0; tag = null; shape = ShapeRectangle; color = Color.White} )
 
     form_trav.btEditLabel.Click.Add(fun _ ->  match !selection with 
                                                 None -> ()
                                               | Some(ctrl) -> ctrl.EditLabel(); )
     
-
-    form_trav.seqflowPanel.PreviewKeyDown.Add( fun e -> 
-                                                   match e.KeyCode with 
-                                                     Keys.Up -> let i = match !selection with 
-                                                                          None -> -1
-                                                                        | Some(ctrl) -> form_trav.seqflowPanel.Controls.GetChildIndex(ctrl)
-                                                                if i+1 < form_trav.seqflowPanel.Controls.Count then
-                                                                  change_selection_pstrcontrol (form_trav.seqflowPanel.Controls.Item(i+1):?> Pstring.PstringControl )
-                                                    
-                                                    | _ -> () )
-
     // bind the graph to the viewer
-    form_trav.gViewer.Graph <- compgraph_to_graphview compgraph;
+    let nd_2_col nd = player_to_color (graphnode_player nd)
+    let nd_2_shape nd = player_to_shape (graphnode_player nd)
+    form_trav.gViewer.Graph <- compgraph_to_graphview nd_2_col nd_2_shape compgraph;
     form_trav.gViewer.AsyncLayout <- false;
     form_trav.gViewer.AutoScroll <- true;
     form_trav.gViewer.BackwardEnabled <- false;
@@ -288,40 +334,59 @@ let ShowCompGraphTraversalWindow mdiparent filename ((gr_nodes,gr_edges) as comp
     form_trav.gViewer.ZoomFraction <- 0.5;
     form_trav.gViewer.ZoomWindowThreshold <- 0.05;
 
-    let last_hovered_node = ref null : Microsoft.Glee.Drawing.Node ref
+    let gleegraph_last_hovered_node = ref null : Microsoft.Glee.Drawing.Node ref
     form_trav.gViewer.SelectionChanged.Add(fun _ -> let selection = form_trav.gViewer.SelectedObject
                                                     if selection = null then
-                                                      last_hovered_node := null
+                                                      gleegraph_last_hovered_node := null
                                                     else if (selection :? Microsoft.Glee.Drawing.Node) then
-                                                      last_hovered_node := (selection :?> Microsoft.Glee.Drawing.Node)
+                                                      gleegraph_last_hovered_node := (selection :?> Microsoft.Glee.Drawing.Node)
                                           );
                                           
-    form_trav.gViewer.MouseClick.Add(fun _ -> 
+    form_trav.gViewer.MouseClick.Add(fun e -> 
             match !selection with 
                 None -> ()
                | Some(ctrl) ->
-                let selected_node = !last_hovered_node in
-                if selected_node <> null then
+                let gleegraph_selected_node = !gleegraph_last_hovered_node in
+                if gleegraph_selected_node <> null then
                     begin
-                        let compgraph_nodeindex = int_of_string selected_node.Attr.Id
-                        ctrl.add_node { label = graph_node_label gr_nodes.(compgraph_nodeindex);
-                                             tag = box compgraph_nodeindex;
-                                             link = 0;}
+                        let gr_nodeindex = int_of_string gleegraph_selected_node.Attr.Id
+                        
+                        // add an internal node to the traversal
+                        if e.Button = MouseButtons.Left then
+                            let trav_node = Internal(gr_nodeindex)
+                            let player = travnode_player gr_nodes trav_node
+                            ctrl.add_node { label = graph_node_label gr_nodes.(gr_nodeindex);
+                                            tag = box trav_node;
+                                            link = 0;
+                                            shape=player_to_shape player;
+                                            color=player_to_color player
+                                            }
+                        // add a value-leaf node to the traversal
+                        else
+                            let trav_node = ValueLeaf(gr_nodeindex,1)
+                            let player = travnode_player gr_nodes trav_node
+                            ctrl.add_node { label = "1_{"^(graph_node_label gr_nodes.(gr_nodeindex))^"}";
+                                            tag = box trav_node;
+                                            link = 0;
+                                            shape=player_to_shape player;
+                                            color=player_to_color player
+                                           }                          
                     end
         );
     
-    
 
-    let travnode_to_latex travnode =
-        let gr_inode = (unbox travnode.tag) : int
-        match gr_inode with
-         -1 -> travnode.label
-        | _ -> graphnodelabel_to_latex gr_nodes.(gr_inode)
+    
+    let pstrnode_to_latex travnode =
+        if travnode.tag = null then
+          travnode.label
+        else
+          travnode_to_latex gr_nodes ((unbox travnode.tag) : trav_node)
+    
 
     form_trav.btExportGraph.Click.Add(fun _ -> Texexportform.LoadExportGraphToLatexWindow mdiparent lnfrules)
     form_trav.btExportTrav.Click.Add(fun _ -> match !selection with 
                                                 None -> ()
-                                              | Some(ctrl) -> Texexportform.LoadExportTraversalToLatexWindow mdiparent travnode_to_latex ctrl.Sequence)
+                                              | Some(ctrl) -> Texexportform.LoadExportTraversalToLatexWindow mdiparent pstrnode_to_latex ctrl.Sequence)
 
     ignore(form_trav.Show()) 
 ;;
