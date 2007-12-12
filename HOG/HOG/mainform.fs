@@ -13,6 +13,7 @@ open System.IO
 open System.Windows.Forms
 open System.IO
 open List
+open Common
 open Printf
 open Hog_lexer
 open Lexing
@@ -31,11 +32,11 @@ txtConsole.ReadOnly <- true
 // text
 let setText s = txtConsole.Text <- s; txtConsole.SelectionStart <- txtConsole.TextLength;
 let getText s = txtConsole.Text
-setText     "Console:\n"
+setText     ("Console:"^eol)
 
 
 let Debug_print str =
-    setText (getText()^"\n"^str)
+    setText (getText()^eol^str)
 ;;
 
 exception ParseError of string
@@ -47,7 +48,7 @@ let parse_file parser lexer (fname:string) =
         let text = str.ReadToEnd () in
         str.Close();
         
-        Debug_print ("Opening "^fname^"\n");
+        Debug_print ("Opening "^fname^eol);
         let stream =  new StreamReader(fname) 
 
         // Create the lexer, presenting the bytes to the lexer as ASCII regardless of the original
@@ -59,11 +60,11 @@ let parse_file parser lexer (fname:string) =
             let parsed_object = try  parser lexer lexbuf
                                 with  Parsing.MissingSection -> raise (ParseError "Bad file format: some compulsory section is missing!")
                                     | e ->  let pos = lexbuf.EndPos
-                                            raise (ParseError ((sprintf "error near line %d, character %d\n" (pos.pos_lnum+1) (pos.pos_cnum - pos.pos_bol +1))^"\n"^e.ToString()^"parsing aborted!\n"))
+                                            raise (ParseError ((sprintf "error near line %d, character %d" (pos.pos_lnum+1) (pos.pos_cnum - pos.pos_bol +1))^eol^e.ToString()^"parsing aborted!"^eol))
 
             stream.Close();
             
-            //Debug_print ("File content:\n "^text^"\n");
+            //Debug_print ("File content:"^eol^" "^text^eol);
             Some(parsed_object)
 
         finally stream.Close();
@@ -105,15 +106,15 @@ let open_file filename =
                                       form.WindowState<-FormWindowState.Maximized;
                                       ignore(form.Show())          
           
-          | _ -> Debug_print("Unknown file format!\n")
+          | _ -> Debug_print("Unknown file format!"^eol)
 ;;
 
 
 mainform.Load.Add( fun _ -> if Array.length Sys.argv = 2 then
                              if Sys.argv.(1) = "-help" then
                                 begin 
-                                  printf "usage: hog.exe <file>\n";
-                                  exit 1;
+                                  ignore(MessageBox.Show(("usage: hog.exe <file>"^eol), "Usage"));
+                                  exit 0;
                                 end
                               else
                                 open_file Sys.argv.(1));

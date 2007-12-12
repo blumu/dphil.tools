@@ -56,14 +56,12 @@ namespace GUI
             // 
             // btRun
             // 
-            this.btRun.Image = global::GUI.Properties.Resources.run;
             this.btRun.ImageKey = "(none)";
             this.btRun.Location = new System.Drawing.Point(6, 4);
             this.btRun.Name = "btRun";
             this.btRun.Size = new System.Drawing.Size(129, 30);
-            this.btRun.TabIndex = 3;
+            this.btRun.TabIndex = 0;
             this.btRun.Text = "&Run";
-            this.btRun.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.btRun.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             this.btRun.UseVisualStyleBackColor = true;
             // 
@@ -78,7 +76,7 @@ namespace GUI
             this.btGraph.Location = new System.Drawing.Point(554, 4);
             this.btGraph.Name = "btGraph";
             this.btGraph.Size = new System.Drawing.Size(129, 30);
-            this.btGraph.TabIndex = 3;
+            this.btGraph.TabIndex = 4;
             this.btGraph.Text = "Computation &graph";
             this.btGraph.UseVisualStyleBackColor = true;
             // 
@@ -96,7 +94,7 @@ namespace GUI
             this.btCpda.Location = new System.Drawing.Point(280, 4);
             this.btCpda.Name = "btCpda";
             this.btCpda.Size = new System.Drawing.Size(129, 30);
-            this.btCpda.TabIndex = 3;
+            this.btCpda.TabIndex = 2;
             this.btCpda.Text = "Build n-CPDA";
             this.btCpda.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             this.btCpda.UseVisualStyleBackColor = true;
@@ -145,7 +143,7 @@ namespace GUI
             this.valueTreeView.ShowLines = false;
             this.valueTreeView.ShowRootLines = false;
             this.valueTreeView.Size = new System.Drawing.Size(275, 290);
-            this.valueTreeView.TabIndex = 2;
+            this.valueTreeView.TabIndex = 0;
             // 
             // splitContainer2
             // 
@@ -180,7 +178,7 @@ namespace GUI
             this.txtCode.Name = "txtCode";
             this.txtCode.ReadOnly = true;
             this.txtCode.Size = new System.Drawing.Size(545, 103);
-            this.txtCode.TabIndex = 6;
+            this.txtCode.TabIndex = 0;
             this.txtCode.WordWrap = false;
             // 
             // label2
@@ -205,7 +203,7 @@ namespace GUI
             this.txtOutput.ReadOnly = true;
             this.txtOutput.ScrollBars = System.Windows.Forms.ScrollBars.Both;
             this.txtOutput.Size = new System.Drawing.Size(542, 161);
-            this.txtOutput.TabIndex = 6;
+            this.txtOutput.TabIndex = 0;
             this.txtOutput.WordWrap = false;
             // 
             // label4
@@ -228,7 +226,7 @@ namespace GUI
             this.txtPath.ReadOnly = true;
             this.txtPath.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.txtPath.Size = new System.Drawing.Size(823, 27);
-            this.txtPath.TabIndex = 5;
+            this.txtPath.TabIndex = 6;
             // 
             // label3
             // 
@@ -244,7 +242,7 @@ namespace GUI
             this.btNp1pda.Location = new System.Drawing.Point(143, 4);
             this.btNp1pda.Name = "btNp1pda";
             this.btNp1pda.Size = new System.Drawing.Size(129, 30);
-            this.btNp1pda.TabIndex = 3;
+            this.btNp1pda.TabIndex = 1;
             this.btNp1pda.Text = "Build (n+1)-PDA";
             this.btNp1pda.UseVisualStyleBackColor = true;
             // 
@@ -253,7 +251,7 @@ namespace GUI
             this.btCalculator.Location = new System.Drawing.Point(691, 4);
             this.btCalculator.Name = "btCalculator";
             this.btCalculator.Size = new System.Drawing.Size(129, 30);
-            this.btCalculator.TabIndex = 3;
+            this.btCalculator.TabIndex = 5;
             this.btCalculator.Text = "&Traversal Calculator";
             this.btCalculator.UseVisualStyleBackColor = true;
             // 

@@ -47,7 +47,7 @@ namespace GUI
             this.outputTextBox.ReadOnly = true;
             this.outputTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Both;
             this.outputTextBox.Size = new System.Drawing.Size(771, 90);
-            this.outputTextBox.TabIndex = 0;
+            this.outputTextBox.TabIndex = 1;
             // 
             // label1
             // 
@@ -70,7 +70,7 @@ namespace GUI
             this.codeRichTextBox.Location = new System.Drawing.Point(0, 50);
             this.codeRichTextBox.Name = "codeRichTextBox";
             this.codeRichTextBox.Size = new System.Drawing.Size(771, 268);
-            this.codeRichTextBox.TabIndex = 12;
+            this.codeRichTextBox.TabIndex = 0;
             this.codeRichTextBox.Text = "";
             // 
             // label2
@@ -100,7 +100,7 @@ namespace GUI
             this.btCalculator.Location = new System.Drawing.Point(150, 3);
             this.btCalculator.Name = "btCalculator";
             this.btCalculator.Size = new System.Drawing.Size(127, 24);
-            this.btCalculator.TabIndex = 13;
+            this.btCalculator.TabIndex = 1;
             this.btCalculator.Text = "&Traversal Calculator";
             this.btCalculator.UseVisualStyleBackColor = true;
             // 
@@ -110,7 +110,7 @@ namespace GUI
             this.btExportGraph.Location = new System.Drawing.Point(17, 3);
             this.btExportGraph.Name = "btExportGraph";
             this.btExportGraph.Size = new System.Drawing.Size(127, 24);
-            this.btExportGraph.TabIndex = 12;
+            this.btExportGraph.TabIndex = 0;
             this.btExportGraph.Text = "&Graph -> LaTeX...";
             this.btExportGraph.UseVisualStyleBackColor = true;
             // 

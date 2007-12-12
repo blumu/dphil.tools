@@ -11,6 +11,7 @@ open System.Drawing
 open System.Text
 open System.Windows.Forms
 open System.IO
+open Common
 open Printf
 open Type
 open Lnf
@@ -107,8 +108,8 @@ type TermForm =
         this.Text <- ("Simply-typed lambda term - "^filename);
         this.filename <- filename;
 
-        this.outputTextBox.Text <- "Eta-long normal form:\n"
-                                ^(lnf_to_string lnfterm);
+        this.outputTextBox.Text <- "Eta-long normal form:"^eol
+                                   ^(lnf_to_string lnfterm);
 
         // create the computation graph from the LNF of the term
         this.compgraph <- lnfrs_to_graph [("",lnfterm)]

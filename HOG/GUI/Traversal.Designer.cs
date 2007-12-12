@@ -154,7 +154,7 @@ namespace GUI
             this.btSubtermProj.Margin = new System.Windows.Forms.Padding(2);
             this.btSubtermProj.Name = "btSubtermProj";
             this.btSubtermProj.Size = new System.Drawing.Size(125, 28);
-            this.btSubtermProj.TabIndex = 9;
+            this.btSubtermProj.TabIndex = 6;
             this.btSubtermProj.Text = "&Subterm projection";
             this.btSubtermProj.UseVisualStyleBackColor = true;
             // 
@@ -164,7 +164,7 @@ namespace GUI
             this.btHerProj.Margin = new System.Windows.Forms.Padding(2);
             this.btHerProj.Name = "btHerProj";
             this.btHerProj.Size = new System.Drawing.Size(125, 28);
-            this.btHerProj.TabIndex = 8;
+            this.btHerProj.TabIndex = 5;
             this.btHerProj.Text = "&Hereditary projection";
             this.btHerProj.UseVisualStyleBackColor = true;
             // 
@@ -174,7 +174,7 @@ namespace GUI
             this.btExportTrav.Margin = new System.Windows.Forms.Padding(2);
             this.btExportTrav.Name = "btExportTrav";
             this.btExportTrav.Size = new System.Drawing.Size(133, 28);
-            this.btExportTrav.TabIndex = 11;
+            this.btExportTrav.TabIndex = 8;
             this.btExportTrav.Text = "&Sequence -> LaTeX...";
             this.btExportTrav.UseVisualStyleBackColor = true;
             // 
@@ -184,7 +184,7 @@ namespace GUI
             this.btExportGraph.Margin = new System.Windows.Forms.Padding(2);
             this.btExportGraph.Name = "btExportGraph";
             this.btExportGraph.Size = new System.Drawing.Size(133, 28);
-            this.btExportGraph.TabIndex = 10;
+            this.btExportGraph.TabIndex = 7;
             this.btExportGraph.Text = "&Graph -> LaTeX...";
             this.btExportGraph.UseVisualStyleBackColor = true;
             // 
@@ -196,7 +196,7 @@ namespace GUI
             this.groupBox1.Location = new System.Drawing.Point(8, 3);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(135, 84);
-            this.groupBox1.TabIndex = 14;
+            this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Node";
             // 
@@ -206,7 +206,7 @@ namespace GUI
             this.btAdd.Margin = new System.Windows.Forms.Padding(2);
             this.btAdd.Name = "btAdd";
             this.btAdd.Size = new System.Drawing.Size(47, 28);
-            this.btAdd.TabIndex = 7;
+            this.btAdd.TabIndex = 0;
             this.btAdd.Text = "&+";
             this.btAdd.UseVisualStyleBackColor = true;
             // 
@@ -216,7 +216,7 @@ namespace GUI
             this.btBackspace.Margin = new System.Windows.Forms.Padding(2);
             this.btBackspace.Name = "btBackspace";
             this.btBackspace.Size = new System.Drawing.Size(47, 28);
-            this.btBackspace.TabIndex = 6;
+            this.btBackspace.TabIndex = 1;
             this.btBackspace.Text = "<&-";
             this.btBackspace.UseVisualStyleBackColor = true;
             // 
@@ -226,7 +226,7 @@ namespace GUI
             this.btEditLabel.Margin = new System.Windows.Forms.Padding(2);
             this.btEditLabel.Name = "btEditLabel";
             this.btEditLabel.Size = new System.Drawing.Size(66, 28);
-            this.btEditLabel.TabIndex = 8;
+            this.btEditLabel.TabIndex = 2;
             this.btEditLabel.Text = "&Edit label";
             this.btEditLabel.UseVisualStyleBackColor = true;
             // 
@@ -244,7 +244,7 @@ namespace GUI
             this.groupBox2.Location = new System.Drawing.Point(149, 3);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Size = new System.Drawing.Size(512, 85);
-            this.groupBox2.TabIndex = 15;
+            this.groupBox2.TabIndex = 1;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Sequence";
             // 
@@ -254,7 +254,7 @@ namespace GUI
             this.btDuplicate.Margin = new System.Windows.Forms.Padding(2);
             this.btDuplicate.Name = "btDuplicate";
             this.btDuplicate.Size = new System.Drawing.Size(89, 28);
-            this.btDuplicate.TabIndex = 12;
+            this.btDuplicate.TabIndex = 4;
             this.btDuplicate.Text = "D&uplicate";
             this.btDuplicate.UseVisualStyleBackColor = true;
             // 
@@ -264,7 +264,7 @@ namespace GUI
             this.btNew.Margin = new System.Windows.Forms.Padding(2);
             this.btNew.Name = "btNew";
             this.btNew.Size = new System.Drawing.Size(66, 28);
-            this.btNew.TabIndex = 8;
+            this.btNew.TabIndex = 0;
             this.btNew.Text = "&New";
             this.btNew.UseVisualStyleBackColor = true;
             // 
@@ -274,7 +274,7 @@ namespace GUI
             this.btDelete.Margin = new System.Windows.Forms.Padding(2);
             this.btDelete.Name = "btDelete";
             this.btDelete.Size = new System.Drawing.Size(66, 28);
-            this.btDelete.TabIndex = 9;
+            this.btDelete.TabIndex = 1;
             this.btDelete.Text = "&Delete";
             this.btDelete.UseVisualStyleBackColor = true;
             // 
@@ -284,7 +284,7 @@ namespace GUI
             this.btPview.Margin = new System.Windows.Forms.Padding(2);
             this.btPview.Name = "btPview";
             this.btPview.Size = new System.Drawing.Size(66, 28);
-            this.btPview.TabIndex = 11;
+            this.btPview.TabIndex = 3;
             this.btPview.Text = "&P-View";
             this.btPview.UseVisualStyleBackColor = true;
             // 
@@ -294,7 +294,7 @@ namespace GUI
             this.btOview.Margin = new System.Windows.Forms.Padding(2);
             this.btOview.Name = "btOview";
             this.btOview.Size = new System.Drawing.Size(66, 28);
-            this.btOview.TabIndex = 10;
+            this.btOview.TabIndex = 2;
             this.btOview.Text = "&O-View";
             this.btOview.UseVisualStyleBackColor = true;
             // 

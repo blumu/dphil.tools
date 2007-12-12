@@ -9,6 +9,7 @@ open System.Drawing
 open System.Text
 open System.Windows.Forms
 open System.IO
+open Common
 open Printf
 open Type
 open Lnf
@@ -83,9 +84,7 @@ type HorsForm =
         this.txtPath.Clear();
 
     member this.InitializeComponent() =                
-        // 
-        // valueTreeView
-        //        
+
         // Treeview.ShowNodeToolTips is not implemented in  Mono
         if not Common.IsRunningOnMono then
             (); //this.valueTreeView.ShowNodeToolTips <- true;
@@ -131,7 +130,10 @@ type HorsForm =
         
         // 
         // runButton
-        // 
+        //
+        this.btRun.ImageList <- this.imageList
+        this.btRun.ImageAlign <- System.Drawing.ContentAlignment.MiddleRight;
+        this.btRun.ImageKey <- "Run"
         this.btRun.Click.Add(fun e -> let node = this.valueTreeView.SelectedNode
                                       if is_expandable_treeviewnode node then
                                         begin
@@ -216,7 +218,7 @@ type HorsForm =
         let errors = rs_check this.hors in
         if errors <> [] then
           begin
-            let msg = "Inconsistent HORS definition. Please check types and definitions of terminals, non-terminals and variables.\nList of errors:\n  "^(String.concat "\n  " errors) in
+            let msg = "Inconsistent HORS definition. Please check types and definitions of terminals, non-terminals and variables."^eol^"List of errors:"^eol^"  "^(String.concat (eol^"  ") errors) in
             //Mainform.Debug_print msg;
             failwith msg
           end

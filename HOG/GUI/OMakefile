@@ -40,6 +40,8 @@ FILES[] =
     Lambdaterm.Designer.cs
     Recscheme.cs
     Recscheme.Designer.cs
+    Pda.cs
+    Pda.Designer.cs
     Properties\AssemblyInfo.cs
     Properties\Resources.Designer.cs
     Properties\Settings.Designer.cs

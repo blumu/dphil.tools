@@ -3,6 +3,7 @@
 	Author:		 William Blum
 **)
 
+open Common
 
 (*** ------------------------
      Simple types         ***)
@@ -41,7 +42,7 @@ let string_of_alphabet_aux sep a =
 	String.concat sep (List.map string_of_letter a) 
 ;;
 
-let string_of_alphabet a = (string_of_alphabet_aux "\n" a)^"\n";;
+let string_of_alphabet a = (string_of_alphabet_aux eol a)^eol;;
 
 let print_alphabet a = print_string (string_of_alphabet a);;
 

@@ -2,6 +2,7 @@
 	Description: Higher-order collapsible pushdown automata (HO-CPDA) module
 	Author:		William Blum
 **)
+open Common
 open Hog
 open Type
 open Lnf
@@ -301,9 +302,9 @@ let hocpda_step cpda genconf =
         match genconf with
           TmState(_),_ -> failwith "The CPDA has just emitted a terminal and therefore has halted. You need to choose a terminal parameter in order to spawn the CPDA."
         | State(ip),stk -> execute cpda ip stk cpda.code.(ip)
-    with   Cpda_execution_failed(ins,msg) -> failwith ("CPDA INSTRUCTION FAILED!\nInstruction: "^ins^"\nDescription:"^msg)
-         | Cpda_exception(msg) -> failwith ("CPDA EXCEPTION RAISED!\nDescription: "^msg)
-         | Cpda_assertfailed(msg) -> failwith ("CPDA ASSERTION FAILED!\nDescription of the test: "^msg)
+    with   Cpda_execution_failed(ins,msg) -> failwith ("CPDA INSTRUCTION FAILED!"^eol^"Instruction: "^ins^eol^"Description:"^msg)
+         | Cpda_exception(msg) -> failwith ("CPDA EXCEPTION RAISED!"^eol^"Description: "^msg)
+         | Cpda_assertfailed(msg) -> failwith ("CPDA ASSERTION FAILED!"^eol^"Description of the test: "^msg)
 ;;
 
 (** Create the initial configuration of a CPDA. **)
@@ -363,16 +364,16 @@ let string_of_hocpda cpda =
         
         if !nextlab < Array.length labs && i = (snd labs.(!nextlab))  then
         begin
-            ret := !ret^(pad_left (string_of_int i) cLINE_COLUMN_WITDH)^" "^(pad_right (fst labs.(!nextlab)) cLABEL_COLUMN_WITDH )^":  "^ (string_of_instr cpda.code.(i))^"\n";
-            incr(nextlab); 
+            ret := !ret^(pad_left (string_of_int i) cLINE_COLUMN_WITDH)^" "^(pad_right (fst labs.(!nextlab)) cLABEL_COLUMN_WITDH )^":  "^ (string_of_instr cpda.code.(i))^eol;
+            incr(nextlab);
         end
         else
-            ret := !ret^(pad_left (string_of_int i) cLINE_COLUMN_WITDH)^" "^(String.make cLABEL_COLUMN_WITDH  ' ')^"   "^(string_of_instr cpda.code.(i))^"\n"
+            ret := !ret^(pad_left (string_of_int i) cLINE_COLUMN_WITDH)^" "^(String.make cLABEL_COLUMN_WITDH  ' ')^"   "^(string_of_instr cpda.code.(i))^eol
       done;
     "Order: "^(string_of_int cpda.n)
-    ^"\n\nTerminals:\n"^(string_of_alphabet cpda.terminals_alphabet)
-    ^"\nStack alphabet: "^(String.concat " " cpda.stack_alphabet)
-    ^"\n\nCode:\n\n"^(!ret)
+    ^eol^eol^"Terminals:"^eol^(string_of_alphabet cpda.terminals_alphabet)
+    ^eol^"Stack alphabet: "^(String.concat " " cpda.stack_alphabet)
+    ^eol^eol^"Code:"^eol^eol^(!ret)
 ;;
 
 
