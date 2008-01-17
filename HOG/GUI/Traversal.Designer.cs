@@ -45,13 +45,17 @@ namespace GUI
             this.btBackspace = new System.Windows.Forms.Button();
             this.btEditLabel = new System.Windows.Forms.Button();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.btExt = new System.Windows.Forms.Button();
+            this.btStar = new System.Windows.Forms.Button();
+            this.btPrefix = new System.Windows.Forms.Button();
             this.btDuplicate = new System.Windows.Forms.Button();
             this.btNew = new System.Windows.Forms.Button();
             this.btDelete = new System.Windows.Forms.Button();
             this.btPview = new System.Windows.Forms.Button();
             this.btOview = new System.Windows.Forms.Button();
-            this.btPrefix = new System.Windows.Forms.Button();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
+            this.btOpen = new System.Windows.Forms.Button();
+            this.btSave = new System.Windows.Forms.Button();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
             this.splitContainer1.SuspendLayout();
@@ -112,9 +116,8 @@ namespace GUI
             // splitContainer1.Panel2
             // 
             this.splitContainer1.Panel2.Controls.Add(this.gViewer);
-            this.splitContainer1.Panel2.Paint += new System.Windows.Forms.PaintEventHandler(this.splitContainer1_Panel2_Paint);
-            this.splitContainer1.Size = new System.Drawing.Size(852, 432);
-            this.splitContainer1.SplitterDistance = 570;
+            this.splitContainer1.Size = new System.Drawing.Size(880, 432);
+            this.splitContainer1.SplitterDistance = 588;
             this.splitContainer1.SplitterWidth = 5;
             this.splitContainer1.TabIndex = 13;
             // 
@@ -126,7 +129,7 @@ namespace GUI
             this.seqflowPanel.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
             this.seqflowPanel.Location = new System.Drawing.Point(0, 0);
             this.seqflowPanel.Name = "seqflowPanel";
-            this.seqflowPanel.Size = new System.Drawing.Size(566, 428);
+            this.seqflowPanel.Size = new System.Drawing.Size(584, 428);
             this.seqflowPanel.TabIndex = 0;
             this.seqflowPanel.TabStop = true;
             this.seqflowPanel.WrapContents = false;
@@ -145,7 +148,7 @@ namespace GUI
             this.gViewer.NavigationVisible = true;
             this.gViewer.PanButtonPressed = false;
             this.gViewer.SaveButtonVisible = true;
-            this.gViewer.Size = new System.Drawing.Size(273, 428);
+            this.gViewer.Size = new System.Drawing.Size(283, 428);
             this.gViewer.TabIndex = 0;
             this.gViewer.ZoomF = 1;
             this.gViewer.ZoomFraction = 0.5;
@@ -153,42 +156,42 @@ namespace GUI
             // 
             // btSubtermProj
             // 
-            this.btSubtermProj.Location = new System.Drawing.Point(230, 50);
+            this.btSubtermProj.Location = new System.Drawing.Point(254, 52);
             this.btSubtermProj.Margin = new System.Windows.Forms.Padding(2);
             this.btSubtermProj.Name = "btSubtermProj";
             this.btSubtermProj.Size = new System.Drawing.Size(125, 28);
-            this.btSubtermProj.TabIndex = 6;
+            this.btSubtermProj.TabIndex = 9;
             this.btSubtermProj.Text = "&Subterm projection";
             this.btSubtermProj.UseVisualStyleBackColor = true;
             // 
             // btHerProj
             // 
-            this.btHerProj.Location = new System.Drawing.Point(230, 18);
+            this.btHerProj.Location = new System.Drawing.Point(254, 18);
             this.btHerProj.Margin = new System.Windows.Forms.Padding(2);
             this.btHerProj.Name = "btHerProj";
             this.btHerProj.Size = new System.Drawing.Size(125, 28);
-            this.btHerProj.TabIndex = 5;
+            this.btHerProj.TabIndex = 8;
             this.btHerProj.Text = "&Hereditary projection";
             this.btHerProj.UseVisualStyleBackColor = true;
             // 
             // btExportTrav
             // 
-            this.btExportTrav.Location = new System.Drawing.Point(369, 32);
+            this.btExportTrav.Location = new System.Drawing.Point(383, 32);
             this.btExportTrav.Margin = new System.Windows.Forms.Padding(2);
             this.btExportTrav.Name = "btExportTrav";
-            this.btExportTrav.Size = new System.Drawing.Size(111, 28);
-            this.btExportTrav.TabIndex = 8;
-            this.btExportTrav.Text = "E&xport to LaTeX...";
+            this.btExportTrav.Size = new System.Drawing.Size(106, 28);
+            this.btExportTrav.TabIndex = 10;
+            this.btExportTrav.Text = "Export to &LaTeX...";
             this.btExportTrav.UseVisualStyleBackColor = true;
             // 
             // btExportGraph
             // 
-            this.btExportGraph.Location = new System.Drawing.Point(16, 29);
+            this.btExportGraph.Location = new System.Drawing.Point(5, 52);
             this.btExportGraph.Margin = new System.Windows.Forms.Padding(2);
             this.btExportGraph.Name = "btExportGraph";
-            this.btExportGraph.Size = new System.Drawing.Size(113, 28);
-            this.btExportGraph.TabIndex = 7;
-            this.btExportGraph.Text = "Expor&t to LaTeX...";
+            this.btExportGraph.Size = new System.Drawing.Size(138, 28);
+            this.btExportGraph.TabIndex = 0;
+            this.btExportGraph.Text = "Expor&t graph to LaTeX...";
             this.btExportGraph.UseVisualStyleBackColor = true;
             // 
             // groupBox1
@@ -196,7 +199,7 @@ namespace GUI
             this.groupBox1.Controls.Add(this.btAdd);
             this.groupBox1.Controls.Add(this.btBackspace);
             this.groupBox1.Controls.Add(this.btEditLabel);
-            this.groupBox1.Location = new System.Drawing.Point(8, 3);
+            this.groupBox1.Location = new System.Drawing.Point(173, 5);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(135, 84);
             this.groupBox1.TabIndex = 0;
@@ -215,7 +218,7 @@ namespace GUI
             // 
             // btBackspace
             // 
-            this.btBackspace.Location = new System.Drawing.Point(7, 50);
+            this.btBackspace.Location = new System.Drawing.Point(7, 52);
             this.btBackspace.Margin = new System.Windows.Forms.Padding(2);
             this.btBackspace.Name = "btBackspace";
             this.btBackspace.Size = new System.Drawing.Size(47, 28);
@@ -225,7 +228,7 @@ namespace GUI
             // 
             // btEditLabel
             // 
-            this.btEditLabel.Location = new System.Drawing.Point(59, 50);
+            this.btEditLabel.Location = new System.Drawing.Point(59, 52);
             this.btEditLabel.Margin = new System.Windows.Forms.Padding(2);
             this.btEditLabel.Name = "btEditLabel";
             this.btEditLabel.Size = new System.Drawing.Size(66, 28);
@@ -235,6 +238,8 @@ namespace GUI
             // 
             // groupBox2
             // 
+            this.groupBox2.Controls.Add(this.btExt);
+            this.groupBox2.Controls.Add(this.btStar);
             this.groupBox2.Controls.Add(this.btExportTrav);
             this.groupBox2.Controls.Add(this.btPrefix);
             this.groupBox2.Controls.Add(this.btDuplicate);
@@ -244,16 +249,44 @@ namespace GUI
             this.groupBox2.Controls.Add(this.btHerProj);
             this.groupBox2.Controls.Add(this.btPview);
             this.groupBox2.Controls.Add(this.btOview);
-            this.groupBox2.Location = new System.Drawing.Point(149, 3);
+            this.groupBox2.Location = new System.Drawing.Point(321, 5);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(499, 85);
+            this.groupBox2.Size = new System.Drawing.Size(497, 85);
             this.groupBox2.TabIndex = 1;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Sequence";
             // 
+            // btExt
+            // 
+            this.btExt.Location = new System.Drawing.Point(185, 52);
+            this.btExt.Name = "btExt";
+            this.btExt.Size = new System.Drawing.Size(66, 28);
+            this.btExt.TabIndex = 7;
+            this.btExt.Text = "E&xtension";
+            this.btExt.UseVisualStyleBackColor = true;
+            // 
+            // btStar
+            // 
+            this.btStar.Location = new System.Drawing.Point(185, 18);
+            this.btStar.Name = "btStar";
+            this.btStar.Size = new System.Drawing.Size(66, 28);
+            this.btStar.TabIndex = 6;
+            this.btStar.Text = "St&ar";
+            this.btStar.UseVisualStyleBackColor = true;
+            // 
+            // btPrefix
+            // 
+            this.btPrefix.Location = new System.Drawing.Point(112, 52);
+            this.btPrefix.Margin = new System.Windows.Forms.Padding(2);
+            this.btPrefix.Name = "btPrefix";
+            this.btPrefix.Size = new System.Drawing.Size(70, 28);
+            this.btPrefix.TabIndex = 5;
+            this.btPrefix.Text = "P&refix";
+            this.btPrefix.UseVisualStyleBackColor = true;
+            // 
             // btDuplicate
             // 
-            this.btDuplicate.Location = new System.Drawing.Point(156, 18);
+            this.btDuplicate.Location = new System.Drawing.Point(112, 18);
             this.btDuplicate.Margin = new System.Windows.Forms.Padding(2);
             this.btDuplicate.Name = "btDuplicate";
             this.btDuplicate.Size = new System.Drawing.Size(70, 28);
@@ -266,74 +299,85 @@ namespace GUI
             this.btNew.Location = new System.Drawing.Point(8, 18);
             this.btNew.Margin = new System.Windows.Forms.Padding(2);
             this.btNew.Name = "btNew";
-            this.btNew.Size = new System.Drawing.Size(70, 28);
+            this.btNew.Size = new System.Drawing.Size(46, 28);
             this.btNew.TabIndex = 0;
             this.btNew.Text = "&New";
             this.btNew.UseVisualStyleBackColor = true;
             // 
             // btDelete
             // 
-            this.btDelete.Location = new System.Drawing.Point(8, 50);
+            this.btDelete.Location = new System.Drawing.Point(8, 52);
             this.btDelete.Margin = new System.Windows.Forms.Padding(2);
             this.btDelete.Name = "btDelete";
-            this.btDelete.Size = new System.Drawing.Size(70, 28);
+            this.btDelete.Size = new System.Drawing.Size(46, 28);
             this.btDelete.TabIndex = 1;
             this.btDelete.Text = "&Delete";
             this.btDelete.UseVisualStyleBackColor = true;
             // 
             // btPview
             // 
-            this.btPview.Location = new System.Drawing.Point(82, 50);
+            this.btPview.Location = new System.Drawing.Point(57, 52);
             this.btPview.Margin = new System.Windows.Forms.Padding(2);
             this.btPview.Name = "btPview";
-            this.btPview.Size = new System.Drawing.Size(70, 28);
+            this.btPview.Size = new System.Drawing.Size(52, 28);
             this.btPview.TabIndex = 3;
             this.btPview.Text = "&P-View";
             this.btPview.UseVisualStyleBackColor = true;
             // 
             // btOview
             // 
-            this.btOview.Location = new System.Drawing.Point(82, 18);
+            this.btOview.Location = new System.Drawing.Point(58, 18);
             this.btOview.Margin = new System.Windows.Forms.Padding(2);
             this.btOview.Name = "btOview";
-            this.btOview.Size = new System.Drawing.Size(70, 28);
+            this.btOview.Size = new System.Drawing.Size(52, 28);
             this.btOview.TabIndex = 2;
             this.btOview.Text = "&O-View";
             this.btOview.UseVisualStyleBackColor = true;
             // 
-            // btPrefix
-            // 
-            this.btPrefix.Location = new System.Drawing.Point(156, 50);
-            this.btPrefix.Margin = new System.Windows.Forms.Padding(2);
-            this.btPrefix.Name = "btPrefix";
-            this.btPrefix.Size = new System.Drawing.Size(70, 28);
-            this.btPrefix.TabIndex = 4;
-            this.btPrefix.Text = "P&refix";
-            this.btPrefix.UseVisualStyleBackColor = true;
-            // 
             // groupBox3
             // 
+            this.groupBox3.Controls.Add(this.btSave);
+            this.groupBox3.Controls.Add(this.btOpen);
             this.groupBox3.Controls.Add(this.btExportGraph);
-            this.groupBox3.Location = new System.Drawing.Point(659, 6);
+            this.groupBox3.Location = new System.Drawing.Point(9, 5);
             this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(144, 82);
-            this.groupBox3.TabIndex = 14;
+            this.groupBox3.Size = new System.Drawing.Size(151, 84);
+            this.groupBox3.TabIndex = 2;
             this.groupBox3.TabStop = false;
-            this.groupBox3.Text = "Graph";
+            this.groupBox3.Text = "Worksheet";
+            // 
+            // btOpen
+            // 
+            this.btOpen.Location = new System.Drawing.Point(5, 18);
+            this.btOpen.Margin = new System.Windows.Forms.Padding(2);
+            this.btOpen.Name = "btOpen";
+            this.btOpen.Size = new System.Drawing.Size(67, 28);
+            this.btOpen.TabIndex = 0;
+            this.btOpen.Text = "Open...";
+            this.btOpen.UseVisualStyleBackColor = true;
+            // 
+            // btSave
+            // 
+            this.btSave.Location = new System.Drawing.Point(76, 18);
+            this.btSave.Margin = new System.Windows.Forms.Padding(2);
+            this.btSave.Name = "btSave";
+            this.btSave.Size = new System.Drawing.Size(67, 28);
+            this.btSave.TabIndex = 0;
+            this.btSave.Text = "Save...";
+            this.btSave.UseVisualStyleBackColor = true;
             // 
             // Traversal
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSize = true;
-            this.ClientSize = new System.Drawing.Size(852, 525);
+            this.ClientSize = new System.Drawing.Size(880, 525);
             this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.splitContainer1);
             this.Controls.Add(this.groupBox1);
             this.Name = "Traversal";
             this.Text = "Traversal Calculator";
-            this.Load += new System.EventHandler(this.Traversal_Load);
             this.splitContainer1.Panel1.ResumeLayout(false);
             this.splitContainer1.Panel2.ResumeLayout(false);
             this.splitContainer1.ResumeLayout(false);
@@ -370,6 +414,10 @@ namespace GUI
         public System.Windows.Forms.Button btOview;
         public System.Windows.Forms.Button btPrefix;
         private System.Windows.Forms.GroupBox groupBox3;
+        public System.Windows.Forms.Button btExt;
+        public System.Windows.Forms.Button btStar;
+        public System.Windows.Forms.Button btSave;
+        public System.Windows.Forms.Button btOpen;
     }
 }
 

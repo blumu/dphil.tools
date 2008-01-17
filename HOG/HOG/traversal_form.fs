@@ -159,8 +159,12 @@ let pstrseq_gennode_getlink nd = nd.link
 let pstrseq_gennode_updatelink nd newlink =
      {tag=nd.tag;color=nd.color;shape=nd.shape;label=nd.label;link=newlink}
      
-(** P-View
-   Specialized for sequences of type Pstringcontrol.pstring_node **) 
+// create a dummy gennode (which does not correspond to any node of the computation tree)
+let pstrseq_gennode_createdummy newlabel newlink = 
+    {tag=null;color=Color.Beige;shape=ShapeRectangle;label=newlabel;link=newlink}
+    
+     
+(** P-View, specialized for sequences of type Pstringcontrol.pstring_node **) 
 let pstrseq_pview gr_nodes seq = seq_Xview gr_nodes
                                    Proponent 
                                    pstrseq_gennode_get        // get_gennode function                                   
@@ -170,8 +174,7 @@ let pstrseq_pview gr_nodes seq = seq_Xview gr_nodes
                                    ((Array.length seq)-1)
                                     
 
-(** O-View
-   Specialized for sequences of type Pstringcontrol.pstring_node **) 
+(** O-View, specialized for sequences of type Pstringcontrol.pstring_node **) 
 let pstrseq_oview gr_nodes seq = seq_Xview gr_nodes
                                    Opponent
                                    pstrseq_gennode_get        // get_gennode function                                   
@@ -187,13 +190,28 @@ let pstrseq_subtermproj gr_nodes = subtermproj gr_nodes
                                                pstrseq_gennode_getlink
                                                pstrseq_gennode_updatelink
 
-(** Hereditary projection
-    Specialized for sequences of type Pstringcontrol.pstring_node **) 
-let pstrseq_herproj gr_nodes = heredproj gr_nodes
-                                         pstrseq_gennode_getlink
-                                         pstrseq_gennode_updatelink
+(** Hereditary projection,
+    specialized for sequences of type Pstringcontrol.pstring_node **) 
+let pstrseq_herproj = heredproj pstrseq_gennode_getlink
+                                pstrseq_gennode_updatelink
+                                
 (** Prefixing **)
 let pstrseq_prefix seq at = Array.sub seq 0 (at+1)
+
+
+(** Traversal star **)
+let pstrseq_star gr_nodes = star gr_nodes
+                                 pstrseq_gennode_get
+                                 pstrseq_gennode_getlink
+                                 pstrseq_gennode_updatelink
+
+
+(** Traversal extension **)
+let pstrseq_ext gr_nodes = extension gr_nodes
+                                     pstrseq_gennode_get
+                                     pstrseq_gennode_getlink
+                                     pstrseq_gennode_updatelink
+                                     pstrseq_gennode_createdummy
 
 
 (** Map a player to a node shape **)
@@ -325,7 +343,7 @@ let ShowTraversalCalculatorWindow mdiparent filename ((gr_nodes,gr_edges) as com
     form_trav.btHerProj.Click.Add(fun _ -> 
                     match !selection with 
                         None -> ()
-                      | Some(ctrl) -> let new_pstr = createAndAddPstringCtrl (pstrseq_herproj gr_nodes ctrl.Sequence ctrl.SelectedNodeIndex)
+                      | Some(ctrl) -> let new_pstr = createAndAddPstringCtrl (pstrseq_herproj ctrl.Sequence ctrl.SelectedNodeIndex)
                                       change_selection_pstrcontrol new_pstr                        
                 );
                                 
@@ -349,7 +367,19 @@ let ShowTraversalCalculatorWindow mdiparent filename ((gr_nodes,gr_edges) as com
                                               | Some(ctrl) -> let new_pstr = createAndAddPstringCtrl (pstrseq_prefix ctrl.Sequence ctrl.SelectedNodeIndex)
                                                               change_selection_pstrcontrol new_pstr
                                         );                
-
+                                        
+    form_trav.btExt.Click.Add(fun _ ->  match !selection with 
+                                                None -> ()
+                                              | Some(ctrl) -> let new_pstr = createAndAddPstringCtrl (pstrseq_ext gr_nodes ctrl.Sequence ctrl.SelectedNodeIndex)
+                                                              change_selection_pstrcontrol new_pstr
+                                        );
+                                             
+    form_trav.btStar.Click.Add(fun _ ->  match !selection with 
+                                                None -> ()
+                                              | Some(ctrl) -> let new_pstr = createAndAddPstringCtrl (pstrseq_star gr_nodes ctrl.Sequence ctrl.SelectedNodeIndex)
+                                                              change_selection_pstrcontrol new_pstr
+                                        );
+                                        
     form_trav.btDelete.Click.Add(fun _ -> 
                     match !selection with 
                         None -> ()
