@@ -12,6 +12,7 @@ open Lnf
 open GUI
 open Pstring
 
+
 (** Convert a colors of type System.Drawing.Color to a color of type Microsoft.Glee.Drawing.Color **)
 let sysdrawingcolor_2_gleecolor (color:System.Drawing.Color) :Microsoft.Glee.Drawing.Color = 
     Microsoft.Glee.Drawing.Color(color.R,color.G,color.B)
@@ -146,54 +147,43 @@ let ShowCompGraphWindow mdiparent filename compgraph lnfrules =
 
 /////////////////////// Sequence transformations
 
-// get_gennode function for sequences of type Pstringcontrol.pstring_node
-let pstrseq_gennode_get nd = if nd.tag = null then
-                                failwith "This is not a valid traversal: there is a node in the sequence that does not belong to the computation graph/tree."
-                             else 
-                                (unbox nd.tag:gen_node)
+// getnode function for sequences of type Pstringcontrol.pstring
+let pstr_occ_getnode (nd:pstring_occ) =
+         if nd.tag = null then
+            failwith "This is not a valid traversal: there is a node in the sequence that does not belong to the computation graph/tree."
+         else 
+            (unbox nd.tag:gen_node)
 
-// getlink function for sequences of type Pstringcontrol.pstring_node
-let pstrseq_gennode_getlink nd = nd.link
-
-// updatelink function for sequences of type Pstringcontrol.pstring_node
-let pstrseq_gennode_updatelink nd newlink =
-     {tag=nd.tag;color=nd.color;shape=nd.shape;label=nd.label;link=newlink}
+(**** Sequence transformations specialized for sequences of type Pstringcontrol.pstring  ****)
      
-// create a dummy gennode (which does not correspond to any node of the computation tree)
-let pstrseq_gennode_createdummy newlabel newlink = 
-    {tag=null;color=Color.Beige;shape=ShapeRectangle;label=newlabel;link=newlink}
-    
-     
-(** P-View, specialized for sequences of type Pstringcontrol.pstring_node **) 
+(** P-View **) 
 let pstrseq_pview gr_nodes seq = seq_Xview gr_nodes
                                    Proponent 
-                                   pstrseq_gennode_get        // get_gennode function                                   
-                                   pstrseq_gennode_getlink    // get_link function
-                                   pstrseq_gennode_updatelink // update link function                                   
+                                   pstr_occ_getnode        // getnode function
+                                   pstr_occ_getlink        // getlink function
+                                   pstr_occ_updatelink     // update link function
                                    seq
-                                   ((Array.length seq)-1)
+                                   ((Array.length seq)-1) // compute the P-view at the last occurrence
                                     
 
-(** O-View, specialized for sequences of type Pstringcontrol.pstring_node **) 
+(** O-View **) 
 let pstrseq_oview gr_nodes seq = seq_Xview gr_nodes
                                    Opponent
-                                   pstrseq_gennode_get        // get_gennode function                                   
-                                   pstrseq_gennode_getlink    // get_link function
-                                   pstrseq_gennode_updatelink // update link function                                   
+                                   pstr_occ_getnode        // getnode function
+                                   pstr_occ_getlink        // getlink function
+                                   pstr_occ_updatelink     // update link function
                                    seq
-                                   ((Array.length seq)-1)
+                                   ((Array.length seq)-1)  // compute the O-view at the last occurrence
 
-(** Subterm projection with respect to a reference root node.
-    Specialized for sequences of type Pstringcontrol.pstring_node **) 
+(** Subterm projection with respect to a reference root node **) 
 let pstrseq_subtermproj gr_nodes = subtermproj gr_nodes
-                                               pstrseq_gennode_get
-                                               pstrseq_gennode_getlink
-                                               pstrseq_gennode_updatelink
+                                               pstr_occ_getnode
+                                               pstr_occ_getlink
+                                               pstr_occ_updatelink
 
-(** Hereditary projection,
-    specialized for sequences of type Pstringcontrol.pstring_node **) 
-let pstrseq_herproj = heredproj pstrseq_gennode_getlink
-                                pstrseq_gennode_updatelink
+(** Hereditary projection **) 
+let pstrseq_herproj = heredproj pstr_occ_getlink
+                                pstr_occ_updatelink
                                 
 (** Prefixing **)
 let pstrseq_prefix seq at = Array.sub seq 0 (at+1)
@@ -201,17 +191,17 @@ let pstrseq_prefix seq at = Array.sub seq 0 (at+1)
 
 (** Traversal star **)
 let pstrseq_star gr_nodes = star gr_nodes
-                                 pstrseq_gennode_get
-                                 pstrseq_gennode_getlink
-                                 pstrseq_gennode_updatelink
+                                 pstr_occ_getnode
+                                 pstr_occ_getlink
+                                 pstr_occ_updatelink
 
 
 (** Traversal extension **)
 let pstrseq_ext gr_nodes = extension gr_nodes
-                                     pstrseq_gennode_get
-                                     pstrseq_gennode_getlink
-                                     pstrseq_gennode_updatelink
-                                     pstrseq_gennode_createdummy
+                                     pstr_occ_getnode
+                                     pstr_occ_getlink
+                                     pstr_occ_updatelink
+                                     Pstring.create_dummy_occ
 
 
 (** Map a player to a node shape **)
@@ -222,7 +212,7 @@ let player_to_color = function Proponent -> Color.Coral
                                | Opponent -> Color.CornflowerBlue
 
 (** Loads the traversal calculator window for a given computation graph. **)
-let ShowTraversalCalculatorWindow mdiparent filename ((gr_nodes,gr_edges) as compgraph) lnfrules =
+let ShowTraversalCalculatorWindow mdiparent graphsource_filename ((gr_nodes,gr_edges) as compgraph) lnfrules initialize_ws =
     let form_trav = new Traversal.Traversal()
 
     form_trav.MdiParent <- mdiparent;
@@ -246,6 +236,8 @@ let ShowTraversalCalculatorWindow mdiparent filename ((gr_nodes,gr_edges) as com
             form_trav.btAdd.Enabled <- false
             form_trav.btSubtermProj.Enabled <- false
             form_trav.btPrefix.Enabled <- false
+            form_trav.btStar.Enabled <- false
+            form_trav.btExt.Enabled <- false
             ctrl.Deselection();
             selection := None
 
@@ -262,6 +254,8 @@ let ShowTraversalCalculatorWindow mdiparent filename ((gr_nodes,gr_edges) as com
         form_trav.btAdd.Enabled <- true
         form_trav.btSubtermProj.Enabled <- true
         form_trav.btPrefix.Enabled <- true
+        form_trav.btStar.Enabled <- true
+        form_trav.btExt.Enabled <- true
         ctrl.Selection();
         selection := Some(ctrl)
         ctrl.Select();
@@ -303,10 +297,18 @@ let ShowTraversalCalculatorWindow mdiparent filename ((gr_nodes,gr_edges) as com
         form_trav.seqflowPanel.Controls.Add !new_pstr
         !new_pstr
     
-    // create a default pstring control
-    select_pstrcontrol (createAndAddPstringCtrl [||])
+    // add a handler for click on the nodes of the sequence
     //(!first).nodeClick.Add(fun _ -> 
     //        ignore( MessageBox.Show("salut","test", MessageBoxButtons.OK, MessageBoxIcon.Exclamation)))
+
+    // execute the worksheet initialization function
+    initialize_ws createAndAddPstringCtrl
+    
+    // select the last line
+    let p = form_trav.seqflowPanel.Controls.Count
+    if p > 0 then
+        select_pstrcontrol (form_trav.seqflowPanel.Controls.Item(p-1):?>PstringControl)
+      
     
     // The user has clicked in the void.
     form_trav.seqflowPanel.MouseDown.Add(fun _ -> // if the control (or one of the controls it contains) already has the focus
@@ -410,12 +412,30 @@ let ShowTraversalCalculatorWindow mdiparent filename ((gr_nodes,gr_edges) as com
 
     form_trav.btAdd.Click.Add(fun _ ->  match !selection with 
                                                 None -> ()
-                                              | Some(ctrl) -> ctrl.add_node {label="..."; link=0; tag = null; shape = ShapeRectangle; color = Color.White} )
+                                              | Some(ctrl) -> ctrl.add_node (create_blank_occ()))
 
     form_trav.btEditLabel.Click.Add(fun _ ->  match !selection with 
                                                 None -> ()
                                               | Some(ctrl) -> ctrl.EditLabel(); )
-    
+                                              
+
+    let filter = "Traversal worksheet *.xml|*.xml|All files *.*|*.*" in
+    form_trav.btSave.Click.Add(fun _ -> // savefile dialog box
+                                        let d = new SaveFileDialog() in 
+                                        d.Filter <- filter;
+                                        d.FilterIndex <- 1;
+                                        if d.ShowDialog() = DialogResult.OK then
+                                            Worksheetfile.save_worksheet d.FileName graphsource_filename lnfrules form_trav.seqflowPanel)
+
+    form_trav.btImport.Click.Add(fun _ -> // openfile dialog box
+                                          let d = new OpenFileDialog() in 
+                                          d.Filter <- filter;
+                                          d.FilterIndex <- 1;
+                                          d.Title <- "Import a worksheet..."
+                                          if d.ShowDialog() = DialogResult.OK then
+                                            (Worksheetfile.import_worksheet d.FileName lnfrules createAndAddPstringCtrl)
+                                )
+
     // bind the graph to the viewer
     let nd_2_col nd = player_to_color (graphnode_player nd)
     let nd_2_shape nd = player_to_shape (graphnode_player nd)
@@ -454,32 +474,42 @@ let ShowTraversalCalculatorWindow mdiparent filename ((gr_nodes,gr_edges) as com
                         
                         // add an internal node to the traversal
                         if e.Button = MouseButtons.Left then
-                            let gen_node = Internal(gr_nodeindex)
+                            let gen_node = InternalNode(gr_nodeindex)
                             let player = gennode_player gr_nodes gen_node
-                            ctrl.add_node { label = graph_node_label_with_idsuffix gr_nodes gr_nodeindex;
+                            
+                            ctrl.add_node { label= graph_node_label_with_idsuffix gr_nodes gr_nodeindex;
                                             tag = box gen_node; // Use the tag field to store the generalized graph node
                                             link = 0;
                                             shape=player_to_shape player;
                                             color=player_to_color player
-                                            }
+                                            } 
+                            (*ctrl.add_node (new pstring_occ(box gen_node, // Use the tag field to store the generalized graph node,
+                                                            (graph_node_label_with_idsuffix gr_nodes gr_nodeindex),
+                                                            0,
+                                                            player_to_shape player,
+                                                            player_to_color player))*)
                         // add a value-leaf node to the traversal
                         else
                             let gen_node = ValueLeaf(gr_nodeindex,1)
                             let player = gennode_player gr_nodes gen_node
-                            ctrl.add_node { label = "1_{"^(graph_node_label_with_idsuffix gr_nodes gr_nodeindex)^"}";
+                            ctrl.add_node { label= "1_{"^(graph_node_label_with_idsuffix gr_nodes gr_nodeindex)^"}";
                                             tag = box gen_node;
                                             link = 0;
                                             shape=player_to_shape player;
                                             color=player_to_color player
-                                           }       
+                                           }
+                            (*ctrl.add_node (new pstring_occ(box gen_node, // Use the tag field to store the generalized graph node,
+                                                            "1_{"^(graph_node_label_with_idsuffix gr_nodes gr_nodeindex)^"}",
+                                                            0,
+                                                            player_to_shape player,
+                                                            player_to_color player)) *)
                         refocus_pstrcontrol()
                     end
               | _ -> ()
         );
     
-
-    // convert a pstrnode to latex code
-    let pstrnode_to_latex pstrnode =
+    // convert an node-occurrence to latex code
+    let pstrocc_to_latex (pstrnode:pstring_occ) =
         if pstrnode.tag = null then
           pstrnode.label
         else
@@ -488,7 +518,25 @@ let ShowTraversalCalculatorWindow mdiparent filename ((gr_nodes,gr_edges) as com
     form_trav.btExportGraph.Click.Add(fun _ -> Texexportform.LoadExportGraphToLatexWindow mdiparent lnfrules)
     form_trav.btExportTrav.Click.Add(fun _ -> match !selection with 
                                                 None -> ()
-                                              | Some(ctrl) -> Texexportform.LoadExportTraversalToLatexWindow mdiparent pstrnode_to_latex ctrl.Sequence)
+                                              | Some(ctrl) -> Texexportform.LoadExportTraversalToLatexWindow mdiparent pstrocc_to_latex ctrl.Sequence)
+    form_trav.btExportWS.Click.Add(fun _ -> let p = form_trav.seqflowPanel.Controls.Count
+                                            let exp = ref ""
+                                            for i = 0 to p-1 do
+                                                exp := !exp^eol^("\\item $"^(Texexportform.traversal_to_latex pstrocc_to_latex (form_trav.seqflowPanel.Controls.Item(i):?>PstringControl).Sequence)^"$")
+                                            done;
+                                            let latex_preamb = "% Generated automatically by HOG
+% -*- TeX -*- -*- Soft -*-
+\\documentclass{article}
+\\usepackage{pstring}
+
+\\begin{document}
+\\begin{itemize}
+"
+                                            and latex_post = "
+\\end{itemize}
+\\end{document}
+"
+                                            Texexportform.LoadExportToLatexWindow mdiparent latex_preamb !exp latex_post)
 
     ignore(form_trav.Show()) 
 ;;

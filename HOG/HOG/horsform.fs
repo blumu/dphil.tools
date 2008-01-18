@@ -151,7 +151,9 @@ type HorsForm =
         // 
         // calculator
         // 
-        this.btCalculator.Click.Add(fun e -> Traversal_form.ShowTraversalCalculatorWindow this.MdiParent this.filename this.compgraph this.lnfrules );
+        this.btCalculator.Click.Add(fun e -> Traversal_form.ShowTraversalCalculatorWindow this.MdiParent this.filename this.compgraph this.lnfrules 
+                                                                                           // Worksheet initialization : create a default pstring control
+                                                                                           (fun add -> ignore(add [||])));
         
         //
         // cpdaButton

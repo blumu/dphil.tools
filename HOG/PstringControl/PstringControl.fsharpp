@@ -19,8 +19,8 @@
     "CustomCompilationCheck" = "TRUE"
     "DebugStartMode" = "1"
     "StartApp" = "D:\\my documents\\dev\\HOG\\bin\\Debug\\hog.exe"
-    "StartAppPath" = "D:\\my documents\\dev\\HOG\\examples"
-    "CustomStartupArguments" = "example.lmd"
+    "StartAppPath" = "D:\\my documents\\dev\\HOG\\examples\\"
+    "CustomStartupArguments" = "luke_ex.xml"
     }
     "Release|Win32"
     {

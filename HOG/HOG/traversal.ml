@@ -14,14 +14,16 @@ type leaf_value = int
  
 let string_of_value = string_of_int
  
-(** Type of a generalized graph node i.e. a node of the computation graph with value-leaves attached to each node **)
-type gen_node =   Internal of int  (* the index of a node of the computation graph *)
+(** Type of a generalized graph node i.e. a node of the full computation graph with value-leaves attached to each node **)
+type gen_node =    Custom    (* a custom node that is not in the computation graph *)
+                 | InternalNode of int  (* the index of a node of the computation graph *)
                  | ValueLeaf of int * leaf_value (* the index of the parent node in the computation graph
                                               and a value *)
 (** Convert a generalized node to latex 
     @parem gr_nodes the array of nodes of the computaiton graph **)                                              
 let gennode_to_latex gr_nodes = function
-                           Internal(gr_inode) -> graphnodelabel_to_latex gr_nodes.(gr_inode)
+                         | Custom -> "?"
+                         | InternalNode(gr_inode) -> graphnodelabel_to_latex gr_nodes.(gr_inode)
                          | ValueLeaf(gr_inode,value) -> "{"^(string_of_value value)^"}_{"^(graph_node_label gr_nodes.(gr_inode))^"}"
 
 (** Type of a traversal node **)
@@ -42,12 +44,13 @@ let graphnode_player = function
 ;;
 
 
-(** Tells who plays a given generalized graph node
-    @parem gr_nodes the array of nodes of the computation graph **)                                              
+(** [gennode_player gr_nodes gennode] Tells who plays a given generalized graph node
+    @param gr_nodes the array of nodes of the computation graph
+    @param gennode the generalized graph node
+     **)
 let gennode_player gr_nodes = function
-     (* this is the special case of the dummy traversal node that can be introduced by the Extension operation. *)
-      Internal(-1) -> Opponent
-    | Internal(gr_i) -> graphnode_player gr_nodes.(gr_i)
+      Custom -> Opponent
+    | InternalNode(gr_i) -> graphnode_player gr_nodes.(gr_i)
     | ValueLeaf(gr_i,_) -> player_permute (graphnode_player gr_nodes.(gr_i))
     
 
@@ -69,14 +72,14 @@ let gennode_player gr_nodes = function
 let update_links_after_removing_a_section get_link update_link length suffix =
     List.mapi (fun i nd -> let link = get_link nd in
                            (* no link? *)
-                           if link = 0 then
+                           if link <= i then
                              nd
                            (* dangling link? *)
-                           else if link > i && link <= length then
+                           else if link > i && link <= i-length then
                              failwith "Dangling link! This sequence does not respect visibility!"
                            (* otherwise we update the link *)
                            else
-                             update_link nd (link-length) 
+                             update_link nd (link-length);
                     ) suffix
 
 (** [seq_Xview xplayer pos gr_nodes seq] computes the X-View where X is in {O,P}
@@ -122,11 +125,12 @@ let seq_Xview gr_nodes xplayer get_gennode get_link update_link seq pos =
     @param update_link function that given an occurrences of the sequence [seq] and a link length
             returns the same node associated with the new link length
     @param seq is the input sequence of node-with-pointers (of generic type) 
-    @param root is the index in [seq] of the root of the hereditary justification
+    @param root is the index in [seq] of the reference occurrence of the root of the hereditary justification
     @return the subarray of [seq] consisting of the nodes that are hereditarily justified by [root]
 **)
 let heredproj getlink updatelink seq root =
-  let n = Array.length seq in
+  let n = Array.length seq in  
+  (* calculate the new position of the occurrences following the reference node *)
   let p = n-root in
   let newindex = Array.create p (-1) in
   newindex.(0) <- 0; (* the reference node is in the projection *)
@@ -144,7 +148,8 @@ let heredproj getlink updatelink seq root =
      | _ -> newindex.(i) <- !k;
             incr k
   done;
-  array_map_filteri (fun i nd -> if i = 0 then
+  (* filter the subsequence starting at the root *)
+  array_map_filteri (fun i _ -> if i = 0 then
                                     Some(updatelink seq.(root+i) 0) (* the root has no link anymore *)
                                  else
                                    match newindex.(i) with 
@@ -172,6 +177,8 @@ let heredproj getlink updatelink seq root =
 **)
 let subtermproj gr_nodes get_gennode getlink updatelink seq root =
   let n = Array.length seq in
+  
+  (* 1 - Calculate the occurence positions that are preserved. *)
   let p = n-root in
   let newindex = Array.create p (-1) in
   newindex.(0) <- 0; (* the reference node is in the projection *)
@@ -191,12 +198,12 @@ let subtermproj gr_nodes get_gennode getlink updatelink seq root =
       | Opponent ->
          (* It is an O-move therefore we keep the occurrence iff its justifier was kept... *)
                  
-            (* if there the occurrence has no link then it is not in the projection *)
+           (* if there the occurrence has no link then it is not in the projection *)
          if link = 0
-            (* if it has a link going beyond the reference node then it is not in the projection *)
-         || link > i 
-            (* if its justifier is not in the projection then it is not in the projection *)
-         || newindex.(i-link) = -1 then
+           (* if it has a link going beyond the reference node then it is not in the projection *)
+           || link > i 
+           (* if its justifier is not in the projection then it is not in the projection *)
+           || newindex.(i-link) = -1 then
             ()
          (* otherwise its justifier is in the projection therefore it must also be in it *)
          else
@@ -205,24 +212,26 @@ let subtermproj gr_nodes get_gennode getlink updatelink seq root =
              incr k
            end
   done;
-  array_map_filteri (fun i nd -> let occi = seq.(root+i) in
+  (* 2 - Removes the nodes and update the links *)
+  array_map_filteri (fun i _ -> let occi = seq.(root+i) in
                                  if i = 0 then
-                                    Some(updatelink occi 0) (* the root has no link anymore *)
+                                    Some(updatelink occi 0) (* the root has no link in the projection. *)
                                  else
                                    match newindex.(i) with 
                                       -1 -> None (* this nodes is not kept *)
                                      | newi -> (* we keep this node *)
                                               let l = getlink occi in (* link's length in the original sequence *)
                                               Some(updatelink   occi 
-                                                                ( (* is the pointer dangling after projection? *)
-                                                                  if l > newi then 
+                                                                ( (* is the pointer dangling after taking the projection? *)
+                                                                  //if l > newi then 
+                                                                  if newindex.(i-l) = -1 then
                                                                     newi (* yes so make it points to the root instead *)
                                                                   
                                                                   (* the pointer is not dangling *)
                                                                   else
                                                                     (* ...so we just need to update the link length 
-                                                                      to take into account that some nodes may have been removed
-                                                                    newi-newindex.(i-l) *)
+                                                                      to take into account the fact that some nodes may have been removed *)
+                                                                    newi-newindex.(i-l) 
                                                                 ))
                     )
                     newindex
@@ -230,6 +239,21 @@ let subtermproj gr_nodes get_gennode getlink updatelink seq root =
 
 
 (*** Star and extension ***)
+
+
+(** @return true iff [occ] is an occurrence of a @-node of constant node
+    @param gr_nodes is the array of nodes of the computation graph 
+    @param get_gennode function that maps occurrences their corresponding generalized node in the computation graph
+**)
+let is_app_or_constant gr_nodes get_gennode occ =
+ match get_gennode occ with 
+  Custom -> false
+| InternalNode(gr_i) | ValueLeaf(gr_i,_) -> 
+    match gr_nodes.(gr_i) with 
+        NCntAbs(_,_)  | NCntVar(_) -> false
+      | NCntApp | NCntTm(_) -> true
+;;
+
 
 (** Traversal star: remove the @ and constant nodes and adjust the pointers appropriately.
 
@@ -245,56 +269,39 @@ let subtermproj gr_nodes get_gennode getlink updatelink seq root =
     @remark: [root] must be the occurrence index of a lambda-node (Opponent)
     although this transformation is also well-defined if [root] is a Proponent node.
 **)
-let star gr_nodes get_gennode getlink updatelink seq root = seq
-  (* return true iff [occ] is a @ or constant node *)
-  let is_app_or_constant occ =
-     match get_gennode occ with 
-      Internal(-1) -> false
-    | Internal(gr_i) | ValueLeaf(gr_i,_) -> 
-        match gr_nodes.(gr_i) with 
-            NCntAbs(_,_)  | NCntVar(_) -> false
-          | NCntApp | NCntTm(_) -> true
+let star gr_nodes get_gennode getlink updatelink seq root =
 
   let n = Array.length seq in
 
   (* array mapping old index to new index. Cell containing -1 correspond to node that must removed from the sequence [seq]. *)
-  let newindex = Array.create n (-1) in
+  let newindex = Array.create n (-1)
                                
   (* number of nodes that have not been removed *)
   and n_notremoved = ref 0 in
   
-  (* compute the positions of the occurences of [occ] in the filtered sequence. *)
+  (* 1 - Calculate the occurence positions in [occ] that are preserved. *)
   for i = 0 to n-1 do
-    if is_app_or_constant occ then
-        newindex.(i) := -1
+    if is_app_or_constant gr_nodes get_gennode seq.(i) then
+        newindex.(i) <- -1
     else
-        newindex := !n_notremoved;
+      begin
+        newindex.(i) <- !n_notremoved;
         incr n_notremoved
+      end;
   done;
   
-  (* Removes the nodes and update the links *)
-  array_map_filteri (fun i nd -> let occi = seq.(root+i) in
-                                 match newindex.(i) with 
+  (* 2 - Removes the nodes and update the links *)
+  array_map_filteri (fun i occi -> match newindex.(i) with 
                                     -1 -> None (* we do not keep this node *)
                                   | newi -> (* we keep the node *)
-                                   try 
-                                    (** does this occ need to be removed? **)
-                                    let p = List.assoc i removedindex in                                   
-                                                  let l = getlink occi in (* link's length in the original sequence *)
-                                                  Some(updatelink   occi 
-                                                                    ( (* is the pointer dangling after projection? *)
-                                                                      if l > newi then 
-                                                                        newi (* yes so make it points to the root instead *)
-                                                                      
-                                                                      (* the pointer is not dangling *)
-                                                                      else
-                                                                        (* ...so we just need to update the link length 
-                                                                           to take into account that some nodes may have been removed *)
-                                                                        newi-newindex.(i-l)
-                                                                    ))
-                                    with Not_found -> Some(occi)
+                                        let j = i - (getlink occi) in (* justifier index *)
+                                        (* if the justifier is removed then make it point to the immediate predecessor of the justifier *)
+                                        if newindex.(j) = -1 then 
+                                            Some(updatelink occi (newi-newindex.(j-1)))
+                                        else
+                                            Some(updatelink occi (newi-newindex.(j)))
                     )
-                    newindex
+                    seq
   
 ;;
 
@@ -321,12 +328,8 @@ let extension gr_nodes get_gennode getlink updatelink createdummy seq root =
   let ext = Array.append [|createdummy "\diamond" 0|] seq in
   (* make the @/constant-nodes point to their predecessor. *)
   for i = 1 to n do
-     match get_gennode occ with 
-      Internal(-1) -> ()
-    | Internal(gr_i) | ValueLeaf(gr_i,_) -> 
-        match gr_nodes.(gr_i) with 
-            NCntAbs(_,_)  | NCntVar(_) -> ()
-          | NCntApp | NCntTm(_) ->  ext.(i) <- updatelink occ 1        
+    if is_app_or_constant gr_nodes get_gennode ext.(i) then
+      ext.(i) <- updatelink ext.(i) 1
   done;
   ext
 ;;

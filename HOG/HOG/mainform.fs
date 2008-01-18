@@ -6,10 +6,9 @@
 #light
 
 (** Application version **)
-let VERSION = "0.0.3";;
+let VERSION = "0.0.4";;
 
 open System
-open System.IO  
 open System.Windows.Forms
 open System.IO
 open List
@@ -35,78 +34,35 @@ let getText s = txtConsole.Text
 setText     ("Console:"^eol)
 
 
-let Debug_print str =
-    setText (getText()^eol^str)
-;;
-
-exception ParseError of string
-
-let parse_file parser lexer (fname:string) = 
-
-    try
-        let str  = new StreamReader(fname) in
-        let text = str.ReadToEnd () in
-        str.Close();
-        
-        Debug_print ("Opening "^fname^eol);
-        let stream =  new StreamReader(fname) 
-
-        // Create the lexer, presenting the bytes to the lexer as ASCII regardless of the original
-        // encoding of the stream (the lexer specification 
-        // is designed to consume ASCII)
-        let lexbuf = Lexing.from_text_reader System.Text.Encoding.ASCII stream 
-        try             
-            // Call the parser             
-            let parsed_object = try  parser lexer lexbuf
-                                with  Parsing.MissingSection -> raise (ParseError "Bad file format: some compulsory section is missing!")
-                                    | e ->  let pos = lexbuf.EndPos
-                                            raise (ParseError ((sprintf "error near line %d, character %d" (pos.pos_lnum+1) (pos.pos_cnum - pos.pos_bol +1))^eol^e.ToString()^"parsing aborted!"^eol))
-
-            stream.Close();
-            
-            //Debug_print ("File content:"^eol^" "^text^eol);
-            Some(parsed_object)
-
-        finally stream.Close();
-    with   :? System.IO.FileNotFoundException -> Debug_print ("File not found! ("^fname^")"); None
-         | ParseError(msg) -> Debug_print msg; None
-;;
+// redirect the debug output to the console textbox
+Common.Debug_print := function str -> setText (getText()^eol^str);;
 
 
 
-(** Return the extension part of a filename **)
-let get_file_extension filename =
-    try 
-        let extpart = String.rindex filename '.' in
-        String.sub filename (extpart+1) ((String.length filename)-extpart-1)        
-    with Not_found -> ""
-;;
-
- 
 let mainform = new System.Windows.Forms.Form()
 
 
 
 // open a file containing either a term or a Rec scheme
 let open_file filename =
-    match (get_file_extension filename) with 
-            "rs" ->  
-                     match parse_file Hog_parser.hog_specification Hog_lexer.token filename with
+    match (Parsing.get_file_extension filename) with 
+            "rs" ->  match Parsing.parse_file Hog_parser.hog_specification Hog_lexer.token filename with
                          None -> ()
                          | Some(o) -> (* Load the Windows form for the recursion scheme *)
                                       let form = new Horsform.HorsForm(filename, o)
                                       form.MdiParent <- mainform;
                                       form.WindowState<-FormWindowState.Maximized;
                                       ignore(form.Show())
-          | "lmd" ->
-                     match parse_file Ml_parser.term_in_context Ml_lexer.token filename with
+          | "lmd" -> match Parsing.parse_file Ml_parser.term_in_context Ml_lexer.token filename with
                          None -> ()
                          | Some(o) -> let form = new Lmdtermform.TermForm(filename, o)
                                       form.MdiParent <- mainform;
                                       form.WindowState<-FormWindowState.Maximized;
-                                      ignore(form.Show())          
+                                      ignore(form.Show())
+                                      
+          | "xml" -> Worksheetfile.open_worksheet filename (Traversal_form.ShowTraversalCalculatorWindow mainform)
           
-          | _ -> Debug_print("Unknown file format!"^eol)
+          | _ -> !Common.Debug_print ("Unknown file format!"^eol)
 ;;
 
 
@@ -132,38 +88,41 @@ let mHelp = mainform.Menu.MenuItems.Add("&Help")
 mWindowList.MdiList <- true
 
 // menu items 
-let miOpen  = new MenuItem("&Open scheme...")
-let miOpenLmd  = new MenuItem("&Open term...")
+let miOpen  = new MenuItem("Open &scheme...")
+let miOpenLmd = new MenuItem("Open &term...")
+let miOpenWs =  new MenuItem("Open &worksheet...")
 let miQuit  = new MenuItem("&Quit")
 let miAbout = new MenuItem("&About...")
 
 mFile.MenuItems.Add(miOpen)
 mFile.MenuItems.Add(miOpenLmd)
+mFile.MenuItems.Add(miOpenWs)
 mFile.MenuItems.Add(miQuit)
 mHelp.MenuItems.Add(miAbout)
 
 
 
-type FileType = RecSchemeFile | TermFile
+type FileType = RecSchemeFile | TermFile | Worksheet
 
 // openfile dialog box
 let open_dialog defaulttype _ = 
     let d = new OpenFileDialog() in 
-    d.Filter <- "Higher-order recursion scheme *.rs|*.rs|Lambda term *.lmd|*.lmd|All files *.*|*.*";
-    d.FilterIndex <- match defaulttype with RecSchemeFile -> 1 | TermFile -> 2;
+    d.Filter <- "Higher-order recursion scheme *.rs|*.rs|Lambda term *.lmd|*.lmd|Traversal worksheet *.xml|*.xml|All files *.*|*.*";
+    d.FilterIndex <- match defaulttype with RecSchemeFile -> 1 | TermFile -> 2 | Worksheet -> 3 ;
     if d.ShowDialog() = DialogResult.OK then
         open_file d.FileName
 
 
 
 let opAbout _ = 
-    MessageBox.Show("HOG by William Blum, 2007","About HOG") |> ignore
+    MessageBox.Show("HOG by William Blum, 2007-2008","About HOG") |> ignore
 
 let opExitForm _ = mainform.Close ()
 
 // callbacks 
 miOpen.Click.Add(open_dialog RecSchemeFile)
 miOpenLmd.Click.Add(open_dialog TermFile)
+miOpenWs.Click.Add(open_dialog Worksheet)
 miQuit.Click.Add(opExitForm)
 miAbout.Click.Add(opAbout)
   

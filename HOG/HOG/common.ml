@@ -55,3 +55,6 @@ let rec array_map_filteri f a =
     in array_fold_lefti aux [||] a
 ;;    
   
+
+
+let Debug_print = ref print_string;;

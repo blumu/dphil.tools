@@ -77,12 +77,16 @@ type TermForm =
         // 
         // graphButton
         // 
-        this.btExportGraph.Click.Add(fun e -> Traversal_form.ShowCompGraphWindow this.MdiParent this.filename this.compgraph ["",lnfterm]);
+        this.btGraph.Click.Add(fun e -> Traversal_form.ShowCompGraphWindow this.MdiParent this.filename this.compgraph ["",lnfterm]);
         
         //
         // Play traversal
         //
-        this.btCalculator.Click.Add( fun e -> Traversal_form.ShowTraversalCalculatorWindow this.MdiParent this.filename this.compgraph ["",lnfterm] );
+        this.btCalculator.Click.Add( fun e -> Traversal_form.ShowTraversalCalculatorWindow this.MdiParent this.filename this.compgraph ["",lnfterm]
+                                                                                           // Worksheet initialization : create a default pstring control
+                                                                                           (fun add -> ignore(add [||])));
+        
+        //select_pstrcontrol (createAndAddPstringCtrl [||])
 
     
     val mutable lmdterm : ml_termincontext;

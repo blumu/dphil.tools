@@ -54,8 +54,40 @@
     "lnf.ml"
     {
     "ProjRelPath" = "T"
+    }  
+    "coreml.mli"
+    {
+    "ProjRelPath" = "T"
     }
-    "traversal.ml"
+    "coreml.ml"
+    {
+    "ProjRelPath" = "T"
+    }
+    "parsing.fs"
+    {
+    "ProjRelPath" = "T"
+    }
+    "ml_parser.mly"
+    {
+    "ProjRelPath" = "T"
+    }
+    "ml_lexer.mll"
+    {
+    "ProjRelPath" = "T"
+    }
+    "ml_parser.mli"
+    {
+    "ProjRelPath" = "T"
+    }
+    "ml_parser.ml"
+    {
+    "ProjRelPath" = "T"
+    }
+    "ml_lexer.ml"
+    {
+    "ProjRelPath" = "T"
+    }
+      "traversal.ml"
     {
     "ProjRelPath" = "T"
     }
@@ -63,15 +95,11 @@
     {
     "ProjRelPath" = "T"
     }
+    "worksheetfile.fs"
+    {
+    "ProjRelPath" = "T"
+    } 
     "traversal_form.fs"
-    {
-    "ProjRelPath" = "T"
-    }
-    "coreml.mli"
-    {
-    "ProjRelPath" = "T"
-    }
-    "coreml.ml"
     {
     "ProjRelPath" = "T"
     }
@@ -95,10 +123,6 @@
     {
     "ProjRelPath" = "T"
     }
-    "parsing.ml"
-    {
-    "ProjRelPath" = "T"
-    }
     "hog_parser.mli"
     {
     "ProjRelPath" = "T"
@@ -118,27 +142,7 @@
     "lmdtermform.fs"
     {
     "ProjRelPath" = "T"
-    }
-    "ml_lexer.mll"
-    {
-    "ProjRelPath" = "T"
-    }
-    "ml_parser.mly"
-    {
-    "ProjRelPath" = "T"
-    }
-    "ml_parser.mli"
-    {
-    "ProjRelPath" = "T"
-    }
-    "ml_parser.ml"
-    {
-    "ProjRelPath" = "T"
-    }
-    "ml_lexer.ml"
-    {
-    "ProjRelPath" = "T"
-    }
+    }  
     "mainform.fs"
     {
     "ProjRelPath" = "T"
@@ -168,6 +172,10 @@
     "ProjRelPath" = "T"
     }
     "example.lmd"
+    {
+    "ProjRelPath" = "T"
+    }
+    "worksheetfile.fs"
     {
     "ProjRelPath" = "T"
     }

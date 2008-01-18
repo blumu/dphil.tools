@@ -18,10 +18,61 @@ type NodeClickEventArgs =
          then () 
     end
 
+
 type Shapes = ShapeRectangle | ShapeOval
 
-type pstring_node = { tag: obj; label: string; link:int; shape:Shapes; color:Color }
-type pstring = pstring_node array
+let shape_to_string = function ShapeRectangle -> "ShapeRectangle" | ShapeOval -> "ShapeOval" 
+and shape_of_string = function "ShapeRectangle" -> ShapeRectangle | "ShapeOval" -> ShapeOval | _ -> failwith "Unknown shape!"
+
+// Type for nodes occurrences
+type pstring_occ = { 
+    tag: obj;
+    label: string;
+    link:int;
+    shape:Shapes;
+    color:Color
+}
+
+
+// getlink function for sequences of type Pstringcontrol.pstring
+let pstr_occ_getlink (nd:pstring_occ) = nd.link
+
+// updatelink function for sequences of type Pstringcontrol.pstring
+let pstr_occ_updatelink (nd:pstring_occ) newlink =
+    {tag=nd.tag;color=nd.color;shape=nd.shape;label=nd.label;link=newlink}
+    //new pstring_occ(nd.tag,nd.label,newlink,nd.shape,nd.color)
+     
+// create a dummy pstring occurence (which does not correspond to any node of the computation graph)
+let create_dummy_occ newlabel newlink = 
+    {tag=null;color=Color.Beige;shape=ShapeRectangle;label=newlabel;link=newlink}
+    //new pstring_occ(null,newlabel,newlink,ShapeRectangle,Color.Beige)
+
+// create a blank pstring occurrence (which does not correspond to any node of the computation graph)
+let create_blank_occ () = 
+     {label="..."; link=0; tag = null; shape = ShapeRectangle; color = Color.White}
+     //new pstring_occ(null,"...",0,ShapeRectangle,Color.White)
+     
+
+// [<field: XmlAttribute("Tag")>]
+(*
+type pstring_occ = class
+                        // these must be immutable otherwise the world collapses...
+                        val public tag:obj;
+                        val public label:string;
+                        val public link:int;
+                        val public shape:Shapes;
+                        val public color:Color;
+                          
+                        new () as this = 
+                            { tag=null; label="";link=0;shape=ShapeOval;color=Color.Blue}
+                            then ()
+
+                        new (ntag,nlabel,nlink,nshape,ncolor) as this = 
+                            { tag=ntag; label=nlabel;link=nlink;shape=nshape;color=ncolor}
+                            then ()
+                       end
+*)
+type pstring = pstring_occ array
 
 
 type NodeClickHandler = IHandlerEvent<NodeClickEventArgs> 
@@ -332,6 +383,8 @@ type PstringControl =
                                                           link=cur.link;
                                                           shape=cur.shape;
                                                           color=cur.color }
+                    //this.sequence.(this.edited_node).label <- this.nodeEditTextBox.Text;
+                    
                     this.Select()
                     this.recompute_bbox()
                     this.Invalidate()
@@ -354,6 +407,7 @@ type PstringControl =
                                 if sel < this.selected_node then
                                   begin
                                     let node = this.sequence.(this.selected_node)
+                                    //this.sequence.(this.edited_node).link <- this.selected_node-sel;
                                     this.sequence.(this.selected_node) <- {link=this.selected_node-sel;
                                                                            tag=node.tag;
                                                                            label=node.label;
@@ -362,6 +416,7 @@ type PstringControl =
                                   end
                             with Not_found ->
                                     let node = this.sequence.(this.selected_node)
+                                    //this.sequence.(this.edited_node).link <- 0;
                                     this.sequence.(this.selected_node) <- {link=0;
                                                                            tag=node.tag;
                                                                            label=node.label
@@ -379,12 +434,14 @@ type PstringControl =
                                             let node = this.sequence.(this.selected_node)
                                             if this.selected_node -node.link-1 >= 0 then
                                               this.sequence.(this.selected_node) <- {link = node.link+1; tag = node.tag; label=node.label;shape=node.shape;color=node.color}
+                                              //this.sequence.(this.selected_node).link <- node.link+1;
                                               this.recompute_bbox()
                                               this.Invalidate()
                                         | Keys.PageDown when this.selected_node < Array.length this.sequence ->
                                             let node = this.sequence.(this.selected_node)
                                             if node.link > 0 then
                                               this.sequence.(this.selected_node) <- {link = node.link-1; tag = node.tag; label=node.label;shape=node.shape;color=node.color}
+                                              //this.sequence.(this.selected_node).link <- node.link-1;
                                               this.recompute_bbox()
                                               this.Invalidate()
                                         | Keys.Left when this.selected_node > 0 ->   this.selected_node <- this.selected_node-1

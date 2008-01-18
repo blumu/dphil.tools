@@ -163,7 +163,8 @@ let traversal_to_latex travnode_to_latex (trav:Pstring.pstring) =
     let name_node i = "n"^(string_of_int i) in
     let body = 
     //for i= Array.length trav-1)-i to 0 do
-        (fst (Common.array_fold_lefti (fun i (acc,named_nodes_set) travnode -> let src = (Array.length trav-1)-i
+        (fst (Common.array_fold_lefti (fun i (acc,named_nodes_set) (travnode:pstring_occ) ->
+                                                                               let src = (Array.length trav-1)-i
                                                                                let latex_label = "{"^(travnode_to_latex travnode)^"}"
                                                                                match travnode.link with
                                                                                       0 when IntSet.mem src named_nodes_set -> ("("^(name_node src)^")"^latex_label^"\ "^acc), named_nodes_set
@@ -175,7 +176,7 @@ let traversal_to_latex travnode_to_latex (trav:Pstring.pstring) =
     "\\Pstr[0.7cm]{"^body^"}"
 ;;
 
-let LoadExportTraversalToLatexWindow mdiparent travnode_to_latex (trav:Pstring.pstring) =
+let LoadExportTraversalToLatexWindow mdiparent travocc_to_latex (trav:Pstring.pstring) =
     let latex_preamb = "% Generated automatically by HOG
 % -*- TeX -*- -*- Soft -*-
 \\documentclass{article}
@@ -189,5 +190,5 @@ let LoadExportTraversalToLatexWindow mdiparent travnode_to_latex (trav:Pstring.p
 
 \\end{document}
 "
-    LoadExportToLatexWindow mdiparent latex_preamb ("$"^(traversal_to_latex travnode_to_latex trav)^"$") latex_post
+    LoadExportToLatexWindow mdiparent latex_preamb ("$"^(traversal_to_latex travocc_to_latex trav)^"$") latex_post
 ;;

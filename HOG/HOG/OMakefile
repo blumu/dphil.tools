@@ -8,23 +8,24 @@ FS_FILES[] =
     common.ml
     type.ml
     lnf.ml
+    Coreml.mli
+    Coreml.ml
+    parsing.fs
+    ml_parser.mli
+    ml_parser.ml
+    ml_lexer.ml
     traversal.ml
     texexportform.fs
+    worksheetfile.fs
     traversal_form.fs
     hog.mli
     hog.ml
     hocpda.ml
     cpdaform.fs
     horsform.fs
-    parsing.ml
     hog_parser.mli
     hog_parser.ml
     hog_lexer.ml
-    Coreml.mli
-    Coreml.ml
-    ml_parser.mli
-    ml_parser.ml
-    ml_lexer.ml
     lmdtermform.fs
     mainform.fs
 

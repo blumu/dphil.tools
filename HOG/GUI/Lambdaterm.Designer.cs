@@ -34,7 +34,7 @@ namespace GUI
             this.label2 = new System.Windows.Forms.Label();
             this.panel1 = new System.Windows.Forms.Panel();
             this.btCalculator = new System.Windows.Forms.Button();
-            this.btExportGraph = new System.Windows.Forms.Button();
+            this.btGraph = new System.Windows.Forms.Button();
             this.panel1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -87,7 +87,7 @@ namespace GUI
             // panel1
             // 
             this.panel1.Controls.Add(this.btCalculator);
-            this.panel1.Controls.Add(this.btExportGraph);
+            this.panel1.Controls.Add(this.btGraph);
             this.panel1.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel1.Location = new System.Drawing.Point(0, 0);
             this.panel1.Name = "panel1";
@@ -97,22 +97,22 @@ namespace GUI
             // btCalculator
             // 
             this.btCalculator.Anchor = System.Windows.Forms.AnchorStyles.Left;
-            this.btCalculator.Location = new System.Drawing.Point(150, 3);
+            this.btCalculator.Location = new System.Drawing.Point(164, 3);
             this.btCalculator.Name = "btCalculator";
             this.btCalculator.Size = new System.Drawing.Size(127, 24);
             this.btCalculator.TabIndex = 1;
             this.btCalculator.Text = "&Traversal Calculator";
             this.btCalculator.UseVisualStyleBackColor = true;
             // 
-            // btExportGraph
+            // btGraph
             // 
-            this.btExportGraph.Anchor = System.Windows.Forms.AnchorStyles.Left;
-            this.btExportGraph.Location = new System.Drawing.Point(17, 3);
-            this.btExportGraph.Name = "btExportGraph";
-            this.btExportGraph.Size = new System.Drawing.Size(127, 24);
-            this.btExportGraph.TabIndex = 0;
-            this.btExportGraph.Text = "&Graph -> LaTeX...";
-            this.btExportGraph.UseVisualStyleBackColor = true;
+            this.btGraph.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.btGraph.Location = new System.Drawing.Point(12, 3);
+            this.btGraph.Name = "btGraph";
+            this.btGraph.Size = new System.Drawing.Size(146, 24);
+            this.btGraph.TabIndex = 0;
+            this.btGraph.Text = "&View computation graph";
+            this.btGraph.UseVisualStyleBackColor = true;
             // 
             // Lambdaterm
             // 
@@ -140,7 +140,7 @@ namespace GUI
         public System.Windows.Forms.Label label2;
         public System.Windows.Forms.Panel panel1;
         public System.Windows.Forms.Button btCalculator;
-        public System.Windows.Forms.Button btExportGraph;
+        public System.Windows.Forms.Button btGraph;
 
     }
 }
