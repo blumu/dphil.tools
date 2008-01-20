@@ -9,9 +9,18 @@ open System.Drawing
 open System.Windows.Forms
 open Traversal
 open Lnf
+open Compgraph
 open GUI
 open Pstring
 
+
+(** Map a player to a node shape **)
+let player_to_shape = function Proponent -> ShapeRectangle
+                               | Opponent -> ShapeOval
+(** Map a player to a node color **)
+let player_to_color = function Proponent -> Color.Coral
+                               | Opponent -> Color.CornflowerBlue
+(***** Pstring functions *****)
 
 (** Convert a colors of type System.Drawing.Color to a color of type Microsoft.Glee.Drawing.Color **)
 let sysdrawingcolor_2_gleecolor (color:System.Drawing.Color) :Microsoft.Glee.Drawing.Color = 
@@ -22,26 +31,153 @@ let pstringshape_2_gleeshape =
     function  Pstring.Shapes.ShapeRectangle -> Microsoft.Glee.Drawing.Shape.Box
              | Pstring.Shapes.ShapeOval -> Microsoft.Glee.Drawing.Shape.Circle
 
+(** Create a pstring occurrence from a gennode **)
+let occ_from_gennode (compgraph:computation_graph) gennode lnk =
+    let player = compgraph.gennode_player gennode    
+    let lab =
+        match gennode with
+          Custom -> "?"
+        | ValueLeaf(nodeindex,v) -> (string_of_int nodeindex)^"_{"^(compgraph.node_label_with_idsuffix nodeindex)^"}"
+        | InternalNode(nodeindex) -> compgraph.node_label_with_idsuffix nodeindex
+    { label= lab;
+      tag = box gennode; // Use the tag field to store the generalized graph node
+      link = lnk;
+      shape=player_to_shape player;
+      color=player_to_color player
+    } 
+    (*ctrl.add_node (new pstring_occ(box gennode, // Use the tag field to store the generalized graph node,
+                                        (compgraph.node_label_with_idsuffix gr_nodeindex),
+                                        0,
+                                        player_to_shape player,
+                                        player_to_color player))*)
+                                        
+
+(** Return the generalized graph node of a given occurrence in a Pstringcontrol.pstring sequence **)
+let pstr_occ_getnode (nd:pstring_occ) =
+    if nd.tag = null then
+        failwith "This is not a valid justified sequence. Some node-occurrence does not belong to the computation graph/tree."
+    else 
+        (unbox nd.tag:gen_node)
+
+//// Sequence transformations
+
+(**** Sequence transformations specialized for sequences of type Pstringcontrol.pstring  ****)
+     
+(** P-View **) 
+let pstrseq_pview gr seq = seq_Xview gr
+                                     Proponent 
+                                     pstr_occ_getnode        // getnode function
+                                     pstr_occ_getlink        // getlink function
+                                     pstr_occ_updatelink     // update link function
+                                     seq
+                                     ((Array.length seq)-1) // compute the P-view at the last occurrence
+                                    
+
+(** O-View **) 
+let pstrseq_oview gr seq = seq_Xview gr
+                                     Opponent
+                                     pstr_occ_getnode        // getnode function
+                                     pstr_occ_getlink        // getlink function
+                                     pstr_occ_updatelink     // update link function
+                                     seq
+                                     ((Array.length seq)-1)  // compute the O-view at the last occurrence
+
+(** Subterm projection with respect to a reference root node **) 
+let pstrseq_subtermproj gr = subtermproj gr
+                                         pstr_occ_getnode
+                                         pstr_occ_getlink
+                                         pstr_occ_updatelink
+
+(** Hereditary projection **) 
+let pstrseq_herproj = heredproj pstr_occ_getlink
+                                pstr_occ_updatelink
+                                
+(** Prefixing **)
+let pstrseq_prefix seq at = Array.sub seq 0 (at+1)
+
+
+(** Traversal star **)
+let pstrseq_star gr = star gr
+                           pstr_occ_getnode
+                           pstr_occ_getlink
+                           pstr_occ_updatelink
+
+
+(** Traversal extension **)
+let pstrseq_ext gr = extension gr
+                               pstr_occ_getnode
+                               pstr_occ_getlink
+                               pstr_occ_updatelink
+                               Pstring.create_dummy_occ
+
+
+
+/////////////////////// Traversal control
+
+(** The type of a traversal sequence **)
+type TraversalControl = 
+  class
+    inherit Pstring.PstringControl as base
+
+    val mutable compgraph : computation_graph;
+    
+    // Constructor
+    new (ncompgr,pstr:pstring) as this = {inherit PstringControl(pstr);
+                                            compgraph = create_empty_graph();} then this.compgraph <- ncompgr
+    
+    // Add an occurrence of a gennode to the end of the traversal
+    member private x.add_gennode gennode link =
+        x.add_node (occ_from_gennode x.compgraph gennode link)
+    
+    // Play the next move for P according to the strategy given by the term
+    member x.play_for_p() =
+        let l = Array.length x.Sequence
+        if l = 0 then
+            failwith "It is your turn to play (for the Opponent)!"
+            
+        let last = x.Sequence.(l-1)
+        let gennode = pstr_occ_getnode last
+        // What is the type of the last occurrence?
+        match gennode with
+        
+              Custom -> failwith "Bad traversal! There is an occurence of a node that does not belong to the computation graph!"
+            
+            // it is an intenal-node
+            | InternalNode(i) -> match x.compgraph.nodes.(i) with
+                                    NCntApp | NCntVar(_) | NCntTm(_) 
+                                        -> failwith "It is your turn. You are playing the Opponent!"
+                                  // it is a lambda node: Play using the rule (Lmd)
+                                  | NCntAbs(_,_) ->  // find the child node of the lambda node
+                                                     let firstchild = List.hd x.compgraph.edges.(i)                                                   
+                                                     x.add_gennode (InternalNode(firstchild)) 0
+
+                                  
+            // it is a value leaf
+            | ValueLeaf(i,v) -> // play using the copycat rule (Value)
+                                ()
+  end
+
+
 
                                 
-(** Create the graph view of the computation graph
+(** [compgraph_to_graphview node_2_color node_2_shape gr] creates the GLEE graph view of a computation graph.
     @param node_2_color a mapping from nodes to color
     @param node_2_shape a mapping from nodes to shapes
-    @param graph the computation graph    
+    @param gr the computation graph    
     @return the GLEE graph object representing the computation graph
 **)
-let compgraph_to_graphview node_2_color node_2_shape (nodes_content:cg_nodes,edges:cg_edges) =
+let compgraph_to_graphview node_2_color node_2_shape (gr:computation_graph) =
     (* create a graph object *)
     let gleegraph = new Microsoft.Glee.Drawing.Graph("graph") in
     
-    for k = 0 to (Array.length nodes_content)-1 do
+    for k = 0 to (Array.length gr.nodes)-1 do
         let nodeid = string_of_int k in
         let node = gleegraph.AddNode nodeid in
         node.Attr.Id <- string_of_int k
-        node.Attr.Fillcolor <- sysdrawingcolor_2_gleecolor (node_2_color nodes_content.(k))
-        node.Attr.Shape <- pstringshape_2_gleeshape (node_2_shape nodes_content.(k))
-        node.Attr.Label <- graph_node_label_with_idsuffix nodes_content k
-        match nodes_content.(k) with 
+        node.Attr.Fillcolor <- sysdrawingcolor_2_gleecolor (node_2_color gr.nodes.(k))
+        node.Attr.Shape <- pstringshape_2_gleeshape (node_2_shape gr.nodes.(k))
+        node.Attr.Label <- gr.node_label_with_idsuffix k
+        match gr.nodes.(k) with 
           | NCntTm(tm) -> node.Attr.LabelMargin <- 10;
           | NCntApp 
           | NCntVar(_)
@@ -53,7 +189,7 @@ let compgraph_to_graphview node_2_color node_2_shape (nodes_content:cg_nodes,edg
         let aux i target = 
             let target_id = string_of_int target in
             let edge = gleegraph.AddEdge(source_id,target_id) in
-            (match nodes_content.(source) with
+            (match gr.nodes.(source) with
                 NCntApp -> edge.EdgeAttr.Label <- string_of_int i;
                                (* Highlight the first edge if it is an @-node (going to the operator) *)
                                if i = 0 then edge.EdgeAttr.Color <- Microsoft.Glee.Drawing.Color.Green;
@@ -64,7 +200,7 @@ let compgraph_to_graphview node_2_color node_2_shape (nodes_content:cg_nodes,edg
         in 
         List.iteri aux targets
     in
-    Array.iteri addtargets edges;
+    Array.iteri addtargets gr.edges;
     gleegraph
 ;;
 
@@ -145,86 +281,33 @@ let ShowCompGraphWindow mdiparent filename compgraph lnfrules =
 ;;
 
 
-/////////////////////// Sequence transformations
 
-// getnode function for sequences of type Pstringcontrol.pstring
-let pstr_occ_getnode (nd:pstring_occ) =
-         if nd.tag = null then
-            failwith "This is not a valid traversal: there is a node in the sequence that does not belong to the computation graph/tree."
-         else 
-            (unbox nd.tag:gen_node)
-
-(**** Sequence transformations specialized for sequences of type Pstringcontrol.pstring  ****)
-     
-(** P-View **) 
-let pstrseq_pview gr_nodes seq = seq_Xview gr_nodes
-                                   Proponent 
-                                   pstr_occ_getnode        // getnode function
-                                   pstr_occ_getlink        // getlink function
-                                   pstr_occ_updatelink     // update link function
-                                   seq
-                                   ((Array.length seq)-1) // compute the P-view at the last occurrence
-                                    
-
-(** O-View **) 
-let pstrseq_oview gr_nodes seq = seq_Xview gr_nodes
-                                   Opponent
-                                   pstr_occ_getnode        // getnode function
-                                   pstr_occ_getlink        // getlink function
-                                   pstr_occ_updatelink     // update link function
-                                   seq
-                                   ((Array.length seq)-1)  // compute the O-view at the last occurrence
-
-(** Subterm projection with respect to a reference root node **) 
-let pstrseq_subtermproj gr_nodes = subtermproj gr_nodes
-                                               pstr_occ_getnode
-                                               pstr_occ_getlink
-                                               pstr_occ_updatelink
-
-(** Hereditary projection **) 
-let pstrseq_herproj = heredproj pstr_occ_getlink
-                                pstr_occ_updatelink
-                                
-(** Prefixing **)
-let pstrseq_prefix seq at = Array.sub seq 0 (at+1)
-
-
-(** Traversal star **)
-let pstrseq_star gr_nodes = star gr_nodes
-                                 pstr_occ_getnode
-                                 pstr_occ_getlink
-                                 pstr_occ_updatelink
-
-
-(** Traversal extension **)
-let pstrseq_ext gr_nodes = extension gr_nodes
-                                     pstr_occ_getnode
-                                     pstr_occ_getlink
-                                     pstr_occ_updatelink
-                                     Pstring.create_dummy_occ
-
-
-(** Map a player to a node shape **)
-let player_to_shape = function Proponent -> ShapeRectangle
-                               | Opponent -> ShapeOval
-(** Map a player to a node color **)
-let player_to_color = function Proponent -> Color.Coral
-                               | Opponent -> Color.CornflowerBlue
+(**** Traversal calculator window ***)
 
 (** Loads the traversal calculator window for a given computation graph. **)
-let ShowTraversalCalculatorWindow mdiparent graphsource_filename ((gr_nodes,gr_edges) as compgraph) lnfrules initialize_ws =
+let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:computation_graph) lnfrules initialize_ws =
     let form_trav = new Traversal.Traversal()
-
     form_trav.MdiParent <- mdiparent;
+    form_trav.WindowState<-FormWindowState.Maximized;    
     
     // this holds the Pstring control that is currently selected.
     let selection : Pstring.PstringControl option ref = ref None
     
+    // execute a function on the current selection if there is one
+    let do_on_selection f = match !selection with 
+                                None -> ()
+                              | Some(ctrl) -> f ctrl
+
+    // execute a function on the current selection if it is a traversal
+    let do_on_traversal_selection f = match !selection with 
+                                        Some(ctrl) when (ctrl:?TraversalControl) -> let trav = (ctrl:?>TraversalControl)
+                                                                                    f trav
+                                        | _ -> ()
+    
     // unselect the currently selected pstring control
     let unselect_pstrcontrol() =
-        match !selection with
-          None -> ()
-        | Some(ctrl) -> 
+        do_on_selection
+          (fun ctrl ->
             form_trav.btDelete.Enabled <- false
             form_trav.btDuplicate.Enabled <- false
             form_trav.btOview.Enabled <- false
@@ -239,10 +322,14 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename ((gr_nodes,gr_e
             form_trav.btStar.Enabled <- false
             form_trav.btExt.Enabled <- false
             ctrl.Deselection();
-            selection := None
+            selection := None)
 
     // select a pstring control
     let select_pstrcontrol (ctrl:Pstring.PstringControl) =
+        let btrav = ctrl:?TraversalControl in
+        form_trav.grpNode.Enabled <- not btrav
+        form_trav.grpTrav.Enabled <- btrav
+    
         form_trav.btDelete.Enabled <- true
         form_trav.btDuplicate.Enabled <- true
         form_trav.btOview.Enabled <- true
@@ -262,26 +349,22 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename ((gr_nodes,gr_e
 
     // change the current selection
     let change_selection_pstrcontrol (ctrl:Pstring.PstringControl) =
-        match !selection with None -> () | Some(cursel) -> cursel.Deselection()
+        do_on_selection (fun cursel -> cursel.Deselection() )
         select_pstrcontrol ctrl
 
     // Give the focus back to the currently selected line
     let refocus_pstrcontrol() =
-        match !selection with
-            None -> ()
-            | Some(cursel) -> cursel.Select();
+        do_on_selection (fun cursel -> cursel.Select() )
     
-
-    // Create a new pstring control and add it to the list
-    let createAndAddPstringCtrl seq =
-        let new_pstr = ref (new Pstring.PstringControl(seq))
-        (!new_pstr).AutoSize <- true
-        (!new_pstr).TabStop <- false
-        (!new_pstr).BackColor <- form_trav.seqflowPanel.BackColor
+    // Add a pstring control to the list
+    let AddPstringCtrl (new_pstr:PstringControl) =
+        new_pstr.AutoSize <- true
+        new_pstr.TabStop <- false
+        new_pstr.BackColor <- form_trav.seqflowPanel.BackColor
         // add an event handler to the a given pstring control in order to detect selection
         // of the control by the user
-        (!new_pstr).MouseDown.Add(fun _ -> change_selection_pstrcontrol !new_pstr );
-        (!new_pstr).KeyDown.Add( fun e -> match e.KeyCode with 
+        new_pstr.MouseDown.Add(fun _ -> change_selection_pstrcontrol new_pstr );
+        new_pstr.KeyDown.Add( fun e -> match e.KeyCode with 
                                               Keys.Up -> let i = match !selection with 
                                                                           None -> -1
                                                                         | Some(ctrl) -> form_trav.seqflowPanel.Controls.GetChildIndex(ctrl)
@@ -294,8 +377,12 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename ((gr_nodes,gr_e
                                                              change_selection_pstrcontrol (form_trav.seqflowPanel.Controls.Item(i+1):?> Pstring.PstringControl)
                                             | _ -> ()
                                ); 
-        form_trav.seqflowPanel.Controls.Add !new_pstr
-        !new_pstr
+        form_trav.seqflowPanel.Controls.Add new_pstr
+        new_pstr
+
+    // Create a new pstring control and add it to the list
+    let createAndAddPstringCtrl seq =
+        AddPstringCtrl (new Pstring.PstringControl(seq))
     
     // add a handler for click on the nodes of the sequence
     //(!first).nodeClick.Add(fun _ -> 
@@ -319,104 +406,84 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename ((gr_nodes,gr_e
                                                      refocus_pstrcontrol()
                                               )
     
-    form_trav.seqflowPanel.Enter.Add( fun _ -> match !selection with
-                                                  None -> ()
-                                                | Some(cursel) -> cursel.Invalidate();
+    form_trav.seqflowPanel.Enter.Add( fun _ -> do_on_selection (fun cursel -> cursel.Invalidate() )
                                     )
-    form_trav.seqflowPanel.Leave.Add( fun _ -> match !selection with
-                                                  None -> ()
-                                                | Some(cursel) -> cursel.Invalidate();
+    form_trav.seqflowPanel.Leave.Add( fun _ -> do_on_selection (fun cursel -> cursel.Invalidate() )
                                     )
         
     form_trav.btPview.Click.Add(fun _ -> 
-                    match !selection with 
-                        None -> ()
-                      | Some(ctrl) -> let new_pstr = createAndAddPstringCtrl (pstrseq_pview gr_nodes ctrl.Sequence)
-                                      change_selection_pstrcontrol new_pstr
+                    do_on_selection (fun cursel -> let new_pstr = createAndAddPstringCtrl (pstrseq_pview compgraph cursel.Sequence)
+                                                   change_selection_pstrcontrol new_pstr)
                 );
                 
     form_trav.btOview.Click.Add(fun _ -> 
-                    match !selection with 
-                        None -> ()
-                      | Some(ctrl) -> let new_pstr = createAndAddPstringCtrl (pstrseq_oview gr_nodes ctrl.Sequence)
-                                      change_selection_pstrcontrol new_pstr                        
+                    do_on_selection (fun cursel -> let new_pstr = createAndAddPstringCtrl (pstrseq_oview compgraph cursel.Sequence)
+                                                   change_selection_pstrcontrol new_pstr)
                 );
                 
     form_trav.btHerProj.Click.Add(fun _ -> 
-                    match !selection with 
-                        None -> ()
-                      | Some(ctrl) -> let new_pstr = createAndAddPstringCtrl (pstrseq_herproj ctrl.Sequence ctrl.SelectedNodeIndex)
-                                      change_selection_pstrcontrol new_pstr                        
+                        do_on_selection (fun cursel -> let new_pstr = createAndAddPstringCtrl (pstrseq_herproj cursel.Sequence cursel.SelectedNodeIndex)
+                                                       change_selection_pstrcontrol new_pstr  )
                 );
                                 
     form_trav.btSubtermProj.Click.Add(fun _ -> 
                     match !selection with 
-                        Some(ctrl) when ctrl.SelectedNodeIndex >= 0 ->
-                            let new_pstr = createAndAddPstringCtrl (pstrseq_subtermproj gr_nodes ctrl.Sequence ctrl.SelectedNodeIndex)
+                        Some(cursel) when cursel.SelectedNodeIndex >= 0 ->
+                            let new_pstr = createAndAddPstringCtrl (pstrseq_subtermproj compgraph cursel.Sequence cursel.SelectedNodeIndex)
                             change_selection_pstrcontrol new_pstr
                       | _ -> ()
                 );
                     
     form_trav.btDuplicate.Click.Add(fun _ -> 
-                    match !selection with 
-                        None -> ()
-                      | Some(ctrl) -> let new_pstr = createAndAddPstringCtrl ctrl.Sequence
-                                      change_selection_pstrcontrol new_pstr
+                    do_on_selection (fun cursel ->
+                         let new_pstr = if (cursel:?TraversalControl) then
+                                            new TraversalControl(compgraph,cursel.Sequence):>Pstring.PstringControl
+                                        else
+                                            new Pstring.PstringControl(cursel.Sequence)
+                         change_selection_pstrcontrol (AddPstringCtrl new_pstr) )
                 );
                 
-    form_trav.btPrefix.Click.Add(fun _ ->  match !selection with 
-                                                None -> ()
-                                              | Some(ctrl) -> let new_pstr = createAndAddPstringCtrl (pstrseq_prefix ctrl.Sequence ctrl.SelectedNodeIndex)
-                                                              change_selection_pstrcontrol new_pstr
+    form_trav.btPrefix.Click.Add(fun _ -> do_on_selection (fun cursel -> let new_pstr = createAndAddPstringCtrl (pstrseq_prefix cursel.Sequence cursel.SelectedNodeIndex)
+                                                                         change_selection_pstrcontrol new_pstr  )
                                         );                
                                         
-    form_trav.btExt.Click.Add(fun _ ->  match !selection with 
-                                                None -> ()
-                                              | Some(ctrl) -> let new_pstr = createAndAddPstringCtrl (pstrseq_ext gr_nodes ctrl.Sequence ctrl.SelectedNodeIndex)
-                                                              change_selection_pstrcontrol new_pstr
+    form_trav.btExt.Click.Add(fun _ ->  do_on_selection (fun cursel -> let new_pstr = createAndAddPstringCtrl (pstrseq_ext compgraph cursel.Sequence cursel.SelectedNodeIndex)
+                                                                       change_selection_pstrcontrol new_pstr)
                                         );
                                              
-    form_trav.btStar.Click.Add(fun _ ->  match !selection with 
-                                                None -> ()
-                                              | Some(ctrl) -> let new_pstr = createAndAddPstringCtrl (pstrseq_star gr_nodes ctrl.Sequence ctrl.SelectedNodeIndex)
-                                                              change_selection_pstrcontrol new_pstr
+    form_trav.btStar.Click.Add(fun _ ->  do_on_selection (fun cursel -> let new_pstr = createAndAddPstringCtrl (pstrseq_star compgraph cursel.Sequence cursel.SelectedNodeIndex)
+                                                                        change_selection_pstrcontrol new_pstr)
                                         );
                                         
-    form_trav.btDelete.Click.Add(fun _ -> 
-                    match !selection with 
-                        None -> ()
-                      | Some(ctrl) ->
-                        let i = form_trav.seqflowPanel.Controls.GetChildIndex(ctrl)
-                        // last line removed?
-                        if i = form_trav.seqflowPanel.Controls.Count-1 then
-                          if i > 0 then
-                            // select the previous line if there is one
-                            change_selection_pstrcontrol (form_trav.seqflowPanel.Controls.Item(i-1):?>Pstring.PstringControl)
-                          else
-                            unselect_pstrcontrol() // removing the only remaining line: just unselect it
-                        else // it's not the last line that is removed
-                            // select the next line
-                            change_selection_pstrcontrol (form_trav.seqflowPanel.Controls.Item(i+1):?>Pstring.PstringControl)
-                        
-                        form_trav.seqflowPanel.Controls.Remove(ctrl)
-                );
+    form_trav.btDelete.Click.Add( fun _ -> do_on_selection
+                                             (fun cursel -> 
+                                                let i = form_trav.seqflowPanel.Controls.GetChildIndex(cursel)
+                                                // last line removed?
+                                                if i = form_trav.seqflowPanel.Controls.Count-1 then
+                                                  if i > 0 then
+                                                    // select the previous line if there is one
+                                                    change_selection_pstrcontrol (form_trav.seqflowPanel.Controls.Item(i-1):?>Pstring.PstringControl)
+                                                  else
+                                                    unselect_pstrcontrol() // removing the only remaining line: just unselect it
+                                                else // it's not the last line that is removed
+                                                    // select the next line
+                                                    change_selection_pstrcontrol (form_trav.seqflowPanel.Controls.Item(i+1):?>Pstring.PstringControl)
+                                                
+                                                form_trav.seqflowPanel.Controls.Remove(cursel)
+                                              )
+                                       );
 
-    form_trav.btNew.Click.Add(fun _ -> 
-                        let new_pstr = createAndAddPstringCtrl [||]
-                        change_selection_pstrcontrol new_pstr
+    form_trav.btNew.Click.Add(fun _ -> change_selection_pstrcontrol (createAndAddPstringCtrl [||])
                 );
                 
-    form_trav.btBackspace.Click.Add(fun _ -> match !selection with 
-                                                None -> ()
-                                              | Some(ctrl) -> ctrl.remove_last_node())
+    form_trav.btBackspace.Click.Add(fun _ -> do_on_selection
+                                                (fun cursel -> cursel.remove_last_node()))
 
-    form_trav.btAdd.Click.Add(fun _ ->  match !selection with 
-                                                None -> ()
-                                              | Some(ctrl) -> ctrl.add_node (create_blank_occ()))
+    form_trav.btAdd.Click.Add(fun _ -> do_on_selection
+                                           (fun cursel -> cursel.add_node (create_blank_occ())))
 
-    form_trav.btEditLabel.Click.Add(fun _ ->  match !selection with 
-                                                None -> ()
-                                              | Some(ctrl) -> ctrl.EditLabel(); )
+    form_trav.btEditLabel.Click.Add(fun _ -> do_on_selection
+                                                (fun cursel -> cursel.EditLabel()))
                                               
 
     let filter = "Traversal worksheet *.xml|*.xml|All files *.*|*.*" in
@@ -435,6 +502,14 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename ((gr_nodes,gr_e
                                           if d.ShowDialog() = DialogResult.OK then
                                             (Worksheetfile.import_worksheet d.FileName lnfrules createAndAddPstringCtrl)
                                 )
+    // Traversal game buttons
+    form_trav.btNewGame.Click.Add(fun _ -> change_selection_pstrcontrol (AddPstringCtrl ((new TraversalControl(compgraph,[||])):>PstringControl))
+                                );
+
+    form_trav.btPlay.Click.Add(fun _ -> do_on_traversal_selection
+                                         (fun travsel -> travsel.play_for_p()
+                                         )
+                                );
 
     // bind the graph to the viewer
     let nd_2_col nd = player_to_color (graphnode_player nd)
@@ -465,7 +540,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename ((gr_nodes,gr_e
                                                     else
                                                       gleegraph_last_hovered_node := None
                                           );
-                                          
+    
     form_trav.gViewer.MouseDown.Add(fun e -> 
             match !selection, !gleegraph_last_hovered_node  with 
                 Some(ctrl), Some(nd) ->
@@ -474,35 +549,11 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename ((gr_nodes,gr_e
                         
                         // add an internal node to the traversal
                         if e.Button = MouseButtons.Left then
-                            let gen_node = InternalNode(gr_nodeindex)
-                            let player = gennode_player gr_nodes gen_node
-                            
-                            ctrl.add_node { label= graph_node_label_with_idsuffix gr_nodes gr_nodeindex;
-                                            tag = box gen_node; // Use the tag field to store the generalized graph node
-                                            link = 0;
-                                            shape=player_to_shape player;
-                                            color=player_to_color player
-                                            } 
-                            (*ctrl.add_node (new pstring_occ(box gen_node, // Use the tag field to store the generalized graph node,
-                                                            (graph_node_label_with_idsuffix gr_nodes gr_nodeindex),
-                                                            0,
-                                                            player_to_shape player,
-                                                            player_to_color player))*)
+                            ctrl.add_node (occ_from_gennode compgraph (InternalNode(gr_nodeindex)) 0 )
                         // add a value-leaf node to the traversal
                         else
-                            let gen_node = ValueLeaf(gr_nodeindex,1)
-                            let player = gennode_player gr_nodes gen_node
-                            ctrl.add_node { label= "1_{"^(graph_node_label_with_idsuffix gr_nodes gr_nodeindex)^"}";
-                                            tag = box gen_node;
-                                            link = 0;
-                                            shape=player_to_shape player;
-                                            color=player_to_color player
-                                           }
-                            (*ctrl.add_node (new pstring_occ(box gen_node, // Use the tag field to store the generalized graph node,
-                                                            "1_{"^(graph_node_label_with_idsuffix gr_nodes gr_nodeindex)^"}",
-                                                            0,
-                                                            player_to_shape player,
-                                                            player_to_color player)) *)
+                            ctrl.add_node (occ_from_gennode compgraph (ValueLeaf(gr_nodeindex,1)) 0 )
+
                         refocus_pstrcontrol()
                     end
               | _ -> ()
@@ -513,12 +564,11 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename ((gr_nodes,gr_e
         if pstrnode.tag = null then
           pstrnode.label
         else
-          gennode_to_latex gr_nodes ((unbox pstrnode.tag) : gen_node)
+          compgraph.gennode_to_latex ((unbox pstrnode.tag) : gen_node)
     
     form_trav.btExportGraph.Click.Add(fun _ -> Texexportform.LoadExportGraphToLatexWindow mdiparent lnfrules)
-    form_trav.btExportTrav.Click.Add(fun _ -> match !selection with 
-                                                None -> ()
-                                              | Some(ctrl) -> Texexportform.LoadExportTraversalToLatexWindow mdiparent pstrocc_to_latex ctrl.Sequence)
+    form_trav.btExportTrav.Click.Add(fun _ -> do_on_selection (fun cursel -> Texexportform.LoadExportTraversalToLatexWindow mdiparent pstrocc_to_latex cursel.Sequence) ) 
+    
     form_trav.btExportWS.Click.Add(fun _ -> let p = form_trav.seqflowPanel.Controls.Count
                                             let exp = ref ""
                                             for i = 0 to p-1 do

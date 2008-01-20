@@ -20,7 +20,7 @@
     "DebugStartMode" = "1"
     "StartApp" = "d:\\documents\\dphil\\dev\\HOG\\bin\\Debug\\hog.exe"
     "StartAppPath" = "d:\\documents\\dphil\\dev\\HOG\\examples"
-    "CustomStartupArguments" = "example.lmd"
+    "CustomStartupArguments" = "2luke_ex.xml"
     }
     "Release|Win32"
     {
@@ -54,12 +54,16 @@
     "lnf.ml"
     {
     "ProjRelPath" = "T"
-    }  
+    }
     "coreml.mli"
     {
     "ProjRelPath" = "T"
     }
     "coreml.ml"
+    {
+    "ProjRelPath" = "T"
+    }
+    "compgraph.ml"
     {
     "ProjRelPath" = "T"
     }
@@ -87,7 +91,7 @@
     {
     "ProjRelPath" = "T"
     }
-      "traversal.ml"
+    "traversal.ml"
     {
     "ProjRelPath" = "T"
     }
@@ -98,7 +102,7 @@
     "worksheetfile.fs"
     {
     "ProjRelPath" = "T"
-    } 
+    }
     "traversal_form.fs"
     {
     "ProjRelPath" = "T"
@@ -142,7 +146,7 @@
     "lmdtermform.fs"
     {
     "ProjRelPath" = "T"
-    }  
+    }
     "mainform.fs"
     {
     "ProjRelPath" = "T"
@@ -172,10 +176,6 @@
     "ProjRelPath" = "T"
     }
     "example.lmd"
-    {
-    "ProjRelPath" = "T"
-    }
-    "worksheetfile.fs"
     {
     "ProjRelPath" = "T"
     }

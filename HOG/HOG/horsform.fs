@@ -13,6 +13,7 @@ open Common
 open Printf
 open Type
 open Lnf
+open Compgraph
 open Hog
 open Hocpda
 

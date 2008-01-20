@@ -4,55 +4,13 @@
 **)
 open Common
 open Lnf
-
-
-(** Type for the player **)
-type Player = Opponent | Proponent
-
-(** Type of the value leaves **)
-type leaf_value = int 
- 
-let string_of_value = string_of_int
- 
-(** Type of a generalized graph node i.e. a node of the full computation graph with value-leaves attached to each node **)
-type gen_node =    Custom    (* a custom node that is not in the computation graph *)
-                 | InternalNode of int  (* the index of a node of the computation graph *)
-                 | ValueLeaf of int * leaf_value (* the index of the parent node in the computation graph
-                                              and a value *)
-(** Convert a generalized node to latex 
-    @parem gr_nodes the array of nodes of the computaiton graph **)                                              
-let gennode_to_latex gr_nodes = function
-                         | Custom -> "?"
-                         | InternalNode(gr_inode) -> graphnodelabel_to_latex gr_nodes.(gr_inode)
-                         | ValueLeaf(gr_inode,value) -> "{"^(string_of_value value)^"}_{"^(graph_node_label gr_nodes.(gr_inode))^"}"
+open Compgraph
 
 (** Type of a traversal node **)
 //type trav_node = gen_node * int
 
 (** Traversal **)
 //type traversal = trav_node array
-
-
-                                              
-(** Permutes player O and P **)
-let player_permute = function Proponent -> Opponent | Opponent -> Proponent
-
-(** Tell who plays a given node of the computatrion graph **)
-let graphnode_player = function
-                            NCntAbs(_,_) -> Opponent
-                          | NCntVar(_) |NCntApp | NCntTm(_) -> Proponent
-;;
-
-
-(** [gennode_player gr_nodes gennode] Tells who plays a given generalized graph node
-    @param gr_nodes the array of nodes of the computation graph
-    @param gennode the generalized graph node
-     **)
-let gennode_player gr_nodes = function
-      Custom -> Opponent
-    | InternalNode(gr_i) -> graphnode_player gr_nodes.(gr_i)
-    | ValueLeaf(gr_i,_) -> player_permute (graphnode_player gr_nodes.(gr_i))
-    
 
 
 (****** Sequence transformations ******)
@@ -85,7 +43,7 @@ let update_links_after_removing_a_section get_link update_link length suffix =
 (** [seq_Xview xplayer pos gr_nodes seq] computes the X-View where X is in {O,P}
      of the sequence of nodes-with-pointers [seq] at position [pos] 
     
-    @param gr_nodes is the array of nodes of the computation graph 
+    @param gr is the computation graph 
     @param xplayer is the player reference: if xplayer=Proponent the P-view is computed,
            otherwise it is the O-view
     @param get_gennode function that maps occurrences of the sequence [seq] to their corresponding generalized node in the computation graph
@@ -96,12 +54,12 @@ let update_links_after_removing_a_section get_link update_link length suffix =
     @param pos is the position in [seq] where to start the view computation
     @return the subarray of [seq] corresponding to its P-view/O-view
       **)
-let seq_Xview gr_nodes xplayer get_gennode get_link update_link seq pos = 
+let seq_Xview (gr:computation_graph) xplayer get_gennode get_link update_link seq pos = 
     let rec aux acc = function
           -1 -> acc
         | i ->  let gennode = get_gennode seq.(i) in
                 let link = get_link seq.(i) in
-                let player = gennode_player gr_nodes gennode in
+                let player = gr.gennode_player gennode in
                 let nacc = seq.(i)::acc in
                 if player = xplayer then
                     aux nacc (i-1) 
@@ -163,7 +121,7 @@ let heredproj getlink updatelink seq root =
 
 (** Subterm projection with respect to some reference root node 
 
-    @param gr_nodes is the array of nodes of the computation graph 
+    @param gr is the computation graph 
     @param get_gennode function that maps occurrences of the sequence [seq] to their corresponding generalized node in the computation graph
     @param get_link function that maps occurrences of the sequence [seq] to the length of their link
     @param update_link function that given an occurrences of the sequence [seq] and a link length
@@ -175,7 +133,7 @@ let heredproj getlink updatelink seq root =
     @remark: [root] must be the occurrence index of a lambda-node (Opponent)
     although this transformation is also well-defined if [root] is a Proponent node.
 **)
-let subtermproj gr_nodes get_gennode getlink updatelink seq root =
+let subtermproj (gr:computation_graph) get_gennode getlink updatelink seq root =
   let n = Array.length seq in
   
   (* 1 - Calculate the occurence positions that are preserved. *)
@@ -186,7 +144,7 @@ let subtermproj gr_nodes get_gennode getlink updatelink seq root =
   for i = 1 to p-1 do
     let occ = seq.(root+i) in
     let link = getlink occ in
-    match gennode_player gr_nodes (get_gennode occ) with 
+    match gr.gennode_player (get_gennode occ) with 
        Proponent ->
          (* It is a P-move therefore we keep the occurrence iff the immediately preceding occurrence was kept... *)
          if newindex.(i-1) <> -1 then
@@ -241,23 +199,9 @@ let subtermproj gr_nodes get_gennode getlink updatelink seq root =
 (*** Star and extension ***)
 
 
-(** @return true iff [occ] is an occurrence of a @-node of constant node
-    @param gr_nodes is the array of nodes of the computation graph 
-    @param get_gennode function that maps occurrences their corresponding generalized node in the computation graph
-**)
-let is_app_or_constant gr_nodes get_gennode occ =
- match get_gennode occ with 
-  Custom -> false
-| InternalNode(gr_i) | ValueLeaf(gr_i,_) -> 
-    match gr_nodes.(gr_i) with 
-        NCntAbs(_,_)  | NCntVar(_) -> false
-      | NCntApp | NCntTm(_) -> true
-;;
-
-
 (** Traversal star: remove the @ and constant nodes and adjust the pointers appropriately.
 
-    @param gr_nodes is the array of nodes of the computation graph 
+    @param gr is the computation graph 
     @param get_gennode function that maps occurrences of the sequence [seq] to their corresponding generalized node in the computation graph
     @param get_link function that maps occurrences of the sequence [seq] to the length of their link
     @param update_link function that given an occurrences of the sequence [seq] and a link length
@@ -269,7 +213,7 @@ let is_app_or_constant gr_nodes get_gennode occ =
     @remark: [root] must be the occurrence index of a lambda-node (Opponent)
     although this transformation is also well-defined if [root] is a Proponent node.
 **)
-let star gr_nodes get_gennode getlink updatelink seq root =
+let star (gr:computation_graph) get_gennode getlink updatelink seq root =
 
   let n = Array.length seq in
 
@@ -281,7 +225,7 @@ let star gr_nodes get_gennode getlink updatelink seq root =
   
   (* 1 - Calculate the occurence positions in [occ] that are preserved. *)
   for i = 0 to n-1 do
-    if is_app_or_constant gr_nodes get_gennode seq.(i) then
+    if gr.gennode_is_app_or_constant (get_gennode seq.(i)) then
         newindex.(i) <- -1
     else
       begin
@@ -308,7 +252,7 @@ let star gr_nodes get_gennode getlink updatelink seq root =
 (** Traversal extension: add a dummy initial node at the beginning of the traversal and
     make all occurences of @/constant-nodes point to their predecessor.
     
-    @param gr_nodes is the array of nodes of the computation graph 
+    @param gr is the computation graph 
     @param get_gennode function that maps occurrences of the sequence [seq] to their corresponding generalized node in the computation graph
     @param get_link function that maps occurrences of the sequence [seq] to the length of their link
     @param update_link function that given an occurrences of the sequence [seq] and a link length
@@ -322,13 +266,13 @@ let star gr_nodes get_gennode getlink updatelink seq root =
     @remark: [root] must be the occurrence index of a lambda-node (Opponent)
     although this transformation is also well-defined if [root] is a Proponent node.
 **)
-let extension gr_nodes get_gennode getlink updatelink createdummy seq root = 
+let extension (gr:computation_graph) get_gennode getlink updatelink createdummy seq root = 
   let n = Array.length seq in
   (* append a dummy node in front of the sequence. *)
   let ext = Array.append [|createdummy "\diamond" 0|] seq in
   (* make the @/constant-nodes point to their predecessor. *)
   for i = 1 to n do
-    if is_app_or_constant gr_nodes get_gennode ext.(i) then
+    if gr.gennode_is_app_or_constant (get_gennode ext.(i)) then
       ext.(i) <- updatelink ext.(i) 1
   done;
   ext

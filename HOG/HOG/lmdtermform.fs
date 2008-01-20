@@ -15,6 +15,7 @@ open Common
 open Printf
 open Type
 open Lnf
+open Compgraph
 open Coreml
 
 let keywords = 

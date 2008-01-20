@@ -6,6 +6,7 @@ open Common
 open Hog
 open Type
 open Lnf
+open Compgraph
 
 type state = int
 
@@ -416,7 +417,7 @@ type Cpdatype = Npda | Ncpda | Np1pda;;
         
     @note See details of the algorithm in the STOC paper, Hague et al.
 **)
-let hors_to_cpda kind hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartmtypes =
+let hors_to_cpda kind hors (gr:computation_graph) vartmtypes =
     (* compute the order of the grammar *)
     let order = List.fold_left max 0 (List.map (function nt,t -> typeorder t) hors.nonterminals) in 
     
@@ -436,9 +437,9 @@ let hors_to_cpda kind hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartmtype
 
        For application-nodes or the root node the tuple is (-1,-1,-1,-1)
     *)
-    let nodesinfo = Array.create (Array.length nodes_content) (-1,-1,-1,-1) in    
+    let nodesinfo = Array.create (Array.length gr.nodes) (-1,-1,-1,-1) in    
     let rec compute_varinfo curnodeid path = 
-        (match nodes_content.(curnodeid) with
+        (match gr.nodes.(curnodeid) with
              (* The current node is a variable: compute its span (p), paramindex(i) and binder child index(j) by following the path to the root until reaching its binder. *)
              NCntVar(x) -> let rec List_memi i = function [] -> raise Not_found
                                                         | t::_ when t=x -> i
@@ -447,7 +448,7 @@ let hors_to_cpda kind hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartmtype
                             in
                             let rec find_binder p = function 
                                  [] -> failwith "(hors_to_cpda) Error: the computation tree contains a free variable!"
-                               | (b,_)::q -> match nodes_content.(b) with
+                               | (b,_)::q -> match gr.nodes.(b) with
                                                 NCntAbs(_, vars) -> 
                                                         (try  b, p,
                                                               (List_memi 1 vars),
@@ -465,15 +466,15 @@ let hors_to_cpda kind hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartmtype
         (* Performs a depth-first browsing of the tree nodes. To avoid going into loops 
             we do not take the first edge (labelled 0) of an @-node. *)
         List.iteri (function childindex -> function nodeid ->
-                            match nodes_content.(curnodeid),childindex with 
+                            match gr.nodes.(curnodeid),childindex with 
                               NCntApp, 0 -> ();
                             | NCntApp, _ -> compute_varinfo nodeid ((curnodeid,childindex)::path)
                             | _ -> compute_varinfo nodeid ((curnodeid,childindex+1)::path)
                      )
-                    edges.(curnodeid);
+                    gr.edges.(curnodeid);
     in
         (* Explore the sub-**tree** rooted at each non-terminal node *)
-        Array.iteri (function inode -> (function NCntAbs(nt,_) when nt<>"" -> compute_varinfo inode []; | _ -> ()) ) nodes_content;
+        Array.iteri (function inode -> (function NCntAbs(nt,_) when nt<>"" -> compute_varinfo inode []; | _ -> ()) ) gr.nodes;
     
 
     (* make a stack element out of a node id *)
@@ -481,7 +482,7 @@ let hors_to_cpda kind hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartmtype
 
     (* build an array containing the type of each node
        and one containing the order. *)
-    let nodes_type = Array.map (graph_node_type vartmtypes) nodes_content in
+    let nodes_type = Array.map (graph_node_type vartmtypes) gr.nodes in
     let nodes_order = Array.map typeorder nodes_type in
 
     (* Experimental simulation of Collapse with pops. *)
@@ -492,7 +493,7 @@ let hors_to_cpda kind hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartmtype
         *)
         let nodes_pushorder = Hashtbl.create (1+order) in        
             Array.iteri (function inode -> function ord -> 
-                        match nodes_content.(inode) with
+                        match gr.nodes.(inode) with
                             (* If it is an abstraction node that does not correspond to a non-terminal then
                                it is a j child with j>0 *)
                              NCntAbs("",_) ->  Hashtbl.add nodes_pushorder 
@@ -531,7 +532,7 @@ let hors_to_cpda kind hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartmtype
         @param nodeid is the identifier of the graph node 
         @returns a list of instructions. *)
     let build_node_procedure nodeid nodecontent =
-        let child = graph_childnode edges nodeid in
+        let child = graph_childnode gr.edges nodeid in
         let startlabel = make_nodeproc_label nodeid in
             match nodecontent with
               NCntApp -> [Label(startlabel);Push1(string_of_int (child 0),(1,1));Goto("start")]
@@ -564,19 +565,19 @@ let hors_to_cpda kind hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartmtype
                                 let build_case top1_nodeid top1_nodecontent = 
                                     (match top1_nodecontent with
                                        (* If j=0 then we generate a case only for application nodes of the tree whose first edge points to the binder of x. *)                                           
-                                           NCntApp when j=0 && (graph_childnode edges top1_nodeid 0) = b ->
+                                           NCntApp when j=0 && (graph_childnode gr.edges top1_nodeid 0) = b ->
                                             [Label(make_case_label top1_nodeid);
-                                                Push1(string_of_int (graph_childnode edges top1_nodeid i),(order-l+1,1));
+                                                Push1(string_of_int (graph_childnode gr.edges top1_nodeid i),(order-l+1,1));
                                                 Goto("start")]
                                         (* If j>0, we generate a case only for variable nodes of the correct type 
                                            i.e. the type of the binder of x. *)
                                          | NCntVar(_) when j>0 && nodes_type.(b) = nodes_type.(top1_nodeid) -> 
                                             [Label(make_case_label top1_nodeid);
-                                                Push1(string_of_int (graph_childnode edges top1_nodeid (i-1)),(order-l+1,1));
+                                                Push1(string_of_int (graph_childnode gr.edges top1_nodeid (i-1)),(order-l+1,1));
                                                 Goto("start")]
                                          | _ -> []
                                     ) in
-                                let cases_code = List.flatten (Array.mapi build_case nodes_content) in 
+                                let cases_code = List.flatten (Array.mapi build_case gr.nodes) in 
                                 CaseTop0(!switchingtable)::Failwith("Unexpected top 0-element!")::cases_code
                             in
                             Label(startlabel)::
@@ -610,9 +611,9 @@ let hors_to_cpda kind hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartmtype
     (* The first instructions are responsible of jumping to the procedure
        associated to the node of the graph that is read from the top-1 stack.
        The following array of labels is used to perform the case analysis. *)
-    let switchingtable = Array.to_list (Array.init (Array.length nodes_content)
+    let switchingtable = Array.to_list (Array.init (Array.length gr.nodes)
                                         (function i -> [stackelement_of_nodeid i],(make_nodeproc_label i)) ) in
-    let procedures_code = List.flatten (Array.mapi build_node_procedure nodes_content) in
+    let procedures_code = List.flatten (Array.mapi build_node_procedure gr.nodes) in
     let entirecode = Push1(stackelement_of_nodeid 0,(0,0))::
                      Label("start")::
                      CaseTop0(switchingtable)::
@@ -621,7 +622,7 @@ let hors_to_cpda kind hors ((nodes_content:cg_nodes),(edges:cg_edges)) vartmtype
         {   n = ordercpda;
             terminals_alphabet = hors.sigma;
             (* the stack alphabet is the set of nodes of the graph *) 
-            stack_alphabet = Array.to_list (Array.init (Array.length nodes_content) stackelement_of_nodeid);
+            stack_alphabet = Array.to_list (Array.init (Array.length gr.nodes) stackelement_of_nodeid);
             code = unlabelledcode;
             labels = labels;
             cpda_path_validator = hors.rs_path_validator;

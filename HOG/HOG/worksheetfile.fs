@@ -11,6 +11,7 @@ open System //For EventHandler
 //open System.Xml.Serialization
 
 open Pstring
+open Compgraph
 open Traversal
 
 (** Save the worksheet to an XML file **)
@@ -163,7 +164,7 @@ let open_worksheet (ws_filename:string) showworksheet_func =
             // convert the term to LNF
             let lnfterm = Coreml.lmdterm_to_lnf lmdterm
             // create the computation graph from the LNF of the term
-            let compgraph = Lnf.lnfrs_to_graph [("",lnfterm)]
+            let compgraph = Compgraph.lnfrs_to_graph [("",lnfterm)]
 
             showworksheet_func  lmd_filename // graph source file name
                                 compgraph    // computation graph
