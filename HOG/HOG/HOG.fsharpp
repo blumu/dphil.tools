@@ -20,7 +20,7 @@
     "DebugStartMode" = "1"
     "StartApp" = "d:\\documents\\dphil\\dev\\HOG\\bin\\Debug\\hog.exe"
     "StartAppPath" = "d:\\documents\\dphil\\dev\\HOG\\examples"
-    "CustomStartupArguments" = "2luke_ex.xml"
+    "CustomStartupArguments" = "luke_ex.xml"
     }
     "Release|Win32"
     {
@@ -99,31 +99,11 @@
     {
     "ProjRelPath" = "T"
     }
-    "worksheetfile.fs"
-    {
-    "ProjRelPath" = "T"
-    }
-    "traversal_form.fs"
-    {
-    "ProjRelPath" = "T"
-    }
     "hog.mli"
     {
     "ProjRelPath" = "T"
     }
     "hog.ml"
-    {
-    "ProjRelPath" = "T"
-    }
-    "hocpda.ml"
-    {
-    "ProjRelPath" = "T"
-    }
-    "cpdaform.fs"
-    {
-    "ProjRelPath" = "T"
-    }
-    "build.bat"
     {
     "ProjRelPath" = "T"
     }
@@ -136,6 +116,26 @@
     "ProjRelPath" = "T"
     }
     "hog_lexer.ml"
+    {
+    "ProjRelPath" = "T"
+    }
+    "worksheetfile.fs"
+    {
+    "ProjRelPath" = "T"
+    }
+    "traversal_form.fs"
+    {
+    "ProjRelPath" = "T"
+    }    
+    "hocpda.ml"
+    {
+    "ProjRelPath" = "T"
+    }
+    "cpdaform.fs"
+    {
+    "ProjRelPath" = "T"
+    }
+    "build.bat"
     {
     "ProjRelPath" = "T"
     }

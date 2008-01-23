@@ -54,7 +54,14 @@ let rec array_map_filteri f a =
         | Some(u) -> Array.concat [acc;[|u|]]
     in array_fold_lefti aux [||] a
 ;;    
-  
+
+(** Combination of List.map and List.filter **)  
+let rec map_filter f = function
+                        |[]  -> []
+                        |t::q -> match f t with 
+                                 | None -> map_filter f q
+                                 | Some(a) -> a::map_filter f q
+;;
 
 
 let Debug_print = ref print_string;;

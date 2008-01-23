@@ -139,11 +139,12 @@ let rec annotml_applicative_decomposition t = match snd t with
   | AnMlAppl(a,b) -> let op,oper = annotml_applicative_decomposition a in op,oper@[b]
 ;;
 
-(** [lmdterm_to_lnf termincontext tmincontext] converts a term-in-context to eta-long normal form.
-   @param tmincontext the input term-in-context
-   @return the LNF of [tmincontext].
+
+(** [lmdterm_to_lnfrule termincontext tmincontext] converts a term-in-context to eta-long normal form.
+    @param tmincontext the input term-in-context
+    @return the (name,lnf) where lnf is the long normal form of [tmincontext] and name is a dummy rule name.
 **)
-let lmdterm_to_lnf ((context,term):ml_termincontext) :lnf = 
+let lmdterm_to_lnfrule ((context,term):ml_termincontext) :lnfrule = 
     (* For the creation of fresh variables *)
     let freshvar = ref 0 in
     let new_freshvar() = incr(freshvar); "#"^(string_of_int !freshvar) in
@@ -171,10 +172,14 @@ let lmdterm_to_lnf ((context,term):ml_termincontext) :lnf =
                 | AnFun(abs, operands) -> absvars, LnfAppAbs((lnf_of op), lnfoperands_ext)
                 
                 | AnMlAppl(_) -> (* this cannot be reached *)
-                                 failwith "lmdterm_to_lnf: the operator calculated by ml_applicative_decomposition is inconsistent!"
+                                 failwith "lmdterm_to_lnfrule: the operator calculated by ml_applicative_decomposition is inconsistent!"
                 | _ ->  failwith "unsupported Ml constructs!"
 
     in
-    lnf_of (annotate_term (context,term))
+    // give a dummy name to the lnf (different from the empty string in order for the rule to be treated as a valid non terminal of a grammar)
+    "Root",(lnf_of (annotate_term (context,term)))
 ;;
+
+(** Return just the lnf of the term in context t **)
+let lmdterm_to_lnf  t = snd (lmdterm_to_lnfrule t)
 

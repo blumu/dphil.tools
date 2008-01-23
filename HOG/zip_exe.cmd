@@ -1,3 +1,3 @@
 del hog_exe.zip 
-7z -tzip -r a hog_exe.zip bin\Release\hog.exe bin\ReleaseMono\hog.exe examples\*.rs examples\*.lmd
+7z -tzip -r a hog_exe.zip -xr!.svn bin\Release\hog.exe bin\ReleaseMono\hog.exe bin\Release\Microsoft.GLEE.* examples\
 @if ERRORLEVEL 1 pause

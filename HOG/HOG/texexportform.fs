@@ -176,7 +176,7 @@ let traversal_to_latex travnode_to_latex (trav:Pstring.pstring) =
     "\\Pstr[0.7cm]{"^body^"}"
 ;;
 
-let LoadExportTraversalToLatexWindow mdiparent travocc_to_latex (trav:Pstring.pstring) =
+let LoadExportPstringToLatexWindow mdiparent travocc_to_latex (trav:Pstring.pstring) =
     let latex_preamb = "% Generated automatically by HOG
 % -*- TeX -*- -*- Soft -*-
 \\documentclass{article}

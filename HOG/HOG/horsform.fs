@@ -233,7 +233,7 @@ type HorsForm =
         this.vartmtypes <- v;
         
         // create the computation graph from the rules of the recursion scheme in in LNF
-        this.compgraph <- lnfrs_to_graph this.lnfrules;
+        this.compgraph <- rs_lnfrules_to_graph this.lnfrules;
     
         this.txtOutput.Text <- "Rules in eta-long normal form:"^Environment.NewLine
                                 ^(String.concat Environment.NewLine (List.map lnfrule_to_string this.lnfrules));

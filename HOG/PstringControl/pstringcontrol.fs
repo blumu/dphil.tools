@@ -159,6 +159,11 @@ type PstringControl =
                                      x.hScroll.Visible <- not b
                                      x.recompute_bbox()
 
+    val mutable private editablelabel : bool
+    member x.EditableLabel with get() = x.editablelabel
+                           and set b = x.editablelabel <- b
+                                       if not b then x.CancelLabelEdit()
+                                     
     val mutable private nodesvalign : VerticalAlignement
     member x.NodesVerticalAlignment with get() = x.nodesvalign
                                       and set a = x.nodesvalign <- a;
@@ -179,7 +184,29 @@ type PstringControl =
     val mutable seq_unselection_pen : System.Drawing.Pen // pen of the color of the background    
 
 
-
+    //// Constructor
+    new (pstr:pstring) as this =
+        {   components = null;
+            nodeEditTextBox = new System.Windows.Forms.TextBox ();
+            hScroll = new System.Windows.Forms.HScrollBar();
+            sequence=pstr;
+            bboxes=[||];
+            prefix_bbox=Rectangle(0,0,0,0)
+            link_anchors=[||];
+            edited_node=0;
+            selected_node=0;
+            autosize=true;
+            editablelabel=true;
+            control_selected=false;
+            seq_unselection_pen=null
+            nodesvalign= Middle;
+            // Create the events
+            nodeClickEventPair = Microsoft.FSharp.Control.IEvent.create_HandlerEvent()
+           }
+        then
+            this.BackColor <- System.Drawing.SystemColors.Control
+            this.InitializeComponent(); 
+            
     //// Members
     
     member private this.recompute_bbox() =
@@ -270,8 +297,19 @@ type PstringControl =
         this.sequence <- Array.concat [this.sequence; [|node|]];
         this.selected_node <- (Array.length this.sequence)-1
         this.recompute_bbox() // recompute the bounding boxes
+        // make sure the current view of the sequence contain the newly created node
         this.hScroll.Value <- max 0 (this.hScroll.Maximum-this.hScroll.LargeChange)
         this.Invalidate()
+
+    member public this.replace_last_node node =
+        let n = Array.length this.sequence 
+        if n > 0 then
+            this.sequence.(n-1) <- node
+            this.selected_node <- n-1
+            this.recompute_bbox() // recompute the bounding boxes
+            // make sure the current view of the sequence contain the last node
+            this.hScroll.Value <- max 0 (this.hScroll.Maximum-this.hScroll.LargeChange)
+            this.Invalidate()
 
     member public this.remove_last_node() =
         let n = Array.length this.sequence 
@@ -300,7 +338,7 @@ type PstringControl =
     // called to start editing the selected node
     // @param i is the node index
     member public this.EditLabel() =
-        if this.selected_node < Array.length this.sequence then
+        if this.editablelabel && this.selected_node < Array.length this.sequence then
             let i = this.selected_node
             this.edited_node <- i
             this.nodeEditTextBox.Width <- this.bboxes.(i).Width
@@ -526,26 +564,5 @@ type PstringControl =
                                         (if active_selection then selection_arrow_pen else inactive_selection_arrow_pen)
         );
 
-    //// Constructor
-    new (pstr:pstring) as this =
-        {   components = null;
-            nodeEditTextBox = new System.Windows.Forms.TextBox ();
-            hScroll = new System.Windows.Forms.HScrollBar();
-            sequence=pstr;
-            bboxes=[||];
-            prefix_bbox=Rectangle(0,0,0,0)
-            link_anchors=[||];
-            edited_node=0;
-            selected_node=0;
-            autosize=true;
-            control_selected=false;
-            seq_unselection_pen=null
-            nodesvalign= Middle;
-            // Create the events
-            nodeClickEventPair = Microsoft.FSharp.Control.IEvent.create_HandlerEvent()
-           }
-        then
-            this.BackColor <- System.Drawing.SystemColors.Control
-            this.InitializeComponent(); 
         
   end

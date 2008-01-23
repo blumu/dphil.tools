@@ -1,6 +1,6 @@
 <worksheet>
   <compgraph>
-    <source type="lambdaterm" file="D:\my documents\dev\HOG\examples\example.lmd" />
+    <source type="lambdaterm" file="example.lmd" />
   </compgraph>
   <pstring>
     <occ>
@@ -41,7 +41,7 @@
     <occ>
       <color>Coral</color>
       <label>\varphi [4]</label>
-      <link>1</link>
+      <link>5</link>
       <shape>ShapeRectangle</shape>
       <graphnode type="node" index="4" />
     </occ>
@@ -155,7 +155,7 @@
     <occ>
       <color>Coral</color>
       <label>\varphi [4]</label>
-      <link>1</link>
+      <link>5</link>
       <shape>ShapeRectangle</shape>
       <graphnode type="node" index="4" />
     </occ>

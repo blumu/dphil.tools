@@ -1,0 +1,6 @@
+<worksheet>
+  <compgraph>
+    <source type="recursionscheme" file="urzyczyn.rs" />
+  </compgraph>
+  <pstring />
+</worksheet>

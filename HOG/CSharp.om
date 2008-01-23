@@ -60,11 +60,7 @@ public.NamespacedDotnetResource(modulename, relpath) =
     $(RESGEN) $(RESGEN_FLAGS) $<
 
 
-
-
-
-
-        
+       
 #### To build an .exe .net assembly
 ####
 # Parameters:
@@ -83,12 +79,14 @@ public.CSharpDllAssembly(name, files) =
 
     protected.name = $(file $(name))
     protected.DLLASM = $(file $(OUTPUTDIR)/$(name)$(EXT_DLL))
-
-    if $(defined FORMONO)
-        foreach(res, $(CSHARP_RESOURCES))
-            RCFILES+="$(res)+$(res).resources"
-            export
-        export
+   
+    #if $(defined FORMONO)
+    #    foreach(res, $(CSHARP_RESOURCES))
+    #        RCFILES+=$(res)+$(res).resources
+    #        export
+    #    export
+        
+            
 
     #
     # Rules to build byte-code and native targets

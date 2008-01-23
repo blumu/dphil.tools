@@ -117,5 +117,5 @@ type TermForm =
                                    ^(lnf_to_string lnfterm);
 
         // create the computation graph from the LNF of the term
-        this.compgraph <- lnfrs_to_graph [("",lnfterm)]
+        this.compgraph <- lnf_to_graph lnfterm
   end

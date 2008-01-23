@@ -76,6 +76,39 @@ let seq_Xview (gr:computation_graph) xplayer get_gennode get_link update_link se
 ;;
 
 
+(** [seq_Xview_ilast gr xplayer get_gennode get_link update_link seq pos i]
+    returns the index in the original sequence of the occurrence appearing at the ith last position in the X-view.
+    This is done by computing i steps of the P-view.
+    
+    Remark: This function is used to find the binder of a node in the X-view. **)
+let seq_Xview_ilast (gr:computation_graph) xplayer get_gennode get_link update_link seq pos =
+    let rec aux cur = function
+                      | 0 -> cur
+                      | _ when cur = 0 -> failwith "seq_Xview_ilast: The X-view has less than i occurrences!"
+                      | j when gr.gennode_player (get_gennode seq.(cur)) = xplayer -> aux (cur-1) (j-1) 
+                      | j -> let link = get_link seq.(cur) in
+                             if link = 0 then 
+                               failwith "seq_Xview_ilast: The X-view has less than i occurrences!"
+                             else
+                               aux (cur-link) (j-1)
+    in aux pos
+;;
+
+(** [seq_occs_in_Xview gr xplayer get_gennode get_link update_link seq pos]
+    returns the list of occurrences that are in the X-view. **)
+let seq_occs_in_Xview (gr:computation_graph) xplayer get_gennode get_link update_link seq =
+    let rec aux acc = function
+                      | 0 -> 0::acc
+                      | cur when gr.gennode_player (get_gennode seq.(cur)) = xplayer -> aux (cur::acc) (cur-1) 
+                      | cur -> let link = get_link seq.(cur) in
+                               if link = 0 then 
+                                 cur::acc
+                               else
+                                 aux (cur::acc) (cur-link)
+    in aux []
+;;
+
+
 (*** Hereditary projection ***)
 
 (** Hereditary projection 
@@ -90,30 +123,33 @@ let heredproj getlink updatelink seq root =
   let n = Array.length seq in  
   (* calculate the new position of the occurrences following the reference node *)
   let p = n-root in
-  let newindex = Array.create p (-1) in
-  newindex.(0) <- 0; (* the reference node is in the projection *)
-  let k = ref 1 in
-  for i = 1 to p-1 do
-    (* what is the length of the link in the original sequence? *)
-    match getlink seq.(root+i) with
-       (* no link therefore not in the projection *)
-       0 -> ()
-       (* link going beyond the reference node therefore not in the projection *)
-     | l when l > i -> ()     
-       (* justifier not in the projection therefore it is not either *)
-     | l when newindex.(i-l) = -1 -> ()
-       (* justifier in the projection: it must also be in *)
-     | _ -> newindex.(i) <- !k;
-            incr k
-  done;
-  (* filter the subsequence starting at the root *)
-  array_map_filteri (fun i _ -> if i = 0 then
-                                    Some(updatelink seq.(root+i) 0) (* the root has no link anymore *)
-                                 else
-                                   match newindex.(i) with 
-                                      -1 -> None
-                                     | j -> Some(updatelink seq.(root+i) (j-newindex.(i-(getlink seq.(root+i))))))
-                    newindex
+  if p <= 0 then // check that the root occurrence is valid
+      [||]
+  else
+      let newindex = Array.create p (-1) in
+      newindex.(0) <- 0; (* the reference node is in the projection *)
+      let k = ref 1 in
+      for i = 1 to p-1 do
+        (* what is the length of the link in the original sequence? *)
+        match getlink seq.(root+i) with
+           (* no link therefore not in the projection *)
+           0 -> ()
+           (* link going beyond the reference node therefore not in the projection *)
+         | l when l > i -> ()     
+           (* justifier not in the projection therefore it is not either *)
+         | l when newindex.(i-l) = -1 -> ()
+           (* justifier in the projection: it must also be in *)
+         | _ -> newindex.(i) <- !k;
+                incr k
+      done;
+      (* filter the subsequence starting at the root *)
+      array_map_filteri (fun i _ -> if i = 0 then
+                                        Some(updatelink seq.(root+i) 0) (* the root has no link anymore *)
+                                     else
+                                       match newindex.(i) with 
+                                          -1 -> None
+                                         | j -> Some(updatelink seq.(root+i) (j-newindex.(i-(getlink seq.(root+i))))))
+                        newindex
 
 
 
@@ -138,61 +174,63 @@ let subtermproj (gr:computation_graph) get_gennode getlink updatelink seq root =
   
   (* 1 - Calculate the occurence positions that are preserved. *)
   let p = n-root in
-  let newindex = Array.create p (-1) in
-  newindex.(0) <- 0; (* the reference node is in the projection *)
-  let k = ref 1 in
-  for i = 1 to p-1 do
-    let occ = seq.(root+i) in
-    let link = getlink occ in
-    match gr.gennode_player (get_gennode occ) with 
-       Proponent ->
-         (* It is a P-move therefore we keep the occurrence iff the immediately preceding occurrence was kept... *)
-         if newindex.(i-1) <> -1 then
-         begin
-            newindex.(i) <- !k;
-            incr k           
-         end
+  if p <= 0 then // check that the root occurrence is valid
+    [||]
+  else
+      let newindex = Array.create p (-1) in
+      newindex.(0) <- 0; (* the reference node is in the projection *)
+      let k = ref 1 in
+      for i = 1 to p-1 do
+        let occ = seq.(root+i) in
+        let link = getlink occ in
+        match gr.gennode_player (get_gennode occ) with 
+           Proponent ->
+             (* It is a P-move therefore we keep the occurrence iff the immediately preceding occurrence was kept... *)
+             if newindex.(i-1) <> -1 then
+             begin
+                newindex.(i) <- !k;
+                incr k           
+             end
 
-      | Opponent ->
-         (* It is an O-move therefore we keep the occurrence iff its justifier was kept... *)
-                 
-           (* if there the occurrence has no link then it is not in the projection *)
-         if link = 0
-           (* if it has a link going beyond the reference node then it is not in the projection *)
-           || link > i 
-           (* if its justifier is not in the projection then it is not in the projection *)
-           || newindex.(i-link) = -1 then
-            ()
-         (* otherwise its justifier is in the projection therefore it must also be in it *)
-         else
-           begin
-             newindex.(i) <- !k;
-             incr k
-           end
-  done;
-  (* 2 - Removes the nodes and update the links *)
-  array_map_filteri (fun i _ -> let occi = seq.(root+i) in
-                                 if i = 0 then
-                                    Some(updatelink occi 0) (* the root has no link in the projection. *)
-                                 else
-                                   match newindex.(i) with 
-                                      -1 -> None (* this nodes is not kept *)
-                                     | newi -> (* we keep this node *)
-                                              let l = getlink occi in (* link's length in the original sequence *)
-                                              Some(updatelink   occi 
-                                                                ( (* is the pointer dangling after taking the projection? *)
-                                                                  //if l > newi then 
-                                                                  if newindex.(i-l) = -1 then
-                                                                    newi (* yes so make it points to the root instead *)
-                                                                  
-                                                                  (* the pointer is not dangling *)
-                                                                  else
-                                                                    (* ...so we just need to update the link length 
-                                                                      to take into account the fact that some nodes may have been removed *)
-                                                                    newi-newindex.(i-l) 
-                                                                ))
-                    )
-                    newindex
+          | Opponent ->
+             (* It is an O-move therefore we keep the occurrence iff its justifier was kept... *)
+                     
+               (* if there the occurrence has no link then it is not in the projection *)
+             if link = 0
+               (* if it has a link going beyond the reference node then it is not in the projection *)
+               || link > i 
+               (* if its justifier is not in the projection then it is not in the projection *)
+               || newindex.(i-link) = -1 then
+                ()
+             (* otherwise its justifier is in the projection therefore it must also be in it *)
+             else
+               begin
+                 newindex.(i) <- !k;
+                 incr k
+               end
+      done;
+      (* 2 - Removes the nodes and update the links *)
+      array_map_filteri (fun i _ -> let occi = seq.(root+i) in
+                                     if i = 0 then
+                                        Some(updatelink occi 0) (* the root has no link in the projection. *)
+                                     else
+                                       match newindex.(i) with 
+                                          -1 -> None (* this nodes is not kept *)
+                                         | newi -> (* we keep this node *)
+                                                  let l = getlink occi in (* link's length in the original sequence *)
+                                                  Some(updatelink   occi 
+                                                                    ( (* is the pointer dangling after taking the projection? *)
+                                                                      if i < l || newindex.(i-l) = -1 then
+                                                                        newi (* yes so make it points to the root instead *)
+                                                                      
+                                                                      (* the pointer is not dangling *)
+                                                                      else
+                                                                        (* ...so we just need to update the link length 
+                                                                          to take into account the fact that some nodes may have been removed *)
+                                                                        newi-newindex.(i-l) 
+                                                                    ))
+                        )
+                        newindex
 
 
 

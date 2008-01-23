@@ -14,14 +14,20 @@ RESXC="$(FSHARP_BIN)/resxc.exe"
 
     
 public.FSFLAGS=--fullpaths --progress --no-warn 40
-#--standalone
 if $(defined DEBUG)
     FSFLAGS+=-Ooff -g
     export
 else
-    FSFLAGS+=-O3 
+    FSFLAGS+=-O3
     export
+
 public.FSFLAGS_EXE=--target-winexe
+if $(defined DEBUG)
+    FSFLAGS_EXE+=
+    export
+else
+    FSFLAGS_EXE+=--standalone
+    export
 public.FSFLAGS_DLL=-a  --target-dll
 public.FSYACCFLAGS=
 public.FSLEXFLAGS=

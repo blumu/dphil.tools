@@ -180,8 +180,57 @@ let graphnodelabel_to_latex = function
 type computation_graph = class
     val nodes : cg_nodes 
     val edges : cg_edges
-    new (nnodes,nedges) = {nodes=nnodes; edges=nedges} 
-   
+    
+    (*******
+         The following 4 arrays contain information about the nodes that are computed 
+         from the graph at initialization.
+     *******)
+    
+    (** mapping from nodes to their enabler:
+        - for @-nodes it's undefined and set to -1
+        - for lambda-nodes it's the index of the parent node
+        - for bound variable it's the index of the binding node
+        - for free variable it's the index of the root (0) **)
+    val enabler : int array
+    
+    (** mapping from nodes to their span. The span is the distance in the graph from the node to its enabler.
+        - for @-nodes it's undefined (-1)
+        - for the root it's also undefined (-1)
+        - for other lambda-nodes it's 1
+        - for bound variable it's the distance between the variable and its binder
+        - for free variable it's the distance between the variable and the root (0) **)
+    val span : int array
+    
+    (** mapping from nodes to their parameter index.
+        - it's undefined (=-1) for free variables, @-nodes and lambda nodes
+        - for bound variable it's the parameter index (the variable position in the list of variables abstracted by its binder)
+    **)
+    val parameterindex : int array
+    
+    (** The childindex is the index number of a child 
+        i.e. if a node n is the ith child of p then the childindex of n is define as i.
+        
+        The array childindex is defined as follows:
+        - for free variable, @-nodes and the root it's undefined (-1)
+        - for a lambda-node different from the root it's the childindex of the lambda-node
+        - for a bound variable it's the childindex of its binder
+    **)
+    val childindex : int array
+    
+    (** he_by_root.(i) = true iif the graph node i is hereditarily enable by the root. **)
+    val he_by_root : bool array
+       
+    
+    new (nnodes,nedges) as x =
+                    {nodes=nnodes;
+                     edges=nedges;
+                     enabler=Array.create (Array.length nnodes) (-1);
+                     span=Array.create (Array.length nnodes) (-1);
+                     parameterindex=Array.create (Array.length nnodes) (-1);
+                     childindex=Array.create (Array.length nnodes) (-1);
+                     he_by_root=Array.create (Array.length nnodes) false }
+                   then x.compute_nodesinfo()
+    
     (** Convert a generalized node to latex. **)
     member x.gennode_to_latex = function
      | Custom -> "?"
@@ -219,19 +268,98 @@ type computation_graph = class
             match x.nodes.(gr_i) with 
                 NCntAbs(_,_)  | NCntVar(_) -> false
               | NCntApp | NCntTm(_) -> true
+              
+    (** [nth_child grnodeindex n] returns the nth child of the graph node number grnodeindex
+        where the child index [n] is given using the computation graph convention
+        (starts at 0 for @-nodes and at 1 for variable nodes and lambda-nodes) **)
+    member x.nth_child grnodeindex n = 
+        List.nth x.edges.(grnodeindex)
+            (match x.nodes.(grnodeindex) with
+            |NCntAbs(_,_) -> assert(n=0); 1 // a lambda nodes has only one child
+            |NCntApp -> n
+            |NCntVar(_) | NCntTm(_) -> n-1)
+
+    (** [compute_nodesinfo()] fills up the information arrays
+        [x.enabler] [x.span] [x.bindingindex] and [x.binderchild] **)
+    member this.compute_nodesinfo() =
+        let nnodes = Array.length this.nodes in
+        let marked = Array.create nnodes false in
+        let rec depth_first_search curnodeid path = 
+            if not marked.(curnodeid) then
+            begin
+                marked.(curnodeid) <- true;
+                (match this.nodes.(curnodeid) with
+                     (* The current node is a variable: compute its span (p), paramindex(i) and binder child index(j) by following the path to the root until reaching its binder. *)
+                     NCntVar(x) -> let rec List_memi i = function [] -> raise Not_found
+                                                                | t::_ when t=x -> i
+                                                                | _::q -> List_memi (i+1) q
+                                    
+                                    in
+                                    let rec look_for_binder_in_path p = function 
+                                         [] -> // No binder found: it is a free variable.
+                                                this.enabler.(curnodeid) <- 0; // its enabler is the root
+                                                this.span.(curnodeid) <- p-1  // its span is the distance from the root
+                                       | (b,_)::q -> match this.nodes.(b) with
+                                                        NCntAbs(_, vars) -> 
+                                                                (try  
+                                                                    // Is the lambda-node binding our variable?
+                                                                    this.parameterindex.(curnodeid) <- List_memi 1 vars; // 1 because numering of parameter variables starts at 1
+                                                                    // ... yes (otherwise List_memi raise the exception)
+                                                                    
+                                                                    this.enabler.(curnodeid) <- b; // record it as the enabler
+                                                                    this.span.(curnodeid) <- p; // and save the span.
+                                                                 with       
+                                                                     // If this lambda nodes does not bind our variable
+                                                                     Not_found -> look_for_binder_in_path (p+1) q) // then continue to search for a binder along the path to the root
+                                                        | _ -> look_for_binder_in_path (p+1) q
+                                    in 
+                                    look_for_binder_in_path 1 path;
+                                    // the node is h.e. by the root iff its enabler is
+                                    this.he_by_root.(curnodeid) <- this.he_by_root.(this.enabler.(curnodeid))
+                    
+                    | NCntTm(_) -> // treat constant as free variables
+                            this.enabler.(curnodeid) <- 0;
+                            this.span.(curnodeid) <- List.length path; 
+                            this.he_by_root.(curnodeid) <- true
+                    
+                    | NCntAbs(_,_) -> (match path with
+                                        (p,_)::(_,j)::_ -> this.enabler.(curnodeid) <- p;
+                                                           this.childindex.(curnodeid) <- j;
+                                                           // the node is h.e. by the root iff its enabler is
+                                                           this.he_by_root.(curnodeid) <- this.he_by_root.(p) ; 
+                                        | _ -> this.he_by_root.(curnodeid) <- true; // the root is h.enabled by itself
+                                       )
+                    | NCntApp -> ();
+                    
+                );
+            
+               
+                List.iteri (function childindex -> function nodeid ->
+                                match this.nodes.(curnodeid) with 
+                                // for app node, child numbering starts at 0
+                                | NCntApp -> depth_first_search nodeid ((curnodeid,childindex)::path)
+                                // for other nodes, child numbering starts at 1
+                                | _ -> depth_first_search nodeid ((curnodeid,childindex+1)::path)
+                         )
+                        this.edges.(curnodeid);
+              end
+        in
+          if nnodes > 0 then
+            (* Performs a depth-first browsing of the tree nodes *)
+            depth_first_search 0 []
+                      
  end
 
-(** [create_empy_graph] creates an empty graph **)
-//let create_empty_graph() = [||],[||]
+(** [create_empy_graph()] creates an empty graph **)
 let create_empty_graph() = new computation_graph([||],[||])
 
 
 
-(** [lnfrs_to_graph rs lnfrules] converts rules in lnf into a computation graph.
+(** [lnfrules_to_graph lnfrules] converts rules in lnf into a computation graph.
     @param lnfrules the rules of the recursion scheme in LNF
     @return the compuation graph (nodes,edges)
 **)
-let lnfrs_to_graph lnfrules =
+let lnfrules_to_graph lnfrules =
                                 
     (* Compute the number of nodes to be created in the graph *)
     let rec calc_nb_nodes (_,app_part) =
@@ -312,4 +440,20 @@ let lnfrs_to_graph lnfrules =
     new computation_graph(nodes,edges)
 ;;
 
+(** [rs_lnfrules_to_graph rs_lnfrules] converts the rules of a recursion scheme into a computation graph.
+    @param rs_lnfrules the rules of the recursion scheme in LNF
+    @return the compuation graph
+**)
+let rs_lnfrules_to_graph rs_lnfrules =
+    lnfrules_to_graph rs_lnfrules
+;;
 
+
+
+(** [lnf_to_graph lnf] converts a lnf into a computation graph.
+    @param lnf a lnf term
+    @return the compuation graph
+**)
+let lnf_to_graph lnf =
+    lnfrules_to_graph ["",lnf]    
+;;

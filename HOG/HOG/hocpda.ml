@@ -424,59 +424,6 @@ let hors_to_cpda kind hors (gr:computation_graph) vartmtypes =
     (* order of the generated CPDA/PDA *)
     let ordercpda = match kind with Ncpda | Npda -> order | Np1pda -> order+1 in
     
-    (* Compute an array [varsinfo] of 4-tuples giving information about each node of the computation graph.
-       For a variable node x the tuple is (b,p,i,j) where:
-        - b is the nodeid of the binder of x
-        - p is the span of the variable x (distance between x and its binder in the path to the root)
-        - i is the parameter index (the variable position in the list of variables abstracted by its binder)
-        - j is the child-index of the binder node of x i.e. binder(x) is a j-child node.
-       
-       For a lambda-node different from the root the tuple is (p,j,-1,-1) :
-        - p is the node id of the parent of the node
-        - j is the child-index of the lambda-node
-
-       For application-nodes or the root node the tuple is (-1,-1,-1,-1)
-    *)
-    let nodesinfo = Array.create (Array.length gr.nodes) (-1,-1,-1,-1) in    
-    let rec compute_varinfo curnodeid path = 
-        (match gr.nodes.(curnodeid) with
-             (* The current node is a variable: compute its span (p), paramindex(i) and binder child index(j) by following the path to the root until reaching its binder. *)
-             NCntVar(x) -> let rec List_memi i = function [] -> raise Not_found
-                                                        | t::_ when t=x -> i
-                                                        | _::q -> List_memi (i+1) q
-                            
-                            in
-                            let rec find_binder p = function 
-                                 [] -> failwith "(hors_to_cpda) Error: the computation tree contains a free variable!"
-                               | (b,_)::q -> match gr.nodes.(b) with
-                                                NCntAbs(_, vars) -> 
-                                                        (try  b, p,
-                                                              (List_memi 1 vars),
-                                                              (match q with [] -> 0 | (_,j)::_ -> j)
-                                                        with Not_found -> find_binder (p+1) q)
-                                                | _ -> find_binder (p+1) q
-                            in 
-                            nodesinfo.(curnodeid) <- find_binder 1 path;
-            | NCntAbs(_,_) -> (match path with
-                                (p,_)::(_,j)::_ -> nodesinfo.(curnodeid) <- p,j,-1,-1
-                                | _ -> ())
-            | _ -> ();
-        );
-        
-        (* Performs a depth-first browsing of the tree nodes. To avoid going into loops 
-            we do not take the first edge (labelled 0) of an @-node. *)
-        List.iteri (function childindex -> function nodeid ->
-                            match gr.nodes.(curnodeid),childindex with 
-                              NCntApp, 0 -> ();
-                            | NCntApp, _ -> compute_varinfo nodeid ((curnodeid,childindex)::path)
-                            | _ -> compute_varinfo nodeid ((curnodeid,childindex+1)::path)
-                     )
-                    gr.edges.(curnodeid);
-    in
-        (* Explore the sub-**tree** rooted at each non-terminal node *)
-        Array.iteri (function inode -> (function NCntAbs(nt,_) when nt<>"" -> compute_varinfo inode []; | _ -> ()) ) gr.nodes;
-    
-
     (* make a stack element out of a node id *)
     let stackelement_of_nodeid = string_of_int in
 
@@ -527,10 +474,10 @@ let hors_to_cpda kind hors (gr:computation_graph) vartmtypes =
 
     let make_nodeproc_label nodei = "NODE"^(string_of_int nodei) in
     
-    
+
     (* [build_node_procedure nodeid] build the procedure associated to the node [nodeid] of the graph
         @param nodeid is the identifier of the graph node 
-        @returns a list of instructions. *)
+        @returns a list of instructions. *)        
     let build_node_procedure nodeid nodecontent =
         let child = graph_childnode gr.edges nodeid in
         let startlabel = make_nodeproc_label nodeid in
@@ -550,62 +497,78 @@ let hors_to_cpda kind hors (gr:computation_graph) vartmtypes =
                                         Goto("start")]
                            in
                             [Label(startlabel);Emit(f,switchlabels)]@(gencode_params ar)
-            | NCntVar(x) -> let l = typeorder (List.assoc x vartmtypes) in
-                            let b,p,i,j = nodesinfo.(nodeid) in
-                            (* generate the instructions simulating push1^{Ei(top1),k} (see details in the STOC paper, Hague et al.) *)
-                            let push1_Ei_top1() = 
-                                
-                                (* Generate the code that performs a case analysis on the top 0-element. *)
-                                let switchingtable = ref [] in
-                                let make_case_label nodei = 
-                                    let label = startlabel^"_"^(string_of_int nodei) in
-                                    switchingtable := ([string_of_int nodei], label)::!switchingtable;
-                                    label
-                                in        
-                                let build_case top1_nodeid top1_nodecontent = 
-                                    (match top1_nodecontent with
-                                       (* If j=0 then we generate a case only for application nodes of the tree whose first edge points to the binder of x. *)                                           
-                                           NCntApp when j=0 && (graph_childnode gr.edges top1_nodeid 0) = b ->
-                                            [Label(make_case_label top1_nodeid);
-                                                Push1(string_of_int (graph_childnode gr.edges top1_nodeid i),(order-l+1,1));
-                                                Goto("start")]
-                                        (* If j>0, we generate a case only for variable nodes of the correct type 
-                                           i.e. the type of the binder of x. *)
-                                         | NCntVar(_) when j>0 && nodes_type.(b) = nodes_type.(top1_nodeid) -> 
-                                            [Label(make_case_label top1_nodeid);
-                                                Push1(string_of_int (graph_childnode gr.edges top1_nodeid (i-1)),(order-l+1,1));
-                                                Goto("start")]
-                                         | _ -> []
-                                    ) in
-                                let cases_code = List.flatten (Array.mapi build_case gr.nodes) in 
-                                CaseTop0(!switchingtable)::Failwith("Unexpected top 0-element!")::cases_code
-                            in
-                            Label(startlabel)::
-                            (
-                                match kind with
-                                  (* If we generate an n-PDA then we simulate the Collapse instruction by a
-                                   pop of order n-l+1 *)
-                                  Npda ->
-                                    (if l>=1 then [Pushn(order-l+1)] else [] )
-                                        @[Repeat(p,Popn(1))]@primeCollapse
 
-                                    (* let whilelab = startlabel^".while"
-                                    and donelab = startlabel^".done" in
-                                      (if l>=1 then [Pushn(order-l+1)] else [] )
-                                      @[Popn(1);
-                                        Label(whilelab);
-                                          GotoIfTop0(donelab, (stackelement_of_nodeid b));
-                                          primeCollapse;
-                                          Popn(1);
-                                        Goto(whilelab);                                        
-                                        Label(donelab);
-                                        primeCollapse] *)
-                                 | Ncpda ->
-                                    (if l>=1 then [Pushn(order-l+1)] else [] )
-                                        @[Repeat(p,Popn(1));Collapse]
-                                 | Np1pda -> 
-                                    [Pushn(order-l+1);Repeat(p,Popn(1))]@primeCollapse
-                            )@push1_Ei_top1() (* the code in push1_Ei_top1 is responsible of jumping to 'Start'.*)
+            | NCntVar(x) -> let l = typeorder (List.assoc x vartmtypes) in
+                            (* - b is the nodeid of the binder of x (the root (0) if x is free)
+                               - p is the span of the variable x (distance between x and its binder in the path to the root or 0 if x is a free variable)
+                               - i is the parameter index of x (the variable position in the list of variables abstracted by its binder)
+                                     it's set to -1 if x is a free variable.
+                            *)  
+                            let b,p,i = gr.enabler.(nodeid),
+                                          gr.span.(nodeid),
+                                          gr.parameterindex.(nodeid) in
+                            (* In the present case, we must not have free variables since we are working with 
+                               a computation graph generated from a recursion scheme: *)
+                            if i = -1 then 
+                                failwith "hors_to_cpda: the computation graph contains free variables!"
+                            else
+                                (* j is the child-index of the binder node of x i.e. binder(x) is a j-child node. *)
+                                let j = gr.childindex.(b) in
+                                
+                                (* generate the instructions simulating push1^{Ei(top1),k} (see details in the STOC paper, Hague et al.) *)
+                                let push1_Ei_top1() = 
+                                    
+                                    (* Generate the code that performs a case analysis on the top 0-element. *)
+                                    let switchingtable = ref [] in
+                                    let make_case_label nodei = 
+                                        let label = startlabel^"_"^(string_of_int nodei) in
+                                        switchingtable := ([string_of_int nodei], label)::!switchingtable;
+                                        label
+                                    in        
+                                    let build_case top1_nodeid top1_nodecontent = 
+                                        (match top1_nodecontent with
+                                           (* If j=0 then we generate a case only for application nodes of the tree whose first edge points to the binder of x. *)                                           
+                                               NCntApp when j=0 && (graph_childnode gr.edges top1_nodeid 0) = b ->
+                                                [Label(make_case_label top1_nodeid);
+                                                    Push1(string_of_int (graph_childnode gr.edges top1_nodeid i),(order-l+1,1));
+                                                    Goto("start")]
+                                            (* If j>0, we generate a case only for variable nodes of the correct type 
+                                               i.e. the type of the binder of x. *)
+                                             | NCntVar(_) when j>0 && nodes_type.(b) = nodes_type.(top1_nodeid) -> 
+                                                [Label(make_case_label top1_nodeid);
+                                                    Push1(string_of_int (graph_childnode gr.edges top1_nodeid (i-1)),(order-l+1,1));
+                                                    Goto("start")]
+                                             | _ -> []
+                                        ) in
+                                    let cases_code = List.flatten (Array.mapi build_case gr.nodes) in 
+                                    CaseTop0(!switchingtable)::Failwith("Unexpected top 0-element!")::cases_code
+                                in
+                                Label(startlabel)::
+                                (
+                                    match kind with
+                                      (* If we generate an n-PDA then we simulate the Collapse instruction by a
+                                       pop of order n-l+1 *)
+                                      Npda ->
+                                        (if l>=1 then [Pushn(order-l+1)] else [] )
+                                            @[Repeat(p,Popn(1))]@primeCollapse
+
+                                        (* let whilelab = startlabel^".while"
+                                        and donelab = startlabel^".done" in
+                                          (if l>=1 then [Pushn(order-l+1)] else [] )
+                                          @[Popn(1);
+                                            Label(whilelab);
+                                              GotoIfTop0(donelab, (stackelement_of_nodeid b));
+                                              primeCollapse;
+                                              Popn(1);
+                                            Goto(whilelab);                                        
+                                            Label(donelab);
+                                            primeCollapse] *)
+                                     | Ncpda ->
+                                        (if l>=1 then [Pushn(order-l+1)] else [] )
+                                            @[Repeat(p,Popn(1));Collapse]
+                                     | Np1pda -> 
+                                        [Pushn(order-l+1);Repeat(p,Popn(1))]@primeCollapse
+                                )@push1_Ei_top1() (* the code in push1_Ei_top1 is responsible of jumping to 'Start'.*)
     in
     
     (* The first instructions are responsible of jumping to the procedure

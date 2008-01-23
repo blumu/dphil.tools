@@ -10,3 +10,5 @@ if $(not $(defined GLEE))
 .SUBDIRS: HOG GUI PstringControl
 
 .DEFAULT: HOG
+
+

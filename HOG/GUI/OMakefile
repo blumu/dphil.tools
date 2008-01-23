@@ -1,9 +1,5 @@
 ########################################################################
 
-
-#foreach(res, $(CSHARP_RESOURCES))
-    
-
 RESOURCES[] =
     Properties/Resources
     Traversal
@@ -17,6 +13,7 @@ CSHARP_RESOURCES[]=
 foreach( x, $(RESOURCES))
     CSHARP_RESOURCES+=$(NamespacedDotnetResource GUI, $(x))
     export
+
     
 CSHARP_INCLUDEPATH[]=
     "$(GLEE)"

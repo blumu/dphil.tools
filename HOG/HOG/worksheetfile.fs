@@ -153,27 +153,37 @@ let open_worksheet (ws_filename:string) showworksheet_func =
     let xmlSource = xmlCompgraph.SelectSingleNode("source")
     assertnotnull xmlSource
     let xmlTyp = xmlSource.Attributes.GetNamedItem("type");
-    let lmd_filename = xmlSource.Attributes.GetNamedItem("file").InnerText
+    let filename = xmlSource.Attributes.GetNamedItem("file").InnerText
 
-    match xmlTyp.InnerText with
-    "lambdaterm" ->
-        // parse the lambda term
-        match Parsing.parse_file Ml_parser.term_in_context Ml_lexer.token lmd_filename with
-          None -> ()
-        | Some(lmdterm) -> 
-            // convert the term to LNF
-            let lnfterm = Coreml.lmdterm_to_lnf lmdterm
-            // create the computation graph from the LNF of the term
-            let compgraph = Compgraph.lnfrs_to_graph [("",lnfterm)]
+    let lnfrules =
+        match xmlTyp.InnerText with
+        "lambdaterm" ->
+            // parse the lambda term
+            match Parsing.parse_file Ml_parser.term_in_context Ml_lexer.token filename with
+              None -> failwith "The lamnda term file associated to this worksheet could not be opened!"
+            | Some(lmdterm) -> 
+                // convert the term to LNF
+                [Coreml.lmdterm_to_lnfrule lmdterm]
 
-            showworksheet_func  lmd_filename // graph source file name
-                                compgraph    // computation graph
-                                ["",lnfterm] // lnf
-                                // Initialization function
-                                (function createAndAddPstringCtrl -> // import a default worksheet if requested
-                                                                     import_worksheet ws_filename lnfterm createAndAddPstringCtrl
-                                )
-    |"hors" -> ()
+        |"recursionscheme" -> 
+            // parse the recursion scheme file
+            match Parsing.parse_file Hog_parser.hog_specification Hog_lexer.token filename with
+               None -> failwith "The recursion scheme file associated to this worksheet could not be opened!"
+             | Some(hors) -> // convert the rules to LNF
+                             fst (Hog.rs_to_lnf hors)
+        
+        | _ -> failwith "Unknown computation graph source!"
+
+
+    // create the computation graph from the lnfrules
+    let compgraph = Compgraph.rs_lnfrules_to_graph lnfrules
+    showworksheet_func  filename // graph source file name
+                        compgraph    // computation graph
+                        lnfrules     // lnf rules
+                        
+                        // Initialization function
+                        (function createAndAddPstringCtrl -> // import a default worksheet if requested
+                                                             import_worksheet ws_filename lnfrules createAndAddPstringCtrl
+                        )
     
-    | _ -> failwith "Unknown computation graph source!"
     ;;

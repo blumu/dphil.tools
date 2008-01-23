@@ -38,7 +38,7 @@ namespace GUI
             this.gViewer = new Microsoft.Glee.GraphViewerGdi.GViewer();
             this.btSubtermProj = new System.Windows.Forms.Button();
             this.btHerProj = new System.Windows.Forms.Button();
-            this.btExportTrav = new System.Windows.Forms.Button();
+            this.btExportSeq = new System.Windows.Forms.Button();
             this.btExportWS = new System.Windows.Forms.Button();
             this.grpNode = new System.Windows.Forms.GroupBox();
             this.btAdd = new System.Windows.Forms.Button();
@@ -60,9 +60,9 @@ namespace GUI
             this.grpLatex = new System.Windows.Forms.GroupBox();
             this.btPlay = new System.Windows.Forms.Button();
             this.grpTrav = new System.Windows.Forms.GroupBox();
+            this.labGameInfo = new System.Windows.Forms.Label();
             this.btNewGame = new System.Windows.Forms.Button();
             this.btUndo = new System.Windows.Forms.Button();
-            this.labGameInfo = new System.Windows.Forms.Label();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
             this.splitContainer1.SuspendLayout();
@@ -183,25 +183,25 @@ namespace GUI
             this.btHerProj.Text = "&Hereditary projection";
             this.btHerProj.UseVisualStyleBackColor = true;
             // 
-            // btExportTrav
+            // btExportSeq
             // 
-            this.btExportTrav.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(192)))), ((int)(((byte)(192)))), ((int)(((byte)(255)))));
-            this.btExportTrav.FlatAppearance.BorderSize = 5;
-            this.btExportTrav.FlatAppearance.MouseDownBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(128)))), ((int)(((byte)(255)))));
-            this.btExportTrav.Location = new System.Drawing.Point(5, 18);
-            this.btExportTrav.Margin = new System.Windows.Forms.Padding(2);
-            this.btExportTrav.Name = "btExportTrav";
-            this.btExportTrav.Size = new System.Drawing.Size(70, 28);
-            this.btExportTrav.TabIndex = 0;
-            this.btExportTrav.Text = "&Traversal...";
-            this.btExportTrav.UseVisualStyleBackColor = true;
+            this.btExportSeq.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(192)))), ((int)(((byte)(192)))), ((int)(((byte)(255)))));
+            this.btExportSeq.FlatAppearance.BorderSize = 5;
+            this.btExportSeq.FlatAppearance.MouseDownBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(128)))), ((int)(((byte)(255)))));
+            this.btExportSeq.Location = new System.Drawing.Point(5, 18);
+            this.btExportSeq.Margin = new System.Windows.Forms.Padding(2);
+            this.btExportSeq.Name = "btExportSeq";
+            this.btExportSeq.Size = new System.Drawing.Size(74, 28);
+            this.btExportSeq.TabIndex = 0;
+            this.btExportSeq.Text = "Se&quence...";
+            this.btExportSeq.UseVisualStyleBackColor = true;
             // 
             // btExportWS
             // 
-            this.btExportWS.Location = new System.Drawing.Point(79, 18);
+            this.btExportWS.Location = new System.Drawing.Point(83, 18);
             this.btExportWS.Margin = new System.Windows.Forms.Padding(2);
             this.btExportWS.Name = "btExportWS";
-            this.btExportWS.Size = new System.Drawing.Size(79, 28);
+            this.btExportWS.Size = new System.Drawing.Size(77, 28);
             this.btExportWS.TabIndex = 2;
             this.btExportWS.Text = "&Worksheet...";
             this.btExportWS.UseVisualStyleBackColor = true;
@@ -381,14 +381,14 @@ namespace GUI
             this.btExportGraph.Location = new System.Drawing.Point(5, 49);
             this.btExportGraph.Margin = new System.Windows.Forms.Padding(2);
             this.btExportGraph.Name = "btExportGraph";
-            this.btExportGraph.Size = new System.Drawing.Size(70, 28);
+            this.btExportGraph.Size = new System.Drawing.Size(74, 28);
             this.btExportGraph.TabIndex = 1;
             this.btExportGraph.Text = "&Graph...";
             this.btExportGraph.UseVisualStyleBackColor = true;
             // 
             // grpLatex
             // 
-            this.grpLatex.Controls.Add(this.btExportTrav);
+            this.grpLatex.Controls.Add(this.btExportSeq);
             this.grpLatex.Controls.Add(this.btExportGraph);
             this.grpLatex.Controls.Add(this.btExportWS);
             this.grpLatex.Location = new System.Drawing.Point(587, 1);
@@ -400,12 +400,13 @@ namespace GUI
             // 
             // btPlay
             // 
-            this.btPlay.Location = new System.Drawing.Point(103, 21);
+            this.btPlay.Location = new System.Drawing.Point(103, 19);
             this.btPlay.Name = "btPlay";
-            this.btPlay.Size = new System.Drawing.Size(45, 25);
+            this.btPlay.Size = new System.Drawing.Size(45, 28);
             this.btPlay.TabIndex = 14;
             this.btPlay.Text = "Pla&y!";
             this.btPlay.UseVisualStyleBackColor = true;
+            this.btPlay.Visible = false;
             // 
             // grpTrav
             // 
@@ -419,6 +420,17 @@ namespace GUI
             this.grpTrav.TabIndex = 15;
             this.grpTrav.TabStop = false;
             this.grpTrav.Text = "Traversal game";
+            // 
+            // labGameInfo
+            // 
+            this.labGameInfo.BackColor = System.Drawing.SystemColors.Info;
+            this.labGameInfo.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.labGameInfo.Location = new System.Drawing.Point(6, 51);
+            this.labGameInfo.Name = "labGameInfo";
+            this.labGameInfo.Size = new System.Drawing.Size(146, 26);
+            this.labGameInfo.TabIndex = 15;
+            this.labGameInfo.Text = "Pick a node in the graph.";
+            this.labGameInfo.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // btNewGame
             // 
@@ -437,17 +449,7 @@ namespace GUI
             this.btUndo.TabIndex = 14;
             this.btUndo.Text = "&Undo";
             this.btUndo.UseVisualStyleBackColor = true;
-            // 
-            // labGameInfo
-            // 
-            this.labGameInfo.BackColor = System.Drawing.SystemColors.Info;
-            this.labGameInfo.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
-            this.labGameInfo.Location = new System.Drawing.Point(6, 51);
-            this.labGameInfo.Name = "labGameInfo";
-            this.labGameInfo.Size = new System.Drawing.Size(146, 26);
-            this.labGameInfo.TabIndex = 15;
-            this.labGameInfo.Text = "Pick a node in the graph.";
-            this.labGameInfo.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.btUndo.Visible = false;
             // 
             // Traversal
             // 
@@ -487,7 +489,7 @@ namespace GUI
         public System.Windows.Forms.Button btExportWS;
         public System.Windows.Forms.Button btHerProj;
         public System.Windows.Forms.Button btSubtermProj;
-        public System.Windows.Forms.Button btExportTrav;
+        public System.Windows.Forms.Button btExportSeq;
         public System.Windows.Forms.Button btAdd;
         public System.Windows.Forms.Button btBackspace;
         public System.Windows.Forms.Button btEditLabel;

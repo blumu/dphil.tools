@@ -29,4 +29,4 @@ type ml_termincontext = ml_context*ml_expr
 val string_of_mltermincontext : ml_termincontext -> string
 
 val lmdterm_to_lnf : ml_termincontext -> lnf
- 
+val lmdterm_to_lnfrule : ml_termincontext -> lnfrule
