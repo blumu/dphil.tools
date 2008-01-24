@@ -108,7 +108,7 @@ let pstrseq_herproj = heredproj pstr_occ_getlink
                                 pstr_occ_updatelink
                                 
 (** Prefixing **)
-let pstrseq_prefix seq at = if Array.length seq = 0 then [||] else Array.sub seq 0 (at+1)
+let pstrseq_prefix seq at = let l = Array.length seq in if at <0 || at >= l then [||] else Array.sub seq 0 (at+1)
 
 
 (** Traversal star **)
@@ -836,6 +836,20 @@ type TraversalObject =
         i - (let occ = x.pstrcontrol.Occurrence(i)
              if occ.tag = null || pstr_occ_getnode occ = Custom  then 1 else 0)
 
+             
+    (** undo all the moves played after the selected node **)
+    member x.undo()=
+        // make sure that the selected node does not refer to the trailling dummy occurrence
+        let p = x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex
+        let seq = if p = -1 then [||]
+                  else pstrseq_prefix
+                        x.pstrcontrol.Sequence 
+                        // make sure p refers to a Proponent node
+                        (match pstr_occ_getnode (x.pstrcontrol.Occurrence(x.pstrcontrol.SelectedNodeIndex)) with
+                        | _ as node when x.ws.compgraph.gennode_player node = Opponent -> p-1
+                        | _ -> p)
+        (new TraversalObject(x.ws,seq)):>WorksheetObject
+
     override x.pview() = 
         let seq = pstrseq_pview_at x.ws.compgraph base.pstrcontrol.Sequence (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
         (new TraversalObject(x.ws,seq)):>WorksheetObject
@@ -851,24 +865,15 @@ type TraversalObject =
         let seq = pstrseq_subtermproj x.ws.compgraph seq_with_no_trail (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
         (new EditablePstringObject(x.ws,seq)):>WorksheetObject
     override x.prefix()=
-        // make sure that the selected node does not refer to the trailling dummy occurrence
-        let p = x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex
-        let seq = if p = -1 then [||]
-                  else pstrseq_prefix
-                        x.pstrcontrol.Sequence 
-                        // make sure p refers to a Proponent node
-                        (match pstr_occ_getnode (x.pstrcontrol.Occurrence(x.pstrcontrol.SelectedNodeIndex)) with
-                        | _ as node when x.ws.compgraph.gennode_player node = Opponent -> p-1
-                        | _ -> p)
-        (new TraversalObject(x.ws,seq)):>WorksheetObject
+        let seq = pstrseq_prefix x.pstrcontrol.Sequence (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
+        (new EditablePstringObject(x.ws,seq)):>WorksheetObject
     override x.ext()=
         let seq = pstrseq_ext x.ws.compgraph x.pstrcontrol.Sequence (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
         (new EditablePstringObject(x.ws,seq)):>WorksheetObject
     override x.star()=
         let seq = pstrseq_star x.ws.compgraph x.pstrcontrol.Sequence (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
         (new EditablePstringObject(x.ws,seq)):>WorksheetObject
- 
-  end
+   end
 
 
 
@@ -1106,15 +1111,16 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
                                                      refocus_object()
                                               )
     
-    form.seqflowPanel.Enter.Add( fun _ -> apply_to_selection (fun cursel -> cursel.Control.Invalidate() )
-                                    )
-    form.seqflowPanel.Leave.Add( fun _ -> apply_to_selection (fun cursel -> cursel.Control.Invalidate() )
-                                    )
+    form.seqflowPanel.Enter.Add( fun _ -> apply_to_selection (fun cursel -> cursel.Control.Invalidate() ) )
+    form.seqflowPanel.Leave.Add( fun _ -> apply_to_selection (fun cursel -> cursel.Control.Invalidate() ) )
     
     
+    // Traversal buttons
+    form.btNewGame.Click.Add(fun _ -> change_selection_object (AddObject ((new TraversalObject(wsparam,[||])):>WorksheetObject)) );
+    //map_button_to_transform_inplace form.btPlay (fun (trav:TraversalObject) -> trav.play_for_p())
+    map_button_to_transform form.btUndo (fun (trav:TraversalObject) -> trav.undo())
 
-
-
+    // Sequence buttons
     map_button_to_transform form.btDuplicate (fun (pstrobj:WorksheetObject) -> pstrobj.Clone())    
     map_button_to_transform form.btPview (fun (pstrobj) -> (pstrobj:PstringObject).pview())
     map_button_to_transform form.btOview (fun (pstrobj:PstringObject) -> pstrobj.oview())
@@ -1123,35 +1129,32 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     map_button_to_transform form.btPrefix (fun (pstrobj:PstringObject) -> pstrobj.prefix())
     map_button_to_transform form.btExt (fun (pstrobj:PstringObject) -> pstrobj.ext())
     map_button_to_transform form.btStar (fun (pstrobj:PstringObject) -> pstrobj.star())
-    
-    
-    form.btDelete.Click.Add( fun _ -> apply_to_selection
-                                             (fun selbobj -> 
-                                                let i = form.seqflowPanel.Controls.GetChildIndex(selbobj.Control)
-                                                // last line removed?
-                                                if i = form.seqflowPanel.Controls.Count-1 then
-                                                  if i > 0 then
-                                                    // select the previous line if there is one
-                                                    change_selection_object (object_from_controlindex (i-1))
-                                                  else
-                                                    unselect_object() // we are removing the only remaining line, so we just unselect it
-                                                else // it's not the last line that is removed
-                                                    // select the next line
-                                                    change_selection_object (object_from_controlindex (i+1))
-                                                    
-                                                // remove the control of the object from the flow panel
-                                                form.seqflowPanel.Controls.Remove(selbobj.Control)                                              
-                                              )
-                                       );
 
-    form.btNew.Click.Add(fun _ -> change_selection_object (AddObject (new EditablePstringObject(wsparam,[||]):>WorksheetObject))
-                );
-                
+    form.btNew.Click.Add(fun _ -> change_selection_object (AddObject (new EditablePstringObject(wsparam,[||]):>WorksheetObject)))
+    map_button_to_transform_inplace  form.btDelete
+                                     (fun selbobj -> 
+                                        let i = form.seqflowPanel.Controls.GetChildIndex(selbobj.Control)
+                                        // last line removed?
+                                        if i = form.seqflowPanel.Controls.Count-1 then
+                                          if i > 0 then
+                                            // select the previous line if there is one
+                                            change_selection_object (object_from_controlindex (i-1))
+                                          else
+                                            unselect_object() // we are removing the only remaining line, so we just unselect it
+                                        else // it's not the last line that is removed
+                                            // select the next line
+                                            change_selection_object (object_from_controlindex (i+1))
+                                            
+                                        // remove the control of the object from the flow panel
+                                        form.seqflowPanel.Controls.Remove(selbobj.Control)                                              
+                                      );
+               
     map_button_to_transform_inplace form.btBackspace (fun (editobj:EditablePstringObject) -> editobj.remove_last_occ())
     map_button_to_transform_inplace form.btAdd (fun (editobj:EditablePstringObject) -> editobj.add_occ())
     map_button_to_transform_inplace form.btEditLabel (fun (editobj:EditablePstringObject) -> editobj.edit_occ_label())
                                               
 
+    // Worksheet buttons
     let filter = "Traversal worksheet *.xml|*.xml|All files *.*|*.*" in
     form.btSave.Click.Add(fun _ -> // savefile dialog box
                                     let d = new SaveFileDialog() in 
@@ -1168,10 +1171,6 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
                                       if d.ShowDialog() = DialogResult.OK then
                                         import_worksheet d.FileName wsparam AddObject )
                            
-    form.btNewGame.Click.Add(fun _ -> change_selection_object (AddObject ((new TraversalObject(wsparam,[||])):>WorksheetObject))
-                                );
-
-    //map_button_to_transform_inplace form.btPlay (fun (trav:TraversalObject) -> trav.play_for_p())
 
 
     // bind the graph to the viewer
@@ -1220,7 +1219,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     form.btExportGraph.Click.Add(fun _ -> Texexportform.LoadExportGraphToLatexWindow mdiparent lnfrules)
     
     map_button_to_transform_inplace form.btExportSeq
-                                    (fun (trav:TraversalObject) -> 
+                                    (fun (trav:PstringObject) -> 
                                         Texexportform.LoadExportPstringToLatexWindow mdiparent pstrocc_to_latex trav.pstrcontrol.Sequence)
     
     form.btExportWS.Click.Add(fun _ ->  let p = form.seqflowPanel.Controls.Count

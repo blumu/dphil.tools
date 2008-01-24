@@ -449,7 +449,6 @@ namespace GUI
             this.btUndo.TabIndex = 14;
             this.btUndo.Text = "&Undo";
             this.btUndo.UseVisualStyleBackColor = true;
-            this.btUndo.Visible = false;
             // 
             // Traversal
             // 

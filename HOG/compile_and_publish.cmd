@@ -1,7 +1,5 @@
 omake RELEASE=
 @if ERRORLEVEL 1 goto error
-omake RELEASE= FORMONO=
-@if ERRORLEVEL 1 goto error
 call zip_src.cmd
 @if ERRORLEVEL 1 goto error
 call zip_exe.cmd

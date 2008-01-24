@@ -1,0 +1,11 @@
+== Changelog
+0.0.6   
+    + New features: edition of justification sequences editiong 
+    + New features: the user can play against the computer in order to build a traversal over a computation graph
+0.0.2
+    + New feature that lets you load a simply-typed lambda term-in-context and construct its compuation tree. A type inference algorithm is implemented to avoid to have to declare the type of the variable in the lambda abstractions.
+    + Exportation of the computation tree/graph to Latex using the PSTricks package
+    + Build system based on OMake
+    
+0.0.1
+    + initial version for Higher-order grammars and Pushdown automaton
