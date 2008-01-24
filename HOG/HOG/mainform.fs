@@ -6,7 +6,7 @@
 #light
 
 (** Application version **)
-let VERSION = "0.0.4";;
+let VERSION = "0.0.5";;
 
 open System
 open System.Windows.Forms
@@ -45,7 +45,7 @@ let mainform = new System.Windows.Forms.Form()
 
 // open a file containing either a term or a Rec scheme
 let open_file filename =
-    match (Parsing.get_file_extension filename) with 
+    match Parsing.get_file_extension filename with 
             "rs" ->  match Parsing.parse_file Hog_parser.hog_specification Hog_lexer.token filename with
                          None -> ()
                          | Some(o) -> (* Load the Windows form for the recursion scheme *)

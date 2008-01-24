@@ -429,7 +429,7 @@ namespace GUI
             this.labGameInfo.Name = "labGameInfo";
             this.labGameInfo.Size = new System.Drawing.Size(146, 26);
             this.labGameInfo.TabIndex = 15;
-            this.labGameInfo.Text = "Pick a node in the graph.";
+            this.labGameInfo.Text = "Press \'New\' to start a game";
             this.labGameInfo.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // btNewGame

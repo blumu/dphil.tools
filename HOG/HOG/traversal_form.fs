@@ -46,7 +46,7 @@ let pstringshape_2_gleeshape =
 
 (** Create a pstring occurrence from a gennode **)
 let occ_from_gennode (compgraph:computation_graph) gennode lnk =
-    let player = compgraph.gennode_player gennode    
+    let player = compgraph.gennode_player gennode
     let lab =
         match gennode with
           Custom -> "?"
@@ -274,7 +274,8 @@ type WorksheetParam = { graphsource_filename:string;
                         compgraph:computation_graph; 
                         lnfrules: lnfrule list;
                         gleeviewer: Microsoft.Glee.GraphViewerGdi.GViewer
-                        seqflowpanel:System.Windows.Forms.FlowLayoutPanel
+                        seqflowpanel: System.Windows.Forms.FlowLayoutPanel
+                        labinfo: System.Windows.Forms.Label
                       }
 
 
@@ -345,7 +346,7 @@ type PstringObject =
        pstrcontrol = new Pstring.PstringControl([||]) }
       then 
         assert_xmlname "pstring" xmlPstr;
-        x.SequenceFromXmlNode xmlPstr
+        x.LoadSequenceFromXmlNode xmlPstr
     
         
     // convert the pstring sequence to an XML element.
@@ -354,8 +355,8 @@ type PstringObject =
       x.SequenceToXml xmldoc xmlPstr
       xmlPstr
       
-    // create a pstring sequence from an XML description
-    member x.SequenceFromXmlNode (xmlPstr:XmlNode) =
+    // load the pstring sequence from an XML description
+    member x.LoadSequenceFromXmlNode (xmlPstr:XmlNode) =
       let xml_to_occ (xmlOcc:XmlNode) = 
         assert_xmlname "occ" xmlOcc;
         
@@ -433,7 +434,7 @@ type EditablePstringObject =
     inherit PstringObject as base
     
     // Constructor
-    new (nws,pstr:pstring) as x = {inherit PstringObject(nws,pstr)} then x.pstrcontrol.EditableLabel <- true
+    new (nws,pstr:pstring) as x = {inherit PstringObject(nws,pstr)} then x.pstrcontrol.Editable <- true
     
     override x.Clone() = new EditablePstringObject(x.ws,x.pstrcontrol.Sequence):>WorksheetObject
 
@@ -447,9 +448,9 @@ type EditablePstringObject =
     new (ws,xmlPstr:XmlNode,_) as x =
         {inherit PstringObject(ws,[||])}
         then
-          x.pstrcontrol.EditableLabel <- true
+          x.pstrcontrol.Editable <- true
           assert_xmlname "editablepstring" xmlPstr;
-          base.SequenceFromXmlNode xmlPstr      
+          base.LoadSequenceFromXmlNode xmlPstr      
 
     // a graph-node has been clicked while this object was selected
     override x.OnCompGraphNodeMouseDown e gleenode =
@@ -509,20 +510,57 @@ type TraversalObject =
     // It contains the list of valid justifier for the given move.
     val mutable wait_for_ojustifier : int list
 
+    // highlight the occurrence in the sequence that are valid justifiers for the O-move 
+    // that has been selected by the user.
+    member x.highlight_potential_justifiers() =
+        let n = x.pstrcontrol.Length
+        // are we waiting for O to select a justifier?
+        if x.wait_for_ojustifier = [] then
+          // no: so remove the highlighting by restoring the original color and shape
+          x.pstrcontrol.Sequence <-
+            Array.init n (fun i -> let o = x.pstrcontrol.Occurrence(i) in
+                                    { label= o.label;
+                                      tag = o.tag;
+                                      link = o.link;
+                                      shape= o.shape;
+                                      color=player_to_color (x.ws.compgraph.gennode_player (pstr_occ_getnode o))
+                                    } )
+          else
+              // yes: we then put first all the occurrences into shade
+              let seq = Array.init n (fun i -> let o = x.pstrcontrol.Occurrence(i) in
+                                                { label= o.label;
+                                                  tag = o.tag;
+                                                  link = o.link;
+                                                  shape= o.shape;
+                                                  color= Color.LightGray
+                                                } )
+
+              // ... and then highlight the justifiers
+              List.iter (fun i -> let o = x.pstrcontrol.Occurrence(i)
+                                  seq.(i) <-
+                                        { label= o.label;
+                                          tag = o.tag;
+                                          link = o.link;
+                                          shape= o.shape;
+                                          color = player_to_color Proponent
+                                        } ) x.wait_for_ojustifier
+                                        
+              x.pstrcontrol.Sequence <- seq 
+
     // a *static* function used to initialize the traversal
     static member init (x:TraversalObject) =
       // it is assumed that pstr is an odd-length sequence (finishing with an O-move)
-      x.pstrcontrol.EditableLabel <- false
+      x.pstrcontrol.Editable <- false
       x.recompute_valid_omoves()
-      x.pstrcontrol.add_node (create_blank_occ()) // add a dummy node for the forthcoming initial O-move
           
       // add a handler for click on the nodes of the sequence
       x.pstrcontrol.nodeClick.Add(fun e -> 
-        if List.length x.wait_for_ojustifier > 0 then
+        if x.wait_for_ojustifier <> [] then
             if List.mem e.node x.wait_for_ojustifier then
                // update the link
                x.pstrcontrol.updatejustifier (x.pstrcontrol.Length-1) e.node
                x.wait_for_ojustifier <- []
+               x.highlight_potential_justifiers()
                // play for the computer
                x.play_for_p()
             else
@@ -553,14 +591,20 @@ type TraversalObject =
                                       }
                                       then 
                                           assert_xmlname "traversal" xmlPstr;
-                                          base.SequenceFromXmlNode xmlPstr
-                                          base.pstrcontrol.remove_last_occ() // delete the trailing dummy node
+                                          base.LoadSequenceFromXmlNode xmlPstr
+                                          let occ = x.pstrcontrol.Occurrence(x.pstrcontrol.Length-1)
+                                          if occ.tag = null || pstr_occ_getnode occ = Custom  then
+                                            base.pstrcontrol.remove_last_occ() // delete the trailing dummy node
                                           TraversalObject.init x
-        
-            
 
+    member x.RefreshLabelInfo() =
+        x.ws.labinfo.Text <- if Map.is_empty x.valid_omoves then "Traversal completed!"
+                             else if x.wait_for_ojustifier = [] then  "Pick a node in the graph!"
+                             else "Pick a justifier in the sequence!"
+        
     override x.Selection()=
         x.RefreshCompGraphViewer()
+        x.RefreshLabelInfo()
         base.Selection()
 
     override x.Deselection()=
@@ -572,8 +616,6 @@ type TraversalObject =
         let gr_nodeindex = int_of_string gleenode.Attr.Id
         let l = x.pstrcontrol.Length
         
-        //if List.length x.wait_for_ojustifier > 0 then
-
         // valid O-move?
         try
             let valid_justifiers = Map.find gr_nodeindex x.valid_omoves in
@@ -597,6 +639,8 @@ type TraversalObject =
                       let newocc = occ_from_gennode x.ws.compgraph (InternalNode(gr_nodeindex)) 0
                       x.pstrcontrol.replace_last_node newocc
                       x.wait_for_ojustifier <- valid_justifiers
+                      x.highlight_potential_justifiers()
+                      x.RefreshLabelInfo()
                           
            
         // Invalid move 
@@ -720,6 +764,12 @@ type TraversalObject =
                 // it is a value leaf
                 | ValueLeaf(i,v) -> // TODO: play using the copycat rule (Value) or the (InputValue) rule
                                     x.valid_omoves <- Map.empty
+
+        if not (Map.is_empty x.valid_omoves) then
+          x.pstrcontrol.add_node (create_blank_occ()) // add a dummy node for the forthcoming initial O-move
+        
+        x.RefreshLabelInfo()
+                                    
     
     (* Play the next move for P according to the strategy given by the term *)
     member x.play_for_p() =
@@ -771,8 +821,6 @@ type TraversalObject =
             | ValueLeaf(i,v) -> // TODO: play using the copycat rule (Value)
                                 ()
 
-        x.pstrcontrol.add_node (create_blank_occ()) // add a dummy node at then end for the next O-move
-
 
     (** [adjust_to_valid_occurrence i] adujsts the occurrence index i to a valid occurrence position by making sure
         that it does not refer to the trailling dummy node (labelled "...") a the end of the sequence.
@@ -780,7 +828,7 @@ type TraversalObject =
         @return the index of the first valid occurrence preceding occurrence number i,
         and -1 if there is no such occurrence (if the traversal is empty) **)
     member private x.adjust_to_valid_occurrence i =
-        i - (let occ = x.pstrcontrol.Occurrence(x.pstrcontrol.SelectedNodeIndex)
+        i - (let occ = x.pstrcontrol.Occurrence(i)
              if occ.tag = null || pstr_occ_getnode occ = Custom  then 1 else 0)
 
     override x.pview() = 
@@ -790,10 +838,12 @@ type TraversalObject =
         let seq = pstrseq_oview_at x.ws.compgraph base.pstrcontrol.Sequence (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
         (new EditablePstringObject(x.ws,seq)):>WorksheetObject
     override x.herproj() =
-        let seq = pstrseq_herproj x.pstrcontrol.Sequence (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
+        let seq_with_no_trail = Array.sub x.pstrcontrol.Sequence 0 (1+(x.adjust_to_valid_occurrence (x.pstrcontrol.Length -1)))
+        let seq = pstrseq_herproj seq_with_no_trail (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
         (new EditablePstringObject(x.ws,seq)):>WorksheetObject
     override x.subtermproj() =
-        let seq = pstrseq_subtermproj x.ws.compgraph x.pstrcontrol.Sequence (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
+        let seq_with_no_trail = Array.sub x.pstrcontrol.Sequence 0 (1+(x.adjust_to_valid_occurrence (x.pstrcontrol.Length -1)))
+        let seq = pstrseq_subtermproj x.ws.compgraph seq_with_no_trail (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
         (new EditablePstringObject(x.ws,seq)):>WorksheetObject
     override x.prefix()=
         // make sure that the selected node does not refer to the trailling dummy occurrence
@@ -842,7 +892,10 @@ let save_worksheet (filename:string) (ws:WorksheetParam)  =
     // source of the computation graph
     let xmlCompgraph = xmldoc.CreateElement("compgraph")
     let xmlSource = xmldoc.CreateElement("source")
-    xmlSource.SetAttribute("type","lambdaterm");
+    xmlSource.SetAttribute("type",match Parsing.get_file_extension ws.graphsource_filename with 
+                                  | "rs" -> "recursionscheme"
+                                  | "lmd" -> "lambdaterm"
+                                  | _ -> "unknown");
     xmlSource.SetAttribute("file",ws.graphsource_filename);    
     xmlCompgraph.AppendChild(xmlSource) |> ignore    
     xmlWorksheet.AppendChild(xmlCompgraph) |> ignore
@@ -898,7 +951,8 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
                     lnfrules=lnfrules;
                     gleeviewer=form.gViewer
                     seqflowpanel=form.seqflowPanel
-                     }
+                    labinfo = form.labGameInfo
+                  }
 
     // enable/disable the calculator buttons
     // bSel true if a control is selected

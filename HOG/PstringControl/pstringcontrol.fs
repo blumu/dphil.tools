@@ -170,10 +170,10 @@ type PstringControl =
                                      x.hScroll.Visible <- not b
                                      x.recompute_bbox()
 
-    val mutable private editablelabel : bool
-    member x.EditableLabel with get() = x.editablelabel
-                           and set b = x.editablelabel <- b
-                                       if not b then x.CancelLabelEdit()
+    val mutable private editable : bool
+    member x.Editable with get() = x.editable
+                      and set b = x.editable <- b
+                                  if not b then x.CancelLabelEdit()
                                      
     val mutable private nodesvalign : VerticalAlignement
     member x.NodesVerticalAlignment with get() = x.nodesvalign
@@ -207,7 +207,7 @@ type PstringControl =
             edited_node=0;
             selected_node= -1;
             autosize=true;
-            editablelabel=true;
+            editable=true;
             control_selected=false;
             seq_unselection_pen=null
             nodesvalign= Middle;
@@ -358,7 +358,7 @@ type PstringControl =
     // @param i is the node index
     member public this.EditLabel() =
         let i = this.selected_node
-        if this.editablelabel && i >= 0 && i < Array.length this.sequence then
+        if i >= 0 && i < Array.length this.sequence then
             this.edited_node <- i
             this.nodeEditTextBox.Width <- this.bboxes.(i).Width
             this.nodeEditTextBox.Location <- this.ClientPositionFromNode i
@@ -456,8 +456,9 @@ type PstringControl =
                             this.Invalidate();
                         with Not_found -> ();
                         
-                    else if  e.Button = MouseButtons.Right 
-                        && (this.selected_node >= 0 && this.selected_node < Array.length this.sequence) then
+                    else if e.Button = MouseButtons.Right 
+                        && this.editable
+                        && this.selected_node >= 0 && this.selected_node < Array.length this.sequence then
                         begin
                             try
                                 let sel = this.NodeFromClientPosition e.Location
@@ -484,30 +485,34 @@ type PstringControl =
                         end
                     );
                     
-        this.MouseDoubleClick.Add(fun e -> this.EditLabel() );
+        this.MouseDoubleClick.Add(fun e -> if this.editable then this.EditLabel() );
 
         this.KeyDown.Add( fun e -> match e.KeyCode with 
-                                         Keys.PageUp when this.selected_node >= 0 && this.selected_node < Array.length this.sequence ->
+                                        (* Selection navigation *)
+                                        | Keys.Left when this.selected_node > 0 ->   this.selected_node <- this.selected_node-1
+                                                                                     this.Invalidate()
+                                        | Keys.Right when this.selected_node < (Array.length this.sequence)-1 -> this.selected_node <- this.selected_node+1                                        
+                                                                                                                 this.Invalidate()
+
+                                        (* justifier selection *)
+                                        | Keys.PageUp when this.editable && this.selected_node >= 0 && this.selected_node < Array.length this.sequence ->
                                             let node = this.sequence.(this.selected_node)
                                             if this.selected_node -node.link-1 >= 0 then
                                               this.sequence.(this.selected_node) <- {link = node.link+1; tag = node.tag; label=node.label;shape=node.shape;color=node.color}
                                               //this.sequence.(this.selected_node).link <- node.link+1;
                                               this.recompute_bbox()
                                               this.Invalidate()
-                                        | Keys.PageDown when this.selected_node >= 0 && this.selected_node < Array.length this.sequence ->
+                                        | Keys.PageDown when this.editable && this.selected_node >= 0 && this.selected_node < Array.length this.sequence ->
                                             let node = this.sequence.(this.selected_node)
                                             if node.link > 0 then
                                               this.sequence.(this.selected_node) <- {link = node.link-1; tag = node.tag; label=node.label;shape=node.shape;color=node.color}
                                               //this.sequence.(this.selected_node).link <- node.link-1;
                                               this.recompute_bbox()
                                               this.Invalidate()
-                                        | Keys.Left when this.selected_node > 0 ->   this.selected_node <- this.selected_node-1
-                                                                                     this.Invalidate()
-                                        | Keys.Right when this.selected_node < (Array.length this.sequence)-1 -> this.selected_node <- this.selected_node+1                                        
-                                                                                                                 this.Invalidate()
-                                        | Keys.Enter -> if not this.nodeEditTextBox.Visible then
-                                                            this.EditLabel() 
-                                        | Keys.Back -> this.remove_last_occ()
+                                                                                                                 
+                                        (* edition of the sequence *)
+                                        | Keys.Enter when this.editable && not this.nodeEditTextBox.Visible -> this.EditLabel() 
+                                        | Keys.Back when this.editable -> this.remove_last_occ()
                                         | _ -> ()
                            )
                                       

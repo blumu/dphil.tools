@@ -2,5 +2,13 @@
   <compgraph>
     <source type="recursionscheme" file="urzyczyn.rs" />
   </compgraph>
-  <pstring />
+  <traversal>
+    <occ>
+      <color>White</color>
+      <label>...</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="custom" />
+    </occ>
+  </traversal>
 </worksheet>
