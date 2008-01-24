@@ -23,7 +23,7 @@ public.CheckProgDirEnvVar(prog,envvar,default,subdir) =
     return $(ret)
     
 # Check that the program 'prog' is in the path. If not
-# assumet that it is in the path given by the environement variable 'envar' in the subdirectory
+# assume that it is in the path given by the environement variable 'envar' in the subdirectory
 # 'subdir', taking 'default' as a default value if 'envar' is not defined.
 #
 # The function returns the path to the program executable file (inlcuding the filename part)

@@ -34,7 +34,7 @@ By William Blum, 4th Dec 2007
 See the OMakefile used in the project HOG (http://william.famille-blum.org/research/hog_src.zip)
 
 == History
-0.0.4
+0.0.5   
     + New features: edition of justification sequences editiong 
     + New features: the user can play against the computer in order to build a traversal over a computation graph
 0.0.2

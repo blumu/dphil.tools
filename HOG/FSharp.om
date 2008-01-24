@@ -5,7 +5,7 @@ OMakeVersion(0.9.8.5, 0.9.8.5)
 open Dotnet
 
 .STATIC:
-    FSHARP_BIN = $(CheckProgDirEnvVar fsc,FSHARP_HOME,C:\Program Files\FSharp-1.9.3.7,/bin)
+    FSHARP_BIN = $(CheckProgDirEnvVar fsc,FSHARP_HOME,C:\Program Files\FSharp-1.9.3.14,/bin)
 
 FSC="$(FSHARP_BIN)/fsc.exe"
 FSYACC="$(FSHARP_BIN)/fsyacc.exe"
