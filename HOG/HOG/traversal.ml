@@ -83,7 +83,7 @@ let seq_Xview (gr:computation_graph) xplayer get_gennode get_link update_link se
     Remark: This function is used to find the binder of a node in the X-view. **)
 let seq_Xview_ilast (gr:computation_graph) xplayer get_gennode get_link update_link seq pos =
     let rec aux cur = function
-                      | 0 -> cur
+                      | j when j <= 0 -> cur
                       | _ when cur = 0 -> failwith "seq_Xview_ilast: The X-view has less than i occurrences!"
                       | j when gr.gennode_player (get_gennode seq.(cur)) = xplayer -> aux (cur-1) (j-1) 
                       | j -> let link = get_link seq.(cur) in
@@ -99,6 +99,7 @@ let seq_Xview_ilast (gr:computation_graph) xplayer get_gennode get_link update_l
 let seq_occs_in_Xview (gr:computation_graph) xplayer get_gennode get_link update_link seq =
     let rec aux acc = function
                       | 0 -> 0::acc
+                      | j when j < 0 -> acc
                       | cur when gr.gennode_player (get_gennode seq.(cur)) = xplayer -> aux (cur::acc) (cur-1) 
                       | cur -> let link = get_link seq.(cur) in
                                if link = 0 then 
@@ -122,10 +123,10 @@ let seq_occs_in_Xview (gr:computation_graph) xplayer get_gennode get_link update
 let heredproj getlink updatelink seq root =
   let n = Array.length seq in  
   (* calculate the new position of the occurrences following the reference node *)
-  let p = n-root in
-  if p <= 0 then // check that the root occurrence is valid
+  if root < 0 || root  >= n then // check that the root occurrence is valid
       [||]
   else
+      let p = n-root in
       let newindex = Array.create p (-1) in
       newindex.(0) <- 0; (* the reference node is in the projection *)
       let k = ref 1 in
@@ -172,11 +173,11 @@ let heredproj getlink updatelink seq root =
 let subtermproj (gr:computation_graph) get_gennode getlink updatelink seq root =
   let n = Array.length seq in
   
-  (* 1 - Calculate the occurence positions that are preserved. *)
-  let p = n-root in
-  if p <= 0 then // check that the root occurrence is valid
-    [||]
+  if root < 0 || root  >= n then // check that the root occurrence is valid
+      [||]
   else
+      (* 1 - Calculate the occurence positions that are preserved. *)
+      let p = n-root in
       let newindex = Array.create p (-1) in
       newindex.(0) <- 0; (* the reference node is in the projection *)
       let k = ref 1 in
@@ -245,46 +246,42 @@ let subtermproj (gr:computation_graph) get_gennode getlink updatelink seq root =
     @param update_link function that given an occurrences of the sequence [seq] and a link length
             returns the same node associated with the new link length
     @param seq is the input sequence of node-with-pointers (of generic type) 
-    @param root is the index in [seq] of the root of the subterm that we want to project on.
-    @return the subarray of [seq] consisting of the nodes that are hereditarily justified by [root]
-
-    @remark: [root] must be the occurrence index of a lambda-node (Opponent)
-    although this transformation is also well-defined if [root] is a Proponent node.
+    @param pos is the position from which we start to compute the star operation
 **)
-let star (gr:computation_graph) get_gennode getlink updatelink seq root =
-
-  let n = Array.length seq in
-
-  (* array mapping old index to new index. Cell containing -1 correspond to node that must removed from the sequence [seq]. *)
-  let newindex = Array.create n (-1)
-                               
-  (* number of nodes that have not been removed *)
-  and n_notremoved = ref 0 in
-  
-  (* 1 - Calculate the occurence positions in [occ] that are preserved. *)
-  for i = 0 to n-1 do
-    if gr.gennode_is_app_or_constant (get_gennode seq.(i)) then
-        newindex.(i) <- -1
-    else
-      begin
-        newindex.(i) <- !n_notremoved;
-        incr n_notremoved
-      end;
-  done;
-  
-  (* 2 - Removes the nodes and update the links *)
-  array_map_filteri (fun i occi -> match newindex.(i) with 
-                                    -1 -> None (* we do not keep this node *)
-                                  | newi -> (* we keep the node *)
-                                        let j = i - (getlink occi) in (* justifier index *)
-                                        (* if the justifier is removed then make it point to the immediate predecessor of the justifier *)
-                                        if newindex.(j) = -1 then 
-                                            Some(updatelink occi (newi-newindex.(j-1)))
-                                        else
-                                            Some(updatelink occi (newi-newindex.(j)))
-                    )
-                    seq
-  
+let star (gr:computation_graph) get_gennode getlink updatelink seq pos =
+  if pos < 0 then [||]
+  else
+      (* array mapping old index to new index. Cell containing -1 correspond to node that must removed from the sequence [seq]. *)
+      let newindex = Array.create (pos+1) (-1)
+                                   
+      (* number of nodes that have not been removed *)
+      and n_notremoved = ref 0 in
+      
+      (* 1 - Calculate the occurence positions in [occ] that are preserved. *)
+      for i = 0 to pos do
+        if gr.gennode_is_app_or_constant (get_gennode seq.(i)) then
+            newindex.(i) <- -1
+        else
+          begin
+            newindex.(i) <- !n_notremoved;
+            incr n_notremoved
+          end;
+      done;
+      
+      (* 2 - Removes the nodes and update the links *)
+      array_map_filteri (fun i -> function
+                                  | -1 -> None (* we do not keep this node *)
+                                  | newindexi -> (* we keep the node *)
+                                      let occi = seq.(i) in
+                                      let j = i - (getlink occi) in (* justifier index *)
+                                      (* if the justifier is removed then make it point to the immediate predecessor of the justifier *)
+                                      if newindex.(j) = -1 then 
+                                        Some(updatelink occi (newindexi-newindex.(j-1)))
+                                      else
+                                        Some(updatelink occi (newindexi-newindex.(j)))
+                        )
+                        newindex
+      
 ;;
 
 (** Traversal extension: add a dummy initial node at the beginning of the traversal and
@@ -298,18 +295,13 @@ let star (gr:computation_graph) get_gennode getlink updatelink seq root =
     @param createdummy function that creates a dummy node that does not correspond to any node of the computation tree.
     It takes a label and a link as parameter and is of type [string -> int -> 'a] where 'a is the type of the nodes of [seq].
     @param seq is the input sequence of node-with-pointers (of generic type) 
-    @param root is the index in [seq] of the root of the subterm that we want to project on.
-    @return the subarray of [seq] consisting of the nodes that are hereditarily justified by [root]
-
-    @remark: [root] must be the occurrence index of a lambda-node (Opponent)
-    although this transformation is also well-defined if [root] is a Proponent node.
+    @param pos is the position from which we start to compute the extension operation
 **)
-let extension (gr:computation_graph) get_gennode getlink updatelink createdummy seq root = 
-  let n = Array.length seq in
+let extension (gr:computation_graph) get_gennode getlink updatelink createdummy seq pos = 
   (* append a dummy node in front of the sequence. *)
-  let ext = Array.append [|createdummy "\diamond" 0|] seq in
+  let ext = Array.init (pos+2) (function  0 -> createdummy "\diamond" 0 | i -> seq.(i-1)) in
   (* make the @/constant-nodes point to their predecessor. *)
-  for i = 1 to n do
+  for i = 1 to pos+1 do
     if gr.gennode_is_app_or_constant (get_gennode ext.(i)) then
       ext.(i) <- updatelink ext.(i) 1
   done;

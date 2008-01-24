@@ -150,7 +150,18 @@ type PstringControl =
 
     //// Properties
     member public x.Sequence with get() = Array.copy x.sequence
+                             and  set s = x.sequence <- Array.copy s
+                                          x.selected_node <- min ((Array.length s)-1) x.selected_node
+                                          x.recompute_bbox()
+                                          x.Invalidate()
 
+    member public x.Occurrence with get i = x.sequence.(i)
+                               and  set i o = x.sequence.(i) <- o
+                                              x.recompute_bbox()
+                                              x.Invalidate()
+                                            
+    member public x.Length with get = Array.length x.sequence
+                                            
     member public x.SelectedNodeIndex with get() = x.selected_node
 
     val mutable private autosize : bool
@@ -173,10 +184,10 @@ type PstringControl =
                          and get() = base.BackColor
 
     //// Private variables
-    val mutable private sequence : pstring          // the sequence of nodes with links to be represented
+    val mutable private sequence : pstring                  // the sequence of nodes with links to be represented
     val mutable private bboxes : Rectangle array    // bounding boxes of the nodes
     val mutable private prefix_bbox : Rectangle     // bounding box of the prefix string
-    val mutable private link_anchors : Point array  // link anchor positions
+    val mutable private link_anchors : Point array          // link anchor positions
     val mutable private edited_node : int           // index of the node currently edited
     val mutable private selected_node : int         // index of the selected node
 
@@ -194,7 +205,7 @@ type PstringControl =
             prefix_bbox=Rectangle(0,0,0,0)
             link_anchors=[||];
             edited_node=0;
-            selected_node=0;
+            selected_node= -1;
             autosize=true;
             editablelabel=true;
             control_selected=false;
@@ -311,16 +322,24 @@ type PstringControl =
             this.hScroll.Value <- max 0 (this.hScroll.Maximum-this.hScroll.LargeChange)
             this.Invalidate()
 
-    member public this.remove_last_node() =
+    member public this.remove_last_occ() =
         let n = Array.length this.sequence 
         if n > 0 then
            begin
-            if this.selected_node = n-1 then
-               this.selected_node <- max 0 (n-2)
+            this.selected_node <- min (n-2) this.selected_node
             this.sequence  <- Array.sub this.sequence 0 ((Array.length this.sequence)-1)
             this.recompute_bbox()
             this.Invalidate()
            end
+
+    (** [updatejustifier o j] make the occurrence o points to occurrence j **)
+    member public this.updatejustifier o j =
+      let occ = this.sequence.(o)
+      this.sequence.(o) <- { tag=occ.tag;
+                             label=occ.label;
+                             link=o-j;
+                             shape=occ.shape;
+                             color=occ.color}
     
 
     member private this.NodeFromClientPosition (pos:Point) =
@@ -338,8 +357,8 @@ type PstringControl =
     // called to start editing the selected node
     // @param i is the node index
     member public this.EditLabel() =
-        if this.editablelabel && this.selected_node < Array.length this.sequence then
-            let i = this.selected_node
+        let i = this.selected_node
+        if this.editablelabel && i >= 0 && i < Array.length this.sequence then
             this.edited_node <- i
             this.nodeEditTextBox.Width <- this.bboxes.(i).Width
             this.nodeEditTextBox.Location <- this.ClientPositionFromNode i
@@ -438,7 +457,7 @@ type PstringControl =
                         with Not_found -> ();
                         
                     else if  e.Button = MouseButtons.Right 
-                        && (this.selected_node < Array.length this.sequence) then
+                        && (this.selected_node >= 0 && this.selected_node < Array.length this.sequence) then
                         begin
                             try
                                 let sel = this.NodeFromClientPosition e.Location
@@ -468,14 +487,14 @@ type PstringControl =
         this.MouseDoubleClick.Add(fun e -> this.EditLabel() );
 
         this.KeyDown.Add( fun e -> match e.KeyCode with 
-                                         Keys.PageUp when this.selected_node < Array.length this.sequence ->
+                                         Keys.PageUp when this.selected_node >= 0 && this.selected_node < Array.length this.sequence ->
                                             let node = this.sequence.(this.selected_node)
                                             if this.selected_node -node.link-1 >= 0 then
                                               this.sequence.(this.selected_node) <- {link = node.link+1; tag = node.tag; label=node.label;shape=node.shape;color=node.color}
                                               //this.sequence.(this.selected_node).link <- node.link+1;
                                               this.recompute_bbox()
                                               this.Invalidate()
-                                        | Keys.PageDown when this.selected_node < Array.length this.sequence ->
+                                        | Keys.PageDown when this.selected_node >= 0 && this.selected_node < Array.length this.sequence ->
                                             let node = this.sequence.(this.selected_node)
                                             if node.link > 0 then
                                               this.sequence.(this.selected_node) <- {link = node.link-1; tag = node.tag; label=node.label;shape=node.shape;color=node.color}
@@ -488,7 +507,7 @@ type PstringControl =
                                                                                                                  this.Invalidate()
                                         | Keys.Enter -> if not this.nodeEditTextBox.Visible then
                                                             this.EditLabel() 
-                                        | Keys.Back -> this.remove_last_node()
+                                        | Keys.Back -> this.remove_last_occ()
                                         | _ -> ()
                            )
                                       
@@ -558,7 +577,7 @@ type PstringControl =
             if not this.control_selected || i <> this.selected_node then DrawNode i (new SolidBrush(this.sequence.(i).color)) pen arrow_pen
           done
           // Draw the selected node after the other nodes have been drawn
-          if this.control_selected && this.selected_node < Array.length this.sequence then
+          if this.control_selected && this.selected_node >= 0 && this.selected_node < Array.length this.sequence then
             DrawNode this.selected_node (new SolidBrush(this.sequence.(this.selected_node).color))
                                         (if active_selection then selection_pen else inactive_selection_pen )
                                         (if active_selection then selection_arrow_pen else inactive_selection_arrow_pen)

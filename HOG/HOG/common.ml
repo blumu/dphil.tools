@@ -65,3 +65,10 @@ let rec map_filter f = function
 
 
 let Debug_print = ref print_string;;
+
+
+  
+(**  apply a function to an optional argument. Does nothing if the argument is none **)
+let do_onsome f = function 
+                  | None -> ()
+                  | Some(c) -> f c

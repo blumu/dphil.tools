@@ -60,7 +60,7 @@ let open_file filename =
                                       form.WindowState<-FormWindowState.Maximized;
                                       ignore(form.Show())
                                       
-          | "xml" -> Worksheetfile.open_worksheet filename (Traversal_form.ShowTraversalCalculatorWindow mainform)
+          | "xml" -> Traversal_form.open_worksheet mainform filename
           
           | _ -> !Common.Debug_print ("Unknown file format!"^eol)
 ;;

@@ -86,10 +86,10 @@ else
     @echo "Release build"
 
 if $(defined DEBUG)
-    public.OUTPUTDIR=$(dir $(ROOT)/bin/Debug$(if $(defined MONO), Mono) )
+    public.OUTPUTDIR=$(dir $(ROOT)/bin/Debug$(if $(defined FORMONO), Mono) )
     export
 else
-    public.OUTPUTDIR=$(dir $(ROOT)/bin/Release$(if $(defined MONO), Mono ))
+    public.OUTPUTDIR=$(dir $(ROOT)/bin/Release$(if $(defined FORMONO), Mono ))
     export
 
 @mkdir -p $(OUTPUTDIR)

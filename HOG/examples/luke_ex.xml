@@ -2,7 +2,7 @@
   <compgraph>
     <source type="lambdaterm" file="example.lmd" />
   </compgraph>
-  <pstring>
+  <editablepstring>
     <occ>
       <color>CornflowerBlue</color>
       <label>λ [0]</label>
@@ -115,8 +115,8 @@
       <shape>ShapeRectangle</shape>
       <graphnode type="node" index="18" />
     </occ>
-  </pstring>
-  <pstring>
+  </editablepstring>
+  <editablepstring>
     <occ>
       <color>CornflowerBlue</color>
       <label>λ [0]</label>
@@ -222,8 +222,8 @@
       <shape>ShapeOval</shape>
       <graphnode type="node" index="19" />
     </occ>
-  </pstring>
-  <pstring>
+  </editablepstring>
+  <editablepstring>
     <occ>
       <color>Coral</color>
       <label>@ [2]</label>
@@ -280,8 +280,8 @@
       <shape>ShapeOval</shape>
       <graphnode type="node" index="19" />
     </occ>
-  </pstring>
-  <pstring>
+  </editablepstring>
+  <editablepstring>
     <occ>
       <color>CornflowerBlue</color>
       <label>λ\psi [5]</label>
@@ -310,8 +310,8 @@
       <shape>ShapeRectangle</shape>
       <graphnode type="node" index="10" />
     </occ>
-  </pstring>
-  <pstring>
+  </editablepstring>
+  <editablepstring>
     <occ>
       <color>CornflowerBlue</color>
       <label>λ\psi [5]</label>
@@ -368,8 +368,8 @@
       <shape>ShapeRectangle</shape>
       <graphnode type="node" index="10" />
     </occ>
-  </pstring>
-  <pstring>
+  </editablepstring>
+  <editablepstring>
     <occ>
       <color>CornflowerBlue</color>
       <label>λ\psi [5]</label>
@@ -398,5 +398,14 @@
       <shape>ShapeRectangle</shape>
       <graphnode type="node" index="10" />
     </occ>
-  </pstring>
+  </editablepstring>
+  <traversal>
+    <occ>
+      <color>White</color>
+      <label>...</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="custom" />
+    </occ>
+  </traversal>
 </worksheet>
