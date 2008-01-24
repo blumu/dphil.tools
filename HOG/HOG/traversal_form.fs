@@ -605,6 +605,11 @@ type TraversalObject =
     override x.Selection()=
         x.RefreshCompGraphViewer()
         x.RefreshLabelInfo()
+        //let hscr = x.ws.seqflowpanel.HorizontalScroll
+        //hscr.Value <- hscr.Maximum
+        //base.pstrcontrol.Width
+        
+        
         base.Selection()
 
     override x.Deselection()=

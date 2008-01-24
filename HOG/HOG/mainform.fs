@@ -115,7 +115,7 @@ let open_dialog defaulttype _ =
 
 
 let opAbout _ = 
-    MessageBox.Show("HOG by William Blum, 2007-2008","About HOG") |> ignore
+    MessageBox.Show("HOG version "^VERSION^" by William Blum, 2007-2008","About HOG") |> ignore
 
 let opExitForm _ = mainform.Close ()
 
