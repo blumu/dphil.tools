@@ -3,6 +3,12 @@
 if $(not $(defined GLEE))
     public.GLEE=C:\Program Files\Microsoft Research\GLEE\bin
     export
+    
+if $(not $(defined MSAGL))
+    public.MSAGL=C:\Program Files\Microsoft\Microsoft Automatic Graph Layout\bin
+    export
+
+    
 
 ########################################################################
 # Subdirectories.

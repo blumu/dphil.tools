@@ -1,4 +1,6 @@
 == Changelog
+0.0.7
+    + Update: change from GLEE to MSAGL (Thanks to Lev Nachmanson from Microsoft for sending me the academic version of the tool.)
 0.0.6   
     + New features: edition of justification sequences editiong 
     + New features: the user can play against the computer in order to build a traversal over a computation graph

@@ -16,16 +16,16 @@ foreach( x, $(RESOURCES))
 
     
 CSHARP_INCLUDEPATH[]=
-    "$(GLEE)"
+    "$(MSAGL)"
     $(FSHARP_BIN)
     
 CSHARP_DLLREFS[]=
     Pstring
     
 CSHARP_OTHER_DLLREFS[]=
-    Microsoft.GLEE
-    Microsoft.GLEE.Drawing
-    Microsoft.GLEE.GraphViewerGDI
+    Microsoft.Msagl
+    Microsoft.Msagl.GraphViewerGDI
+    Microsoft.Msagl.Drawing
     FSharp.Core
     System.Data
 #    System.Deployment

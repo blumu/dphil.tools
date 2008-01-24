@@ -6,7 +6,7 @@
 #light
 
 (** Application version **)
-let VERSION = "0.0.6";;
+let VERSION = "0.0.7";;
 
 open System
 open System.Windows.Forms
@@ -115,7 +115,7 @@ let open_dialog defaulttype _ =
 
 
 let opAbout _ = 
-    MessageBox.Show("HOG version "^VERSION^" by William Blum, 2007-2008","About HOG") |> ignore
+    MessageBox.Show("HOG version "^VERSION^" by William Blum, 2007-2008"^Common.eol^"Graph are generated using the MSAGL tool from Microsoft.","About HOG") |> ignore
 
 let opExitForm _ = mainform.Close ()
 

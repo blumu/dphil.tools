@@ -159,7 +159,9 @@ type PstringControl =
                                and  set i o = x.sequence.(i) <- o
                                               x.recompute_bbox()
                                               x.Invalidate()
-                                            
+    
+    member public x.Bbox with get i = x.bboxes.(i)
+
     member public x.Length with get = Array.length x.sequence
                                             
     member public x.SelectedNodeIndex with get() = x.selected_node

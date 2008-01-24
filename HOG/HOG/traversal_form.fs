@@ -8,7 +8,6 @@ open Common
 open System.Xml
 open System.Drawing
 open System.Windows.Forms
-open Traversal
 open Lnf
 open Compgraph
 open GUI
@@ -35,14 +34,14 @@ let player_to_color = function Proponent -> Color.Coral
                                | Opponent -> Color.CornflowerBlue
 (***** Pstring functions *****)
 
-(** Convert a colors of type System.Drawing.Color to a color of type Microsoft.Glee.Drawing.Color **)
-let sysdrawingcolor_2_gleecolor (color:System.Drawing.Color) :Microsoft.Glee.Drawing.Color = 
-    Microsoft.Glee.Drawing.Color(color.R,color.G,color.B)
+(** Convert a colors of type System.Drawing.Color to a color of type Microsoft.Msagl.Drawing.Color **)
+let sysdrawingcolor_2_msaglcolor (color:System.Drawing.Color) :Microsoft.Msagl.Drawing.Color = 
+    Microsoft.Msagl.Drawing.Color(color.R,color.G,color.B)
 
-(** Convert a shape of type Pstring.Shapes to a shape of type Microsoft.Glee.Drawing.Shape **)
-let pstringshape_2_gleeshape =
-    function  Pstring.Shapes.ShapeRectangle -> Microsoft.Glee.Drawing.Shape.Box
-             | Pstring.Shapes.ShapeOval -> Microsoft.Glee.Drawing.Shape.Diamond //Microsoft.Glee.Drawing.Shape.Circle
+(** Convert a shape of type Pstring.Shapes to a shape of type Microsoft.Msagl.Drawing.Shape **)
+let pstringshape_2_msaglshape =
+    function  Pstring.Shapes.ShapeRectangle -> Microsoft.Msagl.Drawing.Shape.Box
+             | Pstring.Shapes.ShapeOval -> Microsoft.Msagl.Drawing.Shape.Circle // Microsoft.Msagl.Drawing.Shape.Diamond
 
 (** Create a pstring occurrence from a gennode **)
 let occ_from_gennode (compgraph:computation_graph) gennode lnk =
@@ -73,7 +72,7 @@ let pstr_occ_getnode (nd:pstring_occ) =
 (**** Sequence transformations specialized for sequences of type Pstringcontrol.pstring  ****)
      
 (** P-View **) 
-let pstrseq_pview_at gr seq i = seq_Xview
+let pstrseq_pview_at gr seq i = Traversal.seq_Xview
                                      gr
                                      Proponent 
                                      pstr_occ_getnode        // getnode function
@@ -86,7 +85,7 @@ let pstrseq_pview gr seq = pstrseq_pview_at gr seq ((Array.length seq)-1)
                                     
 
 (** O-View **) 
-let pstrseq_oview_at gr seq i = seq_Xview
+let pstrseq_oview_at gr seq i = Traversal.seq_Xview
                                      gr
                                      Opponent
                                      pstr_occ_getnode        // getnode function
@@ -98,13 +97,13 @@ let pstrseq_oview_at gr seq i = seq_Xview
 let pstrseq_oview gr seq = pstrseq_oview_at gr seq ((Array.length seq)-1)
 
 (** Subterm projection with respect to a reference root node **) 
-let pstrseq_subtermproj gr = subtermproj gr
+let pstrseq_subtermproj gr = Traversal.subtermproj gr
                                          pstr_occ_getnode
                                          pstr_occ_getlink
                                          pstr_occ_updatelink
 
 (** Hereditary projection **) 
-let pstrseq_herproj = heredproj pstr_occ_getlink
+let pstrseq_herproj = Traversal.heredproj pstr_occ_getlink
                                 pstr_occ_updatelink
                                 
 (** Prefixing **)
@@ -112,32 +111,32 @@ let pstrseq_prefix seq at = let l = Array.length seq in if at <0 || at >= l then
 
 
 (** Traversal star **)
-let pstrseq_star gr = star gr
+let pstrseq_star gr = Traversal.star gr
                            pstr_occ_getnode
                            pstr_occ_getlink
                            pstr_occ_updatelink
 
 
 (** Traversal extension **)
-let pstrseq_ext gr = extension gr
+let pstrseq_ext gr = Traversal.extension gr
                                pstr_occ_getnode
                                pstr_occ_getlink
                                pstr_occ_updatelink
                                Pstring.create_dummy_occ
 
-/////////////////////// GLEE graph generation
+/////////////////////// MSAGL graph generation
 
 (** Set the attributes for a node of the graph
     @param node_2_color a mapping from compgraph nodes to colors
     @param node_2_shape a mapping from compgraph nodes to shapes
     @param gr is the computation graph
     @param i is the node number in the computation graph
-    @param node is the GLEE graph node
+    @param node is the MSAGL graph node
     **)
-let gleegraphnode_set_attributes node_2_color node_2_shape (gr:computation_graph) i (node:Microsoft.Glee.Drawing.Node) =
+let msaglgraphnode_set_attributes node_2_color node_2_shape (gr:computation_graph) i (node:Microsoft.Msagl.Drawing.Node) =
     node.Attr.Id <- string_of_int i
-    node.Attr.Shape <- pstringshape_2_gleeshape (node_2_shape gr.nodes.(i))
-    node.Attr.Fillcolor <- sysdrawingcolor_2_gleecolor (node_2_color gr.nodes.(i))
+    node.Attr.Shape <- pstringshape_2_msaglshape (node_2_shape gr.nodes.(i))
+    node.Attr.FillColor <- sysdrawingcolor_2_msaglcolor (node_2_color gr.nodes.(i))
     node.Attr.Label <- gr.node_label_with_idsuffix i
     match gr.nodes.(i) with 
       | NCntTm(tm) -> node.Attr.LabelMargin <- 10;
@@ -153,23 +152,23 @@ let grnode_2_color nd = player_to_color (graphnode_player nd)
 let grnode_2_shape nd = player_to_shape (graphnode_player nd)
 
 
-(** [compgraph_to_graphview node_2_color node_2_shape gr] creates the GLEE graph view of a computation graph.
+(** [compgraph_to_graphview node_2_color node_2_shape gr] creates the MSAGL graph view of a computation graph.
     @param node_2_color a mapping from compgraph nodes to colors
     @param node_2_shape a mapping from compgraph nodes to shapes
     @param gr the computation graph    
-    @return the GLEE graph object representing the computation graph
+    @return the MSAGL graph object representing the computation graph
 **)
 let compgraph_to_graphview node_2_color node_2_shape (gr:computation_graph) =
     (* create a graph object *)
-    let gleegraph = new Microsoft.Glee.Drawing.Graph("graph") in
+    let msaglgraph = new Microsoft.Msagl.Drawing.Graph("graph") in
     
     (* add the nodes to the graph *)
     for k = 0 to (Array.length gr.nodes)-1 do
-        gleegraphnode_set_attributes grnode_2_color
+        msaglgraphnode_set_attributes grnode_2_color
                                      grnode_2_shape
                                      gr
                                      k
-                                     (gleegraph.AddNode (string_of_int k))
+                                     (msaglgraph.AddNode (string_of_int k))
     done;
 
     (* add the edges to the graph *)
@@ -177,20 +176,20 @@ let compgraph_to_graphview node_2_color node_2_shape (gr:computation_graph) =
         let source_id = string_of_int source in
         let aux i target = 
             let target_id = string_of_int target in
-            let edge = gleegraph.AddEdge(source_id,target_id) in
+            let edge = msaglgraph.AddEdge(source_id,target_id) in
             (match gr.nodes.(source) with
-                NCntApp -> edge.EdgeAttr.Label <- string_of_int i;
+                NCntApp -> edge.Attr.Label <- string_of_int i;
                                (* Highlight the first edge if it is an @-node (going to the operator) *)
-                               if i = 0 then edge.EdgeAttr.Color <- Microsoft.Glee.Drawing.Color.Green;
+                               if i = 0 then edge.Attr.Color <- Microsoft.Msagl.Drawing.Color.Green;
                | NCntAbs(_)  -> ();
-               | _ -> edge.EdgeAttr.Label <- string_of_int (i+1);
+               | _ -> edge.Attr.Label <- string_of_int (i+1);
             )
 
         in 
         List.iteri aux targets
     in
     Array.iteri addtargets gr.edges;
-    gleegraph
+    msaglgraph
 ;;
 
 
@@ -198,7 +197,7 @@ let compgraph_to_graphview node_2_color node_2_shape (gr:computation_graph) =
 let ShowCompGraphWindow mdiparent filename compgraph lnfrules =
     // create a form
     let form = new System.Windows.Forms.Form()
-    let viewer = new Microsoft.Glee.GraphViewerGdi.GViewer()
+    let viewer = new Microsoft.Msagl.GraphViewerGdi.GViewer()
     let panel1 = new System.Windows.Forms.Panel();
     let buttonLatex = new System.Windows.Forms.Button()
 
@@ -273,7 +272,7 @@ let ShowCompGraphWindow mdiparent filename compgraph lnfrules =
 type WorksheetParam = { graphsource_filename:string; 
                         compgraph:computation_graph; 
                         lnfrules: lnfrule list;
-                        gleeviewer: Microsoft.Glee.GraphViewerGdi.GViewer
+                        msaglviewer: Microsoft.Msagl.GraphViewerGdi.GViewer
                         seqflowpanel: System.Windows.Forms.FlowLayoutPanel
                         labinfo: System.Windows.Forms.Label
                       }
@@ -291,7 +290,7 @@ type WorksheetObject =
     abstract Selection : unit -> unit
     abstract Deselection : unit -> unit
     abstract Refocus : unit -> unit
-    abstract OnCompGraphNodeMouseDown : MouseEventArgs -> Microsoft.Glee.Drawing.Node  -> unit 
+    abstract OnCompGraphNodeMouseDown : MouseEventArgs -> Microsoft.Msagl.Drawing.Node  -> unit 
 
     // [ToXmlElement xmldoc] converts the object into an XML element.
     // @param xmldoc is the xmldocument
@@ -453,9 +452,9 @@ type EditablePstringObject =
           base.LoadSequenceFromXmlNode xmlPstr      
 
     // a graph-node has been clicked while this object was selected
-    override x.OnCompGraphNodeMouseDown e gleenode =
+    override x.OnCompGraphNodeMouseDown e msaglnode =
         // add the selected graph node at the end of the sequence
-        let gr_nodeindex = int_of_string gleenode.Attr.Id
+        let gr_nodeindex = int_of_string msaglnode.Attr.Id
         
         // add an internal node to the traversal
         if e.Button = MouseButtons.Left then
@@ -495,7 +494,7 @@ type EditablePstringObject =
   end
 
 
-(** Traversal object: type used for sequence respecting the traversal rules **)
+(** Traversal object: type used for sequence constructed with the traversal rules **)
 type TraversalObject = 
   class
     inherit PstringObject as base
@@ -601,24 +600,37 @@ type TraversalObject =
         x.ws.labinfo.Text <- if Map.is_empty x.valid_omoves then "Traversal completed!"
                              else if x.wait_for_ojustifier = [] then  "Pick a node in the graph!"
                              else "Pick a justifier in the sequence!"
+    
+    
+    // adujust the scrolling of the flow container so that the end of the sequence is visible
+    member x.flush_flowcontainer_to_right() =
+        let viewwidth = x.ws.seqflowpanel.ClientSize.Width // HorizontalScroll.LargeChange
+        //form.seqflowPanel.HorizontalScroll.Maximum - 
+        base.ws.seqflowpanel.HorizontalScroll.Value <- max 0 (base.pstrcontrol.Width - viewwidth)
+          //x.ws.seqflowpanel.AutoScrollPosition <- //Point(min 0 (viewwidth-x.pstrcontrol.Width), x.ws.seqflowpanel.AutoScrollPosition.Y)
+                                                    //Point(x.ws.seqflowpanel.AutoScrollPosition.Y+10, x.ws.seqflowpanel.AutoScrollPosition.Y)
+        //hscr.Value <- obj.Control.Width 
+
+    // adujust the scrolling of the flow container so that the node occurrence i is visible
+    member x.scroll_flowcontainer_to_occ i =
+        let bb = base.pstrcontrol.Bbox(i) in
+        let viewwidth = x.ws.seqflowpanel.ClientSize.Width // HorizontalScroll.LargeChange
+        base.ws.seqflowpanel.HorizontalScroll.Value <- max 0 (bb.Right - viewwidth)
         
     override x.Selection()=
         x.RefreshCompGraphViewer()
         x.RefreshLabelInfo()
-        //let hscr = x.ws.seqflowpanel.HorizontalScroll
-        //hscr.Value <- hscr.Maximum
-        //base.pstrcontrol.Width
-        
-        
         base.Selection()
+        x.flush_flowcontainer_to_right()
+        
 
     override x.Deselection()=
         x.RestoreCompGraphViewer()
         base.Deselection()
         
     (* a graph-node has been clicked while this object was selected *)
-    override x.OnCompGraphNodeMouseDown e gleenode = 
-        let gr_nodeindex = int_of_string gleenode.Attr.Id
+    override x.OnCompGraphNodeMouseDown e msaglnode = 
+        let gr_nodeindex = int_of_string msaglnode.Attr.Id
         let l = x.pstrcontrol.Length
         
         // valid O-move?
@@ -659,30 +671,30 @@ type TraversalObject =
 
     (* Update the graph node colors to indicate to the user which moves are allowed *)
     member x.RefreshCompGraphViewer() =
-        let gleegraph = x.ws.gleeviewer.Graph
-        for k = 0 to gleegraph.NodeCount-1 do
-           let gleenode = gleegraph.FindNode(string_of_int k)
-           gleegraphnode_set_attributes (fun _ -> if Map.mem k x.valid_omoves then player_to_color Opponent 
-                                                  else Color.LightGray )
-                                        grnode_2_shape
-                                        x.ws.compgraph
-                                        k
-                                        gleenode
+        let msaglgraph = x.ws.msaglviewer.Graph
+        for k = 0 to msaglgraph.NodeCount-1 do
+           let msaglnode = msaglgraph.FindNode(string_of_int k)
+           msaglgraphnode_set_attributes (fun _ -> if Map.mem k x.valid_omoves then player_to_color Opponent 
+                                                   else Color.LightGray )
+                                         grnode_2_shape
+                                         x.ws.compgraph
+                                         k
+                                         msaglnode
         done;
-        x.ws.gleeviewer.Invalidate()
+        x.ws.msaglviewer.Invalidate()
 
     (* Restore the original node colors in the graph-view *)
     member x.RestoreCompGraphViewer() =
-        let gleegraph = x.ws.gleeviewer.Graph
-        for k = 0 to gleegraph.NodeCount-1 do
-           let gleenode = gleegraph.FindNode(string_of_int k)
-           gleegraphnode_set_attributes grnode_2_color
+        let msaglgraph = x.ws.msaglviewer.Graph
+        for k = 0 to msaglgraph.NodeCount-1 do
+           let msaglnode = msaglgraph.FindNode(string_of_int k)
+           msaglgraphnode_set_attributes grnode_2_color
                                         grnode_2_shape
                                         x.ws.compgraph
                                         k
-                                        gleenode
+                                        msaglnode
         done;
-        x.ws.gleeviewer.Invalidate()
+        x.ws.msaglviewer.Invalidate()
     
     (* Compute the list of valid O-moves *)    
     member private x.recompute_valid_omoves() =
@@ -722,7 +734,7 @@ type TraversalObject =
                                               // Rule (InputVar): O can play any P-move whose parent occur in the O-view
                                              
                                               // get the list of occurrence from the O-view
-                                              let oview_occs = seq_occs_in_Xview
+                                              let oview_occs = Traversal.seq_occs_in_Xview
                                                                   x.ws.compgraph
                                                                   Opponent 
                                                                   pstr_occ_getnode        // getnode function
@@ -771,8 +783,8 @@ type TraversalObject =
                                     x.valid_omoves <- Map.empty
 
         if not (Map.is_empty x.valid_omoves) then
-          x.pstrcontrol.add_node (create_blank_occ()) // add a dummy node for the forthcoming initial O-move
-        
+          base.pstrcontrol.add_node (create_blank_occ()) // add a dummy node for the forthcoming initial O-move
+
         x.RefreshLabelInfo()
                                     
     
@@ -809,7 +821,7 @@ type TraversalObject =
                                               // get the occurrence of the binder in the P-view
                                               // the binder b can be reached in the traversal by going
                                               // (p-1)-steps backward in the P-view of the traversal
-                                              (seq_Xview_ilast x.ws.compgraph
+                                              (Traversal.seq_Xview_ilast x.ws.compgraph
                                                                Proponent 
                                                                pstr_occ_getnode        // getnode function
                                                                pstr_occ_getlink        // getlink function
@@ -839,16 +851,16 @@ type TraversalObject =
              
     (** undo all the moves played after the selected node **)
     member x.undo()=
-        // make sure that the selected node does not refer to the trailling dummy occurrence
-        let p = x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex
-        let seq = if p = -1 then [||]
-                  else pstrseq_prefix
-                        x.pstrcontrol.Sequence 
-                        // make sure p refers to a Proponent node
-                        (match pstr_occ_getnode (x.pstrcontrol.Occurrence(x.pstrcontrol.SelectedNodeIndex)) with
-                        | _ as node when x.ws.compgraph.gennode_player node = Opponent -> p-1
-                        | _ -> p)
-        (new TraversalObject(x.ws,seq)):>WorksheetObject
+        let s = x.pstrcontrol.SelectedNodeIndex
+        let occ = x.pstrcontrol.Occurrence(s)
+        let p = // If there is no selection or if the selection is on the dummy trailing node then we only undo the last O-move
+                if s = -1 || occ.tag = null || pstr_occ_getnode occ = Custom  then                s-3 // we remove the last three nodes: the dummy node + last P-move + last O-move
+                // othwerise undo up to the last Proponent move 
+                else if x.ws.compgraph.gennode_player (pstr_occ_getnode (x.pstrcontrol.Occurrence(s))) = Opponent then 
+                    s-1
+                else
+                    s
+        (new TraversalObject(x.ws,(pstrseq_prefix x.pstrcontrol.Sequence p))):>WorksheetObject
 
     override x.pview() = 
         let seq = pstrseq_pview_at x.ws.compgraph base.pstrcontrol.Sequence (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
@@ -947,10 +959,10 @@ let import_worksheet (filename:string) (ws:WorksheetParam) addObjectFunc =
 **)
 let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:computation_graph) lnfrules initialize_ws =
 
-    let form  = new Traversal.Traversal()
+    let form  = new GUI.Traversal()
 
-    // create the GLEE graph
-    let gleegraph = compgraph_to_graphview grnode_2_color grnode_2_shape compgraph            
+    // create the MSAGL graph
+    let msaglgraph = compgraph_to_graphview grnode_2_color grnode_2_shape compgraph            
 
     // this holds the WorksheetObject that is currently selected.
     let selection : WorksheetObject option ref = ref None
@@ -959,7 +971,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     let wsparam = { graphsource_filename=graphsource_filename;
                     compgraph=compgraph;
                     lnfrules=lnfrules;
-                    gleeviewer=form.gViewer
+                    msaglviewer=form.gViewer
                     seqflowpanel=form.seqflowPanel
                     labinfo = form.labGameInfo
                   }
@@ -1010,6 +1022,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     let select_object (obj:WorksheetObject) =
         enable_buttons true (obj:?TraversalObject)
         obj.Selection()
+
         selection := Some(obj)
 
     // change the current selection
@@ -1174,7 +1187,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
 
 
     // bind the graph to the viewer
-    form.gViewer.Graph <- gleegraph
+    form.gViewer.Graph <- msaglgraph
     form.gViewer.AsyncLayout <- false;
     form.gViewer.AutoScroll <- true;
     form.gViewer.BackwardEnabled <- true;
@@ -1192,17 +1205,17 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     form.gViewer.ZoomFraction <- 0.5;
     form.gViewer.ZoomWindowThreshold <- 0.10;
 
-    let (gleegraph_last_hovered_node: Microsoft.Glee.Drawing.Node option ref) = ref None
+    let (msaglgraph_last_hovered_node: Microsoft.Msagl.Drawing.Node option ref) = ref None
     form.gViewer.SelectionChanged.Add(fun _ -> if form.gViewer.SelectedObject = null then
-                                                      gleegraph_last_hovered_node := None
-                                                    else if (form.gViewer.SelectedObject :? Microsoft.Glee.Drawing.Node) then
-                                                      gleegraph_last_hovered_node := Some(form.gViewer.SelectedObject :?> Microsoft.Glee.Drawing.Node)
+                                                      msaglgraph_last_hovered_node := None
+                                                    else if (form.gViewer.SelectedObject :? Microsoft.Msagl.Drawing.Node) then
+                                                      msaglgraph_last_hovered_node := Some(form.gViewer.SelectedObject :?> Microsoft.Msagl.Drawing.Node)
                                                     else
-                                                      gleegraph_last_hovered_node := None
+                                                      msaglgraph_last_hovered_node := None
                                           );
     
     form.gViewer.MouseDown.Add(fun e -> 
-            match !selection, !gleegraph_last_hovered_node  with 
+            match !selection, !msaglgraph_last_hovered_node  with 
                 Some(selobj), Some(nd) -> selobj.OnCompGraphNodeMouseDown e nd
               | _ -> ()
         );

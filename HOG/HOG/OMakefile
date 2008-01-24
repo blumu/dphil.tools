@@ -22,9 +22,7 @@ FS_FILES[] =
     hog_parser.mli
     hog_parser.ml
     hog_lexer.ml
-    worksheetfile.fs
     traversal_form.fs
-    
     hocpda.ml
     cpdaform.fs
     horsform.fs
@@ -40,12 +38,19 @@ FS_DEP_DLLS[]=
     GUI
     
 FS_OTHER_DLLREFS[]=
-    Microsoft.GLEE
-    Microsoft.GLEE.GraphViewerGDI
-    Microsoft.GLEE.Drawing
+    Microsoft.Msagl
+    Microsoft.Msagl.GraphViewerGDI
+    Microsoft.Msagl.Drawing
+
+#    Microsoft.GLEE
+#    Microsoft.GLEE.GraphViewerGDI
+#    Microsoft.GLEE.Drawing
 
 FS_INCLUDEPATH[]=
-    $(GLEE)
+    $(MSAGL)
+#    $(GLEE)
+    
+FSFLAGS+=--no-warn 62
 
 .DEFAULT: $(FSharpAssembly $(PROGRAM), $(FS_FILES))
 
