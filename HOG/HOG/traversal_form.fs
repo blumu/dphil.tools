@@ -296,6 +296,18 @@ type WorksheetObject =
     // @param xmldoc is the xmldocument
     // @return the XML element created
     abstract ToXmlElement : System.Xml.XmlDocument -> System.Xml.XmlElement
+
+    // adujust the scrolling of the flow container so that the end of the sequence is visible
+    member x.flush_flowcontainer_to_right() =
+        ()
+        //let viewwidth = x.ws.seqflowpanel.ClientSize.Width // HorizontalScroll.LargeChange
+        //form.seqflowPanel.HorizontalScroll.Maximum - 
+        //base.ws.seqflowpanel.HorizontalScroll.Value <- max 0 (base.pstrcontrol.Width - viewwidth)
+        //let p = base.ws.seqflowpanel.AutoScrollPosition in
+        //base.ws.seqflowpanel.AutoScrollPosition <- Point((max 0 (base.pstrcontrol.Width - viewwidth)), p.Y)
+          //x.ws.seqflowpanel.AutoScrollPosition <- //Point(min 0 (viewwidth-x.pstrcontrol.Width), x.ws.seqflowpanel.AutoScrollPosition.Y)
+                                                    //Point(x.ws.seqflowpanel.AutoScrollPosition.Y+10, x.ws.seqflowpanel.AutoScrollPosition.Y)
+        //hscr.Value <- obj.Control.Width 
     
   end 
 
@@ -602,26 +614,21 @@ type TraversalObject =
                              else "Pick a justifier in the sequence!"
     
     
-    // adujust the scrolling of the flow container so that the end of the sequence is visible
-    member x.flush_flowcontainer_to_right() =
-        let viewwidth = x.ws.seqflowpanel.ClientSize.Width // HorizontalScroll.LargeChange
-        //form.seqflowPanel.HorizontalScroll.Maximum - 
-        base.ws.seqflowpanel.HorizontalScroll.Value <- max 0 (base.pstrcontrol.Width - viewwidth)
-          //x.ws.seqflowpanel.AutoScrollPosition <- //Point(min 0 (viewwidth-x.pstrcontrol.Width), x.ws.seqflowpanel.AutoScrollPosition.Y)
-                                                    //Point(x.ws.seqflowpanel.AutoScrollPosition.Y+10, x.ws.seqflowpanel.AutoScrollPosition.Y)
-        //hscr.Value <- obj.Control.Width 
-
     // adujust the scrolling of the flow container so that the node occurrence i is visible
     member x.scroll_flowcontainer_to_occ i =
-        let bb = base.pstrcontrol.Bbox(i) in
-        let viewwidth = x.ws.seqflowpanel.ClientSize.Width // HorizontalScroll.LargeChange
-        base.ws.seqflowpanel.HorizontalScroll.Value <- max 0 (bb.Right - viewwidth)
+        ()
+        //let bb = base.pstrcontrol.Bbox(i) in
+        //let viewwidth = x.ws.seqflowpanel.ClientSize.Width // HorizontalScroll.LargeChange
+        //base.ws.seqflowpanel.HorizontalScroll.Visible <- true
+        //let p = base.ws.seqflowpanel.AutoScrollPosition in
+        //base.ws.seqflowpanel.AutoScrollPosition <- Point((max 0 (bb.Right - viewwidth)), -p.Y)
+        //base.ws.seqflowpanel.HorizontalScroll.Value <- max 0 (bb.Right - viewwidth)
         
     override x.Selection()=
         x.RefreshCompGraphViewer()
         x.RefreshLabelInfo()
         base.Selection()
-        x.flush_flowcontainer_to_right()
+        base.flush_flowcontainer_to_right()
         
 
     override x.Deselection()=
@@ -784,6 +791,7 @@ type TraversalObject =
 
         if not (Map.is_empty x.valid_omoves) then
           base.pstrcontrol.add_node (create_blank_occ()) // add a dummy node for the forthcoming initial O-move
+          x.flush_flowcontainer_to_right()
 
         x.RefreshLabelInfo()
                                     
@@ -851,15 +859,21 @@ type TraversalObject =
              
     (** undo all the moves played after the selected node **)
     member x.undo()=
-        let s = x.pstrcontrol.SelectedNodeIndex
-        let occ = x.pstrcontrol.Occurrence(s)
-        let p = // If there is no selection or if the selection is on the dummy trailing node then we only undo the last O-move
-                if s = -1 || occ.tag = null || pstr_occ_getnode occ = Custom  then                s-3 // we remove the last three nodes: the dummy node + last P-move + last O-move
-                // othwerise undo up to the last Proponent move 
-                else if x.ws.compgraph.gennode_player (pstr_occ_getnode (x.pstrcontrol.Occurrence(s))) = Opponent then 
-                    s-1
-                else
-                    s
+        // If there is no selection then by default we take the last occurrence
+        let s = if x.pstrcontrol.SelectedNodeIndex >= 0 then x.pstrcontrol.SelectedNodeIndex else x.pstrcontrol.Length-1 
+        let p = // if the traversal is empty then take the empty prefix
+                if s = -1 then
+                    -1 
+                else 
+                    // if the selection is on the dummy trailing node then we only undo the last O-move
+                    let occ = x.pstrcontrol.Occurrence(s)
+                    if occ.tag = null || pstr_occ_getnode occ = Custom  then
+                        s-3 // we remove the last three nodes: the dummy node + last P-move + last O-move
+                    // othwerise undo up to the last Proponent move 
+                    else if x.ws.compgraph.gennode_player (pstr_occ_getnode (x.pstrcontrol.Occurrence(s))) = Opponent then 
+                        s-1
+                    else
+                        s
         (new TraversalObject(x.ws,(pstrseq_prefix x.pstrcontrol.Sequence p))):>WorksheetObject
 
     override x.pview() = 
@@ -1127,6 +1141,11 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     form.seqflowPanel.Enter.Add( fun _ -> apply_to_selection (fun cursel -> cursel.Control.Invalidate() ) )
     form.seqflowPanel.Leave.Add( fun _ -> apply_to_selection (fun cursel -> cursel.Control.Invalidate() ) )
     
+    ////// experimental:
+    //form.seqflowPanel.AutoScroll <- false
+    //form.seqflowPanel.HScroll
+    ////
+    
     
     // Traversal buttons
     form.btNewGame.Click.Add(fun _ -> change_selection_object (AddObject ((new TraversalObject(wsparam,[||])):>WorksheetObject)) );
@@ -1207,11 +1226,11 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
 
     let (msaglgraph_last_hovered_node: Microsoft.Msagl.Drawing.Node option ref) = ref None
     form.gViewer.SelectionChanged.Add(fun _ -> if form.gViewer.SelectedObject = null then
-                                                      msaglgraph_last_hovered_node := None
-                                                    else if (form.gViewer.SelectedObject :? Microsoft.Msagl.Drawing.Node) then
-                                                      msaglgraph_last_hovered_node := Some(form.gViewer.SelectedObject :?> Microsoft.Msagl.Drawing.Node)
-                                                    else
-                                                      msaglgraph_last_hovered_node := None
+                                                 msaglgraph_last_hovered_node := None
+                                               else if (form.gViewer.SelectedObject :? Microsoft.Msagl.Drawing.Node) then
+                                                 msaglgraph_last_hovered_node := Some(form.gViewer.SelectedObject :?> Microsoft.Msagl.Drawing.Node)
+                                               else
+                                                 msaglgraph_last_hovered_node := None
                                           );
     
     form.gViewer.MouseDown.Add(fun e -> 
