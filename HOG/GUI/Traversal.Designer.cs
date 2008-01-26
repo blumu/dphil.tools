@@ -148,6 +148,7 @@ namespace GUI
             this.gViewer.AsyncLayout = false;
             this.gViewer.AutoScroll = true;
             this.gViewer.BackwardEnabled = false;
+            this.gViewer.BuildHitTree = true;
             this.gViewer.Dock = System.Windows.Forms.DockStyle.Fill;
             this.gViewer.ForwardEnabled = false;
             this.gViewer.Graph = null;
@@ -155,6 +156,7 @@ namespace GUI
             this.gViewer.MouseHitDistance = 0.05;
             this.gViewer.Name = "gViewer";
             this.gViewer.NavigationVisible = true;
+            this.gViewer.NeedToCalculateLayout = true;
             this.gViewer.PanButtonPressed = false;
             this.gViewer.SaveButtonVisible = true;
             this.gViewer.Size = new System.Drawing.Size(328, 389);

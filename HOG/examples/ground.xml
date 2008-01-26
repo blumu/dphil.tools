@@ -1,0 +1,175 @@
+<worksheet>
+  <compgraph>
+    <source type="lambdaterm" file="term2.lmd" />
+  </compgraph>
+  <traversal>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [0]</label>
+      <link>0</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="0" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [1]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="1" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λf g [3]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="3" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>f [2]</label>
+      <link>1</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="2" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λx y [17]</label>
+      <link>3</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="17" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>y [16]</label>
+      <link>1</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="16" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λa [13]</label>
+      <link>3</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="13" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>a [12]</label>
+      <link>1</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="12" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λh [19]</label>
+      <link>3</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="19" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>x [18]</label>
+      <link>5</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="18" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λb [5]</label>
+      <link>7</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="5" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>f [4]</label>
+      <link>9</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="4" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λx y [17]</label>
+      <link>11</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="17" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>y [16]</label>
+      <link>1</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="16" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λa' [9]</label>
+      <link>3</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="9" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>a' [8]</label>
+      <link>1</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="8" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λh [19]</label>
+      <link>3</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="19" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>x [18]</label>
+      <link>5</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="18" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λb' [7]</label>
+      <link>7</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="7" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>b [6]</label>
+      <link>9</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="6" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [21]</label>
+      <link>11</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="21" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>h [20]</label>
+      <link>13</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="20" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [15]</label>
+      <link>15</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="15" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>e [14]</label>
+      <link>23</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+  </traversal>
+</worksheet>
