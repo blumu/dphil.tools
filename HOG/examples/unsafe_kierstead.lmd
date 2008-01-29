@@ -1,0 +1,3 @@
+(* Unsafe kierstead term *)
+ |-  fun f -> f (fun x -> f (fun y-> x) )
+;;
