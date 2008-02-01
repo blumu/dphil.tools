@@ -115,7 +115,7 @@ let open_dialog defaulttype _ =
 
 
 let opAbout _ = 
-    MessageBox.Show("HOG version "^VERSION^" by William Blum, 2007-2008"^Common.eol^"Graph are generated using the MSAGL tool from Microsoft.","About HOG") |> ignore
+    MessageBox.Show("HOG version "^VERSION^" by William Blum, 2007-2008"^Common.eol^"Graphs are generated using the MSAGL library from Microsoft.","About HOG") |> ignore
 
 let opExitForm _ = mainform.Close ()
 
