@@ -18,9 +18,9 @@
     "DebugCheck" = "TRUE"
     "CustomCompilationCheck" = "TRUE"
     "DebugStartMode" = "1"
-    "StartApp" = "d:\\documents\\dphil\\dev\\HOG\\bin\\Debug\\hog.exe"
-    "StartAppPath" = "d:\\documents\\dphil\\dev\\HOG\\examples"
-    "CustomStartupArguments" = "luke_ex.xml"
+    "StartApp" = "d:\\my documents\\dev\\HOG\\bin\\Debug\\hog.exe"
+    "StartAppPath" = "d:\\my documents\\dev\\HOG\\examples\\"
+    "CustomStartupArguments" = "luke2.rs"
     }
     "Release|Win32"
     {

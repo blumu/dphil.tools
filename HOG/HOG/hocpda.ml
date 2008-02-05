@@ -527,7 +527,7 @@ let hors_to_cpda kind hors (gr:computation_graph) vartmtypes =
                                     in        
                                     let build_case top1_nodeid top1_nodecontent = 
                                         (match top1_nodecontent with
-                                           (* If j=0 then we generate a case only for application nodes of the tree whose first edge points to the binder of x. *)                                           
+                                           (* If j=0 then we generate a case only for application nodes of the tree whose first edge points to the binder of x. *)
                                                NCntApp when j=0 && (graph_childnode gr.edges top1_nodeid 0) = b ->
                                                 [Label(make_case_label top1_nodeid);
                                                     Push1(string_of_int (graph_childnode gr.edges top1_nodeid i),(order-l+1,1));

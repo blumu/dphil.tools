@@ -1,4 +1,6 @@
 == Changelog
+0.0.8
+    + Bug fixed: the previous version introduced a bug in the CPDA generation (the internal information on the computation graph nodes were not generated properly)
 0.0.7
     + Update: change from GLEE to MSAGL (Thanks to Lev Nachmanson from Microsoft for sending me the academic version of the tool.)
 0.0.6   

@@ -211,9 +211,8 @@ type computation_graph = class
         i.e. if a node n is the ith child of p then the childindex of n is define as i.
         
         The array childindex is defined as follows:
-        - for free variable, @-nodes and the root it's undefined (-1)
+        - for variable nodes, @-nodes and the root it's undefined (-1)
         - for a lambda-node different from the root it's the childindex of the lambda-node
-        - for a bound variable it's the childindex of its binder
     **)
     val childindex : int array
     
@@ -315,7 +314,7 @@ type computation_graph = class
                                     in 
                                     look_for_binder_in_path 1 path;
                                     // the node is h.e. by the root iff its enabler is
-                                    this.he_by_root.(curnodeid) <- this.he_by_root.(this.enabler.(curnodeid))
+                                    this.he_by_root.(curnodeid) <- this.he_by_root.(this.enabler.(curnodeid));
                     
                     | NCntTm(_) -> // treat constant as free variables
                             this.enabler.(curnodeid) <- 0;
@@ -323,23 +322,25 @@ type computation_graph = class
                             this.he_by_root.(curnodeid) <- true
                     
                     | NCntAbs(_,_) -> (match path with
-                                        (p,_)::(_,j)::_ -> this.enabler.(curnodeid) <- p;
-                                                           this.childindex.(curnodeid) <- j;
-                                                           // the node is h.e. by the root iff its enabler is
-                                                           this.he_by_root.(curnodeid) <- this.he_by_root.(p) ; 
-                                        | _ -> this.he_by_root.(curnodeid) <- true; // the root is h.enabled by itself
+                                       // if the path is empty then we are processing the root
+                                       | [] -> 
+                                           this.he_by_root.(curnodeid) <- true; // the root is h.enabled by itself
+                                       |(p,j)::_ -> this.enabler.(curnodeid) <- p;
+                                                    this.childindex.(curnodeid) <- j;
+                                                    // the node is h.e. by the root iff its enabler is
+                                                    this.he_by_root.(curnodeid) <- this.he_by_root.(p) ; 
                                        )
                     | NCntApp -> ();
                     
                 );
             
                
-                List.iteri (function childindex -> function nodeid ->
+                List.iteri (function childindex -> function childid ->
                                 match this.nodes.(curnodeid) with 
                                 // for app node, child numbering starts at 0
-                                | NCntApp -> depth_first_search nodeid ((curnodeid,childindex)::path)
+                                | NCntApp -> depth_first_search childid ((curnodeid,childindex)::path)
                                 // for other nodes, child numbering starts at 1
-                                | _ -> depth_first_search nodeid ((curnodeid,childindex+1)::path)
+                                | _ -> depth_first_search childid ((curnodeid,childindex+1)::path)
                          )
                         this.edges.(curnodeid);
               end

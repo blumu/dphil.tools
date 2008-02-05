@@ -6,7 +6,7 @@
 #light
 
 (** Application version **)
-let VERSION = "0.0.7";;
+let VERSION = "0.0.8";;
 
 open System
 open System.Windows.Forms
