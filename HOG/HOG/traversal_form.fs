@@ -1,6 +1,6 @@
-﻿(** $Id: $
-	Description: Traversals window
-	Author:		William Blum
+﻿(** $Id$
+	Description: Traversal window
+	Author: William Blum
 **)
 
 #light
@@ -1289,6 +1289,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
 
 
 (** Open a worksheet file **)
+exception FileError of string;;
 let open_worksheet mdiparent (ws_filename:string) = 
 
     let xmldoc = new XmlDocument()
@@ -1303,35 +1304,41 @@ let open_worksheet mdiparent (ws_filename:string) =
     let xmlSource = xmlCompgraph.SelectSingleNode("source")
     assert_xmlnotnull xmlSource
     let xmlTyp = xmlSource.Attributes.GetNamedItem("type");
-    let filename = xmlSource.Attributes.GetNamedItem("file").InnerText
+    let filename = xmlSource.Attributes.GetNamedItem("file").InnerText // relative filename
 
-    let lnfrules =
-        match xmlTyp.InnerText with
-        "lambdaterm" ->
-            // parse the lambda term
-            match Parsing.parse_file Ml_parser.term_in_context Ml_lexer.token filename with
-              None -> failwith "The lambda term file associated to this worksheet could not be opened!"
-            | Some(lmdterm) -> 
-                // convert the term to LNF
-                [Coreml.lmdterm_to_lnfrule lmdterm]
-
-        |"recursionscheme" -> 
-            // parse the recursion scheme file
-            match Parsing.parse_file Hog_parser.hog_specification Hog_lexer.token filename with
-               None -> failwith "The recursion scheme file associated to this worksheet could not be opened!"
-             | Some(hors) -> // convert the rules to LNF
-                             fst (Hog.rs_to_lnf hors)
-        
-        | _ -> failwith "Unknown computation graph source!"
-
-
-    // create the computation graph from the lnfrules
-    let compgraph = Compgraph.rs_lnfrules_to_graph lnfrules
-    ShowTraversalCalculatorWindow
-                        mdiparent
-                        filename     // graph source file name
-                        compgraph    // computation graph
-                        lnfrules     // lnf rules
-                        (import_worksheet ws_filename) // Initialization function: import a default worksheet
+    // set the current directory to the directory containing the worksheet file
+    System.IO.Directory.SetCurrentDirectory(System.IO.Path.GetDirectoryName(ws_filename))
     
+    try 
+        let lnfrules =
+            match xmlTyp.InnerText with
+            "lambdaterm" ->
+                // parse the lambda term
+                match Parsing.parse_file Ml_parser.term_in_context Ml_lexer.token filename with
+                  None -> raise (FileError("The lambda term file associated to this worksheet could not be opened!"));
+                | Some(lmdterm) -> 
+                    // convert the term to LNF
+                    [Coreml.lmdterm_to_lnfrule lmdterm]
+
+            |"recursionscheme" -> 
+                // parse the recursion scheme file
+                match Parsing.parse_file Hog_parser.hog_specification Hog_lexer.token filename with
+                   None -> raise (FileError("The recursion scheme file associated to this worksheet could not be opened!"));
+                 | Some(hors) -> // convert the rules to LNF
+                                fst (Hog.rs_to_lnf hors)
+            | _ -> raise (FileError("The type of the source computation graph for this worksheet is not valid."));
+
+
+        // create the computation graph from the lnfrules
+        let compgraph = Compgraph.rs_lnfrules_to_graph lnfrules
+        ShowTraversalCalculatorWindow
+                            mdiparent
+                            filename     // graph source file name
+                            compgraph    // computation graph
+                            lnfrules     // lnf rules
+                            (import_worksheet ws_filename) // Initialization function: import a default worksheet
+    
+    with FileError(msg) -> ignore(MessageBox.Show(msg, "File error!", MessageBoxButtons.OK, MessageBoxIcon.Exclamation))
+         | :?System.NotSupportedException -> ignore(MessageBox.Show("Cannot open the source of the computation graph associated to this worksheet.", "File error!", MessageBoxButtons.OK, MessageBoxIcon.Exclamation))
+         
     ;;
