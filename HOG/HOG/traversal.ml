@@ -76,23 +76,47 @@ let seq_Xview (gr:computation_graph) xplayer get_gennode get_link update_link se
 ;;
 
 
-(** [seq_Xview_ilast gr xplayer get_gennode get_link update_link seq pos i]
-    returns the index in the original sequence of the occurrence appearing at the ith last position in the X-view.
-    This is done by computing i steps of the P-view.
+(** [seq_Xview_ilast gr xplayer get_gennode get_link update_link seq initpos nsteps]
+    returns the index in the original sequence of the occurrence appearing at the nsteps^th last position in
+    the X-view at initpos.
+    This is done by computing nsteps steps of the P-view at initpos.
     
-    Remark: This function is used to find the binder of a node in the X-view. **)
-let seq_Xview_ilast (gr:computation_graph) xplayer get_gennode get_link update_link seq pos =
+    Remark: This function can be used to find the binder of a node in the X-view
+    PROVIDED that the computation graph is CYCLE FREE . **)
+let seq_Xview_ilast (gr:computation_graph) xplayer get_gennode get_link update_link seq initpos =
     let rec aux cur = function
-                      | j when j <= 0 -> cur
-                      | _ when cur = 0 -> failwith "seq_Xview_ilast: The X-view has less than i occurrences!"
-                      | j when gr.gennode_player (get_gennode seq.(cur)) = xplayer -> aux (cur-1) (j-1) 
-                      | j -> let link = get_link seq.(cur) in
+                      | nsteps when nsteps <= 0 -> cur
+                      | _ when cur = 0 -> failwith "seq_Xview_ilast: The X-view has less than 'nsteps' occurrences!"
+                      | nsteps when gr.gennode_player (get_gennode seq.(cur)) = xplayer -> aux (cur-1) (nsteps-1) 
+                      | nsteps -> let link = get_link seq.(cur) in
                              if link = 0 then 
-                               failwith "seq_Xview_ilast: The X-view has less than i occurrences!"
+                               failwith "seq_Xview_ilast: The X-view has less than 'nsteps' occurrences!"
                              else
-                               aux (cur-link) (j-1)
-    in aux pos
+                               aux (cur-link) (nsteps-1)
+    in aux initpos
 ;;
+
+
+(** [seq_find_lastocc_in_Xview gr xplayer get_gennode get_link update_link seq initpos graphnode]
+    returns the index in the original sequence of the last occurrence in the X-view of the graph node 'graphnode'.    
+    Remark: This function can be used to find the binder of a node in the X-view. **)
+let seq_find_lastocc_in_Xview (gr:computation_graph) xplayer get_gennode get_link update_link seq initpos graphnode =
+    let rec aux = function
+                 | -1 -> failwith "seq_find_lastocc_in_Xview: Occurrence not found!"
+                 | cur ->   if get_gennode seq.(cur) = graphnode then
+                                cur
+                            else if gr.gennode_player (get_gennode seq.(cur)) = xplayer then
+                                aux (cur-1)
+                            else
+                                let link = get_link seq.(cur) in
+                                if link = 0 then 
+                                   failwith "seq_find_lastocc_in_Xview: Occurrence not found!"
+                                else
+                                   aux (cur-link)
+    in aux initpos
+;;
+
+
 
 (** [seq_occs_in_Xview gr xplayer get_gennode get_link update_link seq pos]
     returns the list of occurrences that are in the X-view. **)

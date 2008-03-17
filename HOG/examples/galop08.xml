@@ -60,13 +60,568 @@
       <graphnode type="node" index="15" />
     </occ>
     <occ>
-      <color>White</color>
-      <label>...</label>
+      <color>CornflowerBlue</color>
+      <label>λ [18]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="18" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [17]</label>
       <link>0</link>
       <shape>ShapeRectangle</shape>
-      <graphnode type="custom" />
+      <graphnode type="node" index="17" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ\varphi x y z [D:1]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>11</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [44]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="44" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>] [43]</label>
+      <link>13</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="43" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [46]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="46" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>\varphi [45]</label>
+      <link>5</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="45" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ#3 #4 [20]</label>
+      <link>7</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="20" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [19]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="19" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ\varphi x y z [D:1]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>19</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [16]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="16" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>[ [15]</label>
+      <link>21</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="15" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [18]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="18" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [17]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="17" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ\varphi x y z [D:1]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>25</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [16]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="16" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>[ [15]</label>
+      <link>27</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="15" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [18]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="18" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [17]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="17" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ\varphi x y z [D:1]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>31</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [44]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="44" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>] [43]</label>
+      <link>33</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="43" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [46]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="46" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>\varphi [45]</label>
+      <link>5</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="45" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ#3 #4 [20]</label>
+      <link>7</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="20" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [19]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="19" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ\varphi x y z [D:1]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>39</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [52]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="52" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>* [51]</label>
+      <link>41</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="51" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [54]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="54" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>z [53]</label>
+      <link>5</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="53" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [32]</label>
+      <link>7</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="32" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>#4 [31]</label>
+      <link>9</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="31" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [50]</label>
+      <link>11</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="50" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>x [49]</label>
+      <link>17</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="49" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [34]</label>
+      <link>19</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="34" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>z [33]</label>
+      <link>25</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="33" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [40]</label>
+      <link>27</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="40" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [39]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="39" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λx [F:2]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="2" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>* [55]</label>
+      <link>53</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="55" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [57]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="57" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>x [56]</label>
+      <link>3</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="56" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [42]</label>
+      <link>5</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="42" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>y [41]</label>
+      <link>39</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="41" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [30]</label>
+      <link>41</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="30" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>#3 [29]</label>
+      <link>43</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="29" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [48]</label>
+      <link>45</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="48" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>y [47]</label>
+      <link>51</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="47" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [36]</label>
+      <link>53</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="36" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [35]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="35" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λx [F:2]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="2" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>* [55]</label>
+      <link>65</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="55" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [57]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="57" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>x [56]</label>
+      <link>3</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="56" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [38]</label>
+      <link>5</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="38" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>y [37]</label>
+      <link>65</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="37" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [E:3]</label>
+      <link>67</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="3" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>e [58]</label>
+      <link>71</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="58" />
     </occ>
   </traversal>
+  <editablepstring>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [S:0]</label>
+      <link>0</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="0" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>[ [5]</label>
+      <link>1</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="5" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>2</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>[ [15]</label>
+      <link>3</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="15" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>4</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>] [43]</label>
+      <link>5</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="43" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>6</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>[ [15]</label>
+      <link>7</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="15" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>8</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>[ [15]</label>
+      <link>9</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="15" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>10</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>] [43]</label>
+      <link>11</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="43" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>12</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>* [51]</label>
+      <link>13</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="51" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>* [55]</label>
+      <link>14</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="55" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>* [55]</label>
+      <link>15</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="55" />
+    </occ>
+  </editablepstring>
   <editablepstring>
     <occ>
       <color>White</color>
@@ -124,5 +679,1000 @@
       <shape>ShapeRectangle</shape>
       <graphnode type="custom" />
     </occ>
+    <occ>
+      <color>White</color>
+      <label>sdfdsf</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="custom" />
+    </occ>
+    <occ>
+      <color>White</color>
+      <label>.df..</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="custom" />
+    </occ>
+    <occ>
+      <color>White</color>
+      <label>sdfsdf</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="custom" />
+    </occ>
+    <occ>
+      <color>White</color>
+      <label>dsf</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="custom" />
+    </occ>
+    <occ>
+      <color>White</color>
+      <label>sdf</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="custom" />
+    </occ>
+    <occ>
+      <color>White</color>
+      <label>...</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="custom" />
+    </occ>
   </editablepstring>
+  <traversal>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [S:0]</label>
+      <link>0</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="0" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>[ [5]</label>
+      <link>1</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="5" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [7]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="7" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [6]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="6" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ\varphi x y z [D:1]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>5</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [16]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="16" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>[ [15]</label>
+      <link>7</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="15" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [18]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="18" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [17]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="17" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ\varphi x y z [D:1]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>11</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [44]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="44" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>] [43]</label>
+      <link>13</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="43" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [46]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="46" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>\varphi [45]</label>
+      <link>5</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="45" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ#3 #4 [20]</label>
+      <link>7</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="20" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [19]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="19" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ\varphi x y z [D:1]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>19</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [16]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="16" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>[ [15]</label>
+      <link>21</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="15" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [18]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="18" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [17]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="17" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ\varphi x y z [D:1]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>25</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [16]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="16" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>[ [15]</label>
+      <link>27</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="15" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [18]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="18" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [17]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="17" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ\varphi x y z [D:1]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>31</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [44]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="44" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>] [43]</label>
+      <link>33</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="43" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [46]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="46" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>\varphi [45]</label>
+      <link>5</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="45" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ#3 #4 [20]</label>
+      <link>7</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="20" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [19]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="19" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ\varphi x y z [D:1]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>39</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [52]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="52" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>* [51]</label>
+      <link>41</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="51" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [54]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="54" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>z [53]</label>
+      <link>5</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="53" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [32]</label>
+      <link>7</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="32" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>#4 [31]</label>
+      <link>9</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="31" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [50]</label>
+      <link>11</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="50" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>x [49]</label>
+      <link>17</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="49" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [34]</label>
+      <link>19</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="34" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>z [33]</label>
+      <link>25</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="33" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [40]</label>
+      <link>27</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="40" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [39]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="39" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λx [F:2]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="2" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>* [55]</label>
+      <link>53</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="55" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [57]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="57" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>x [56]</label>
+      <link>3</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="56" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [42]</label>
+      <link>5</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="42" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>y [41]</label>
+      <link>39</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="41" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [30]</label>
+      <link>41</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="30" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>#3 [29]</label>
+      <link>43</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="29" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [48]</label>
+      <link>45</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="48" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>y [47]</label>
+      <link>51</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="47" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [36]</label>
+      <link>53</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="36" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [35]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="35" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λx [F:2]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="2" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>* [55]</label>
+      <link>65</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="55" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [57]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="57" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>x [56]</label>
+      <link>3</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="56" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [38]</label>
+      <link>5</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="38" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>y [37]</label>
+      <link>65</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="37" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [E:3]</label>
+      <link>67</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="3" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>e [58]</label>
+      <link>71</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="58" />
+    </occ>
+  </traversal>
+  <traversal>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [S:0]</label>
+      <link>0</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="0" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>[ [5]</label>
+      <link>1</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="5" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [7]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="7" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [6]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="6" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ\varphi x y z [D:1]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>5</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [16]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="16" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>[ [15]</label>
+      <link>7</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="15" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [18]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="18" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [17]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="17" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ\varphi x y z [D:1]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>11</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [44]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="44" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>] [43]</label>
+      <link>13</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="43" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [46]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="46" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>\varphi [45]</label>
+      <link>5</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="45" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ#3 #4 [20]</label>
+      <link>7</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="20" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [19]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="19" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ\varphi x y z [D:1]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>19</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [16]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="16" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>[ [15]</label>
+      <link>21</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="15" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [18]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="18" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [17]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="17" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ\varphi x y z [D:1]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>25</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>White</color>
+      <label>...</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="custom" />
+    </occ>
+  </traversal>
+  <traversal>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [S:0]</label>
+      <link>0</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="0" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>[ [5]</label>
+      <link>1</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="5" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [7]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="7" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [6]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="6" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ\varphi x y z [D:1]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>5</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [16]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="16" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>[ [15]</label>
+      <link>7</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="15" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [18]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="18" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [17]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="17" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ\varphi x y z [D:1]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>11</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [44]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="44" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>] [43]</label>
+      <link>13</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="43" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [46]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="46" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>\varphi [45]</label>
+      <link>5</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="45" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ#3 #4 [20]</label>
+      <link>7</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="20" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [19]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="19" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ\varphi x y z [D:1]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>19</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [16]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="16" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>[ [15]</label>
+      <link>21</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="15" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [18]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="18" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [17]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="17" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ\varphi x y z [D:1]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>25</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>White</color>
+      <label>...</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="custom" />
+    </occ>
+  </traversal>
+  <traversal>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [S:0]</label>
+      <link>0</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="0" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>[ [5]</label>
+      <link>1</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="5" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [7]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="7" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [6]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="6" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ\varphi x y z [D:1]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3 [14]</label>
+      <link>5</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="14" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [16]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="16" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>[ [15]</label>
+      <link>7</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="15" />
+    </occ>
+    <occ>
+      <color>White</color>
+      <label>...</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="custom" />
+    </occ>
+  </traversal>
 </worksheet>

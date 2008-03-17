@@ -247,7 +247,7 @@ namespace GUI
             this.btEditLabel.Name = "btEditLabel";
             this.btEditLabel.Size = new System.Drawing.Size(59, 28);
             this.btEditLabel.TabIndex = 2;
-            this.btEditLabel.Text = "&Edit label";
+            this.btEditLabel.Text = "Edit &label";
             this.btEditLabel.UseVisualStyleBackColor = true;
             // 
             // grpSeq

@@ -339,10 +339,12 @@ type PstringObject =
     override x.Clone() = new PstringObject(x.ws,x.pstrcontrol.Sequence):>WorksheetObject
 
     override x.Selection() =
+        x.pstrcontrol.AutoSizeMaxWidth <- x.ws.seqflowpanel.ClientSize.Width
         x.pstrcontrol.Selection() // tell the control that it's about to be selected using PstringControl.Selection()
         x.pstrcontrol.Select()    // select it with System.Windows.Forms.Form.Select()
         
     override x.Deselection() =
+        x.pstrcontrol.AutoSizeMaxWidth <- 0
         x.pstrcontrol.Deselection()
 
     // Called to give the focus back to the traversal control
@@ -588,7 +590,19 @@ type TraversalObject =
                                  then 
                                     TraversalObject.init x
 
-    override x.Clone() = new TraversalObject(x.ws,base.pstrcontrol.Sequence):>WorksheetObject
+    override x.Clone() = 
+        let l = Array.length base.pstrcontrol.Sequence
+        let nseq =
+            if l = 0 then
+                [||]
+            else if x.pstrcontrol.Occurrence(l-1).tag = null then
+                Array.sub base.pstrcontrol.Sequence 0 (l-1)
+            else
+                base.pstrcontrol.Sequence
+        in
+        new TraversalObject(x.ws,nseq):>WorksheetObject
+        
+            
 
     override x.ToXmlElement xmldoc = 
       let xmlPstr = xmldoc.CreateElement("traversal")
@@ -817,26 +831,24 @@ type TraversalObject =
                                       let firstchild = List.hd x.ws.compgraph.edges.(i) 
                                       
                                       // Get the span of the node
-                                      let p = x.ws.compgraph.span.(firstchild) in
+                                      let enabler = x.ws.compgraph.enabler.(firstchild) in
                                       
                                       // compute the link
                                       let link =
                                           // if no span 
-                                          if p = -1 then
+                                          if enabler = -1 then
                                             0 // then it's an @-node so it has no justifier
                                           else
                                             l-
                                               // get the occurrence of the binder in the P-view
-                                              // the binder b can be reached in the traversal by going
-                                              // (p-1)-steps backward in the P-view of the traversal
-                                              (Traversal.seq_Xview_ilast x.ws.compgraph
+                                              (Traversal.seq_find_lastocc_in_Xview x.ws.compgraph
                                                                Proponent 
                                                                pstr_occ_getnode        // getnode function
                                                                pstr_occ_getlink        // getlink function
                                                                pstr_occ_updatelink     // update link function
                                                                x.pstrcontrol.Sequence
                                                                (l-1)
-                                                               (p-1))
+                                                               (InternalNode(enabler)))
                                       
                                       x.add_gennode (InternalNode(firstchild)) link 
                                       x.recompute_valid_omoves()
@@ -1140,6 +1152,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     
     form.seqflowPanel.Enter.Add( fun _ -> apply_to_selection (fun cursel -> cursel.Control.Invalidate() ) )
     form.seqflowPanel.Leave.Add( fun _ -> apply_to_selection (fun cursel -> cursel.Control.Invalidate() ) )
+    form.seqflowPanel.SizeChanged.Add( fun _ -> apply_to_selection (fun cursel -> cursel.Selection() ) )
     
     ////// experimental:
     //form.seqflowPanel.AutoScroll <- false
@@ -1307,8 +1320,7 @@ let open_worksheet mdiparent (ws_filename:string) =
     let filename = xmlSource.Attributes.GetNamedItem("file").InnerText // relative filename
 
     // set the current directory to the directory containing the worksheet file
-    System.IO.Directory.SetCurrentDirectory(System.IO.Path.GetDirectoryName(ws_filename))
-    
+    System.IO.Directory.SetCurrentDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(ws_filename)))
     try 
         let lnfrules =
             match xmlTyp.InnerText with

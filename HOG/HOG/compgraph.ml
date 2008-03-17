@@ -104,7 +104,7 @@ let string_of_value = string_of_int
 type gen_node =    Custom    (* a custom node that is not in the computation graph *)
                  | InternalNode of int  (* the index of a node of the computation graph *)
                  | ValueLeaf of int * leaf_value (* the index of the parent node in the computation graph
-                                              and a value *)
+                                                    and a value *)
   
 
 (** [graph_addedge edges src tar] adds an edge going from [src] to [tar] in the graph [gr].

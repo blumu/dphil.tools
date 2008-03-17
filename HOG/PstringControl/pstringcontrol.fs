@@ -21,6 +21,8 @@ type NodeClickEventArgs =
 
 type Shapes = ShapeRectangle | ShapeOval
 
+type AutoSizeType = Height | Width | Both
+
 let shape_to_string = function ShapeRectangle -> "ShapeRectangle" | ShapeOval -> "ShapeOval" 
 and shape_of_string = function "ShapeRectangle" -> ShapeRectangle | "ShapeOval" -> ShapeOval | _ -> failwith "Unknown shape!"
 
@@ -169,8 +171,20 @@ type PstringControl =
     val mutable private autosize : bool
     override x.AutoSize with get() = x.autosize
                          and set b = x.autosize <- b
-                                     x.hScroll.Visible <- not b
-                                     x.recompute_bbox()
+                                     x.AutoSizeMode <- x.autosizemode
+
+    // This property sets the width above which
+    // the scrollbar should appear.
+    val mutable private autosize_maxwidth : int
+    member x.AutoSizeMaxWidth with get() = x.autosize_maxwidth
+                               and set m = x.autosize_maxwidth <- m
+                                           x.AutoSizeMode <- x.autosizemode
+
+    val mutable private autosizemode : AutoSizeType
+    member x.AutoSizeMode with get() = x.autosizemode
+                          and set m = x.autosizemode <- m
+                                      x.recompute_bbox()
+
 
     val mutable private editable : bool
     member x.Editable with get() = x.editable
@@ -209,6 +223,8 @@ type PstringControl =
             edited_node=0;
             selected_node= -1;
             autosize=true;
+            autosizemode=AutoSizeType.Both;
+            autosize_maxwidth=0;
             editable=true;
             control_selected=false;
             seq_unselection_pen=null
@@ -289,39 +305,70 @@ type PstringControl =
             overall_bbox := Rectangle.Union(!overall_bbox,this.bboxes.(i))
         done
     
-        // Resize the control
-        if this.autosize then
-            this.ClientSize <- Size((!overall_bbox).Width
-                                     + int seq_selection_pensize,
-                                     (!overall_bbox).Height + (if this.hScroll.Visible then this.hScroll.Height else 0) 
-                                     +  int seq_selection_pensize)
-
-        // Center vertically the entity {links+nodes}
-        //let top_y = (clientHeight-overall_bbox.Height)/2
-        // ...
-        
-        // Adjust the horizontal scrollbar
+        // Adjust the horizontal scrollbar bounds
         this.hScroll.Minimum <- 0
         this.hScroll.Maximum <- max 0  (!overall_bbox).Right
-        this.hScroll.LargeChange <- this.ClientRectangle.Width
-        this.hScroll.SmallChange <- if Array.length this.bboxes > 0 then this.bboxes.(0).Width else 0
+
+        // Resize the control
+        if this.autosize then
+            let mutable sizeClient = this.ClientSize
+            if this.autosizemode = AutoSizeType.Both || this.autosizemode = AutoSizeType.Width then
+                sizeClient.Width <- (!overall_bbox).Width + int seq_selection_pensize
+                if this.autosize_maxwidth<>0 && sizeClient.Width > this.autosize_maxwidth then
+                    sizeClient.Width <- this.autosize_maxwidth
+                    this.hScroll.Visible <- true
+                else
+                    this.hScroll.Visible <- false
                 
+            if this.autosizemode = AutoSizeType.Both || this.autosizemode = AutoSizeType.Height then
+                sizeClient.Height <- (!overall_bbox).Height + (if this.hScroll.Visible then this.hScroll.Height else 0) 
+                                +  int seq_selection_pensize
+            this.ClientSize <- sizeClient
+            
+            // Adjust the horizontal scrollbar increments
+            this.hScroll.LargeChange <- this.ClientRectangle.Width
+            this.hScroll.SmallChange <- if Array.length this.bboxes > 0 then this.bboxes.(0).Width else 0
+
+        else            
+            this.hScroll.Visible <- false
+                
+
+    // scroll so that postion x is aligned against the right edge of the client area
+    member private this.ScrollAlignRight x =
+        this.hScroll.Value <- max 0 (x-this.hScroll.LargeChange)
+    
+    // make sure the current view of the sequence contain the last node
+    member public this.ScrollToEnd() =
+        this.ScrollAlignRight this.hScroll.Maximum
+
+    // make sure the current view of the sequence contain the node inode
+    member private this.ScrollToMakeNodeVisible inode =
+        let rc = this.bboxes.(inode) in
+        if this.hScroll.Value <= rc.Left then
+            if rc.Right <= this.hScroll.Value + this.hScroll.LargeChange then
+              () // the node is visible: do nothing
+            else
+               // scroll_alignright_node
+               this.ScrollAlignRight rc.Right
+        else
+            this.hScroll.Value <- rc.Left
+            
+
     member public this.add_node node = 
         this.sequence <- Array.concat [this.sequence; [|node|]];
         this.selected_node <- (Array.length this.sequence)-1
         this.recompute_bbox() // recompute the bounding boxes
         // make sure the current view of the sequence contain the newly created node
-        this.hScroll.Value <- max 0 (this.hScroll.Maximum-this.hScroll.LargeChange)
+        this.ScrollToEnd()
         this.Invalidate()
-
+    
     member public this.replace_last_node node =
         let n = Array.length this.sequence 
         if n > 0 then
             this.sequence.(n-1) <- node
             this.selected_node <- n-1
             this.recompute_bbox() // recompute the bounding boxes
-            // make sure the current view of the sequence contain the last node
-            this.hScroll.Value <- max 0 (this.hScroll.Maximum-this.hScroll.LargeChange)
+            this.ScrollToEnd()
             this.Invalidate()
 
     member public this.remove_last_occ() =
@@ -343,13 +390,16 @@ type PstringControl =
                              shape=occ.shape;
                              color=occ.color}
     
-
+    
+    
+    member private this.ScrollShift = if this.hScroll.Visible then this.hScroll.Value else 0
+    
     member private this.NodeFromClientPosition (pos:Point) =
-        Array.find_index (function (a:Rectangle) -> a.Contains(pos+Size(this.hScroll.Value,0))) this.bboxes
+        Array.find_index (function (a:Rectangle) -> a.Contains(pos+Size(this.ScrollShift,0))) this.bboxes
     
     member private this.ClientPositionFromNode inode =
         let rc = this.bboxes.(inode) in
-        Point(rc.X, rc.Y)+Size(-this.hScroll.Value,0)
+        Point(rc.X, rc.Y)+Size(-this.ScrollShift,0)
     
     // Cancel the renaming of the node label
     member public this.CancelLabelEdit() = 
@@ -416,7 +466,7 @@ type PstringControl =
         this.hScroll.Size <- new System.Drawing.Size(820, 12);
         this.hScroll.TabIndex <- 20;
         this.hScroll.Value <- 0
-        this.AutoSize <-  this.autosize; // setting this property will produce a call to this.recompute_bbox()
+        this.AutoSize <- this.autosize; // setting this property will produce a call to this.recompute_bbox()
 
         // 
         // PstringUsercontrol
@@ -453,6 +503,7 @@ type PstringControl =
                     if e.Button = MouseButtons.Left then                   
                         try
                             this.selected_node <- this.NodeFromClientPosition e.Location;
+                            this.ScrollToMakeNodeVisible this.selected_node
                             // Triger the node_click event
                             (fst this.nodeClickEventPair)(this, NodeClickEventArgs(this.selected_node))
                             this.Invalidate();
@@ -492,8 +543,10 @@ type PstringControl =
         this.KeyDown.Add( fun e -> match e.KeyCode with 
                                         (* Selection navigation *)
                                         | Keys.Left when this.selected_node > 0 ->   this.selected_node <- this.selected_node-1
+                                                                                     this.ScrollToMakeNodeVisible this.selected_node
                                                                                      this.Invalidate()
                                         | Keys.Right when this.selected_node < (Array.length this.sequence)-1 -> this.selected_node <- this.selected_node+1                                        
+                                                                                                                 this.ScrollToMakeNodeVisible this.selected_node
                                                                                                                  this.Invalidate()
 
                                         (* justifier selection *)
@@ -557,7 +610,7 @@ type PstringControl =
                                     (Enum.combine [TextFormatFlags.VerticalCenter;TextFormatFlags.HorizontalCenter]));
           
           let DrawNode i brush pen arrow_pen = 
-              let delta = -this.hScroll.Value
+              let delta = -this.ScrollShift
               let node = this.sequence.(i)
               let mutable bbox = this.bboxes.(i)              
               bbox.Offset(delta, 0);

@@ -1,4 +1,8 @@
 == Changelog
+0.0.9
+	+ Bug fixed: the traversal was not computed correctly: when playing for P, it was wrongly assumed that the justifier of the variable node is the p^th last move in the P-view where p is the span of the variable node. However this is only true for cycle-free computation graph (i.e. computation tree).
+	The justifier binder is now found by looking for the last occurrence of the variable's enabler in the P-view.
+	+ GUI: each traversal has now an individual horizontal scroll-bar that shows only when it is selected.
 0.0.8
     + Bug fixed: the previous version introduced a bug in the CPDA generation (the internal information on the computation graph nodes were not generated properly)
 0.0.7
