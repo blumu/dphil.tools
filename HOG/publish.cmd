@@ -1,7 +1,4 @@
-pscp hog_exe.zip hog_src.zip blum@mercury.comlab.ox.ac.uk:/auto/fs/websrc/oucl/work/william.blum/
-@if ERRORLEVEL 1 goto exit
-
-plink blum@mercury.comlab.ox.ac.uk /users/blum/packbin/webpub /auto/fs/websrc/oucl/work/william.blum/hog_exe.zip /auto/fs/websrc/oucl/work/william.blum/hog_src.zip
+pscp hog_exe.zip hog_src.zip blum@mercury.comlab.ox.ac.uk:/auto/fs/website/people/william.blum/
 @if ERRORLEVEL 1 goto exit
 
 pscp hog_exe.zip hog_src.zip william@www.famille-blum.org:public_html/research/
