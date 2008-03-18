@@ -1,7 +1,7 @@
 // Luke's example.
 // This is an order 2 unsafe recursion scheme
 
-name { "Luke's example" }
+name { "Luke's order 3 unsafe example" }
 
 validator { none }
 

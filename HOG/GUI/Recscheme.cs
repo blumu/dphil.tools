@@ -14,5 +14,10 @@ namespace GUI
         {
             InitializeComponent();
         }
+
+        private void Recscheme_Load(object sender, EventArgs e)
+        {
+
+        }
     }
 }

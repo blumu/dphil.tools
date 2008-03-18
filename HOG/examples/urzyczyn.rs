@@ -1,6 +1,6 @@
 // The Urzyczin tree. This recursion scheme comes from Jolie De Miranda's thesis.
 
-name { "Urzyczin tree" }
+name { "Urzyczin tree (unsafe RS)" }
 
 validator { demiranda_urzyczyn }
 

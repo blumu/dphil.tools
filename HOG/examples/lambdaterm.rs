@@ -30,5 +30,5 @@ rules {
 	F y = \psi H;
 	G = \varphi I;
 	H z = z;
-	I xpp = xp;
+	I xpp = xpp;
 }

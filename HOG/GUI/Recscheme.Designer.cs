@@ -59,7 +59,7 @@ namespace GUI
             this.btRun.ImageKey = "(none)";
             this.btRun.Location = new System.Drawing.Point(6, 4);
             this.btRun.Name = "btRun";
-            this.btRun.Size = new System.Drawing.Size(129, 30);
+            this.btRun.Size = new System.Drawing.Size(129, 35);
             this.btRun.TabIndex = 0;
             this.btRun.Text = "&Run";
             this.btRun.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
@@ -75,7 +75,7 @@ namespace GUI
             // 
             this.btGraph.Location = new System.Drawing.Point(554, 4);
             this.btGraph.Name = "btGraph";
-            this.btGraph.Size = new System.Drawing.Size(129, 30);
+            this.btGraph.Size = new System.Drawing.Size(129, 35);
             this.btGraph.TabIndex = 4;
             this.btGraph.Text = "Computation &graph";
             this.btGraph.UseVisualStyleBackColor = true;
@@ -84,16 +84,16 @@ namespace GUI
             // 
             this.btPda.Location = new System.Drawing.Point(417, 4);
             this.btPda.Name = "btPda";
-            this.btPda.Size = new System.Drawing.Size(129, 30);
+            this.btPda.Size = new System.Drawing.Size(131, 35);
             this.btPda.TabIndex = 3;
-            this.btPda.Text = "Build n-PDA (safe RS)";
+            this.btPda.Text = "Build n-PDA\r\nfor safe RS (exp.)";
             this.btPda.UseVisualStyleBackColor = true;
             // 
             // btCpda
             // 
-            this.btCpda.Location = new System.Drawing.Point(280, 4);
+            this.btCpda.Location = new System.Drawing.Point(143, 4);
             this.btCpda.Name = "btCpda";
-            this.btCpda.Size = new System.Drawing.Size(129, 30);
+            this.btCpda.Size = new System.Drawing.Size(129, 35);
             this.btCpda.TabIndex = 2;
             this.btCpda.Text = "Build n-CPDA";
             this.btCpda.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
@@ -104,7 +104,7 @@ namespace GUI
             this.splitContainer1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
                         | System.Windows.Forms.AnchorStyles.Left)
                         | System.Windows.Forms.AnchorStyles.Right)));
-            this.splitContainer1.Location = new System.Drawing.Point(6, 85);
+            this.splitContainer1.Location = new System.Drawing.Point(6, 99);
             this.splitContainer1.Name = "splitContainer1";
             // 
             // splitContainer1.Panel1
@@ -115,7 +115,7 @@ namespace GUI
             // splitContainer1.Panel2
             // 
             this.splitContainer1.Panel2.Controls.Add(this.splitContainer2);
-            this.splitContainer1.Size = new System.Drawing.Size(823, 306);
+            this.splitContainer1.Size = new System.Drawing.Size(823, 375);
             this.splitContainer1.SplitterDistance = 274;
             this.splitContainer1.TabIndex = 4;
             // 
@@ -142,7 +142,7 @@ namespace GUI
             this.valueTreeView.SelectedImageIndex = 0;
             this.valueTreeView.ShowLines = false;
             this.valueTreeView.ShowRootLines = false;
-            this.valueTreeView.Size = new System.Drawing.Size(275, 290);
+            this.valueTreeView.Size = new System.Drawing.Size(275, 359);
             this.valueTreeView.TabIndex = 0;
             // 
             // splitContainer2
@@ -161,8 +161,8 @@ namespace GUI
             // 
             this.splitContainer2.Panel2.Controls.Add(this.txtOutput);
             this.splitContainer2.Panel2.Controls.Add(this.label4);
-            this.splitContainer2.Size = new System.Drawing.Size(545, 306);
-            this.splitContainer2.SplitterDistance = 122;
+            this.splitContainer2.Size = new System.Drawing.Size(545, 375);
+            this.splitContainer2.SplitterDistance = 149;
             this.splitContainer2.TabIndex = 5;
             // 
             // txtCode
@@ -177,7 +177,7 @@ namespace GUI
             this.txtCode.Multiline = true;
             this.txtCode.Name = "txtCode";
             this.txtCode.ReadOnly = true;
-            this.txtCode.Size = new System.Drawing.Size(545, 103);
+            this.txtCode.Size = new System.Drawing.Size(545, 130);
             this.txtCode.TabIndex = 0;
             this.txtCode.WordWrap = false;
             // 
@@ -202,7 +202,7 @@ namespace GUI
             this.txtOutput.Name = "txtOutput";
             this.txtOutput.ReadOnly = true;
             this.txtOutput.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.txtOutput.Size = new System.Drawing.Size(542, 161);
+            this.txtOutput.Size = new System.Drawing.Size(542, 203);
             this.txtOutput.TabIndex = 0;
             this.txtOutput.WordWrap = false;
             // 
@@ -220,7 +220,7 @@ namespace GUI
             this.txtPath.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
                         | System.Windows.Forms.AnchorStyles.Right)));
             this.txtPath.BackColor = System.Drawing.SystemColors.ControlLight;
-            this.txtPath.Location = new System.Drawing.Point(6, 52);
+            this.txtPath.Location = new System.Drawing.Point(6, 63);
             this.txtPath.Multiline = true;
             this.txtPath.Name = "txtPath";
             this.txtPath.ReadOnly = true;
@@ -231,7 +231,7 @@ namespace GUI
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(3, 37);
+            this.label3.Location = new System.Drawing.Point(3, 47);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(192, 13);
             this.label3.TabIndex = 3;
@@ -239,18 +239,19 @@ namespace GUI
             // 
             // btNp1pda
             // 
-            this.btNp1pda.Location = new System.Drawing.Point(143, 4);
+            this.btNp1pda.Enabled = false;
+            this.btNp1pda.Location = new System.Drawing.Point(280, 4);
             this.btNp1pda.Name = "btNp1pda";
-            this.btNp1pda.Size = new System.Drawing.Size(129, 30);
+            this.btNp1pda.Size = new System.Drawing.Size(129, 35);
             this.btNp1pda.TabIndex = 1;
-            this.btNp1pda.Text = "Build (n+1)-PDA";
+            this.btNp1pda.Text = "Build (n+1)-PDA (exp.)";
             this.btNp1pda.UseVisualStyleBackColor = true;
             // 
             // btCalculator
             // 
             this.btCalculator.Location = new System.Drawing.Point(691, 4);
             this.btCalculator.Name = "btCalculator";
-            this.btCalculator.Size = new System.Drawing.Size(129, 30);
+            this.btCalculator.Size = new System.Drawing.Size(129, 35);
             this.btCalculator.TabIndex = 5;
             this.btCalculator.Text = "&Traversal Calculator";
             this.btCalculator.UseVisualStyleBackColor = true;
@@ -259,7 +260,7 @@ namespace GUI
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(841, 403);
+            this.ClientSize = new System.Drawing.Size(841, 486);
             this.Controls.Add(this.txtPath);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.splitContainer1);
@@ -271,6 +272,7 @@ namespace GUI
             this.Controls.Add(this.btRun);
             this.Name = "Recscheme";
             this.Text = "Recscheme";
+            this.Load += new System.EventHandler(this.Recscheme_Load);
             this.splitContainer1.Panel1.ResumeLayout(false);
             this.splitContainer1.Panel1.PerformLayout();
             this.splitContainer1.Panel2.ResumeLayout(false);

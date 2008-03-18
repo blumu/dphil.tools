@@ -1,5 +1,7 @@
 // This is an order 3 unsafe recursion scheme generating a finite tree
-name { "Luke's second example" }
+// (the subterm (I x) is unsafe)
+
+name { "Luke's order 3 unsafe  example" }
 
 validator { none }
 
