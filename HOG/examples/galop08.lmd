@@ -1,0 +1,8 @@
+
+	h:o-> o 
+	|- 
+	fun f -> 
+		(fun u -> fun v -> u v)
+		h
+
+;;

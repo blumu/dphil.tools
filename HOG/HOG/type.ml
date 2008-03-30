@@ -62,17 +62,37 @@ and poltyp =   PTypGr
 let rec polytypeorder = function  PTypGr|PTypVar(_) ->  0 | PTypAr(a,b) -> max (1+ polytypeorder a) (polytypeorder b) ;;
 let rec polytypearity = function  PTypGr|PTypVar(_) ->  0 | PTypAr(_,b) -> 1+ (polytypearity b) ;;
 
+
+(** [type_substitute s t] performs the type substitution [s] on the type [t].
+    The substitution is given by a a list of pair of the form (typevar,typ) **)
+let rec type_substitute s = function
+    PTypGr -> PTypGr
+  | PTypVar(x) -> (try List.assoc x s
+                  with Not_found -> PTypVar(x))
+  | PTypAr(a, b) -> PTypAr((type_substitute s a), (type_substitute s b))
+;;
+
+
 exception NotUnifiable;;
 
+(* Perfom the unification of two polymorphic types and return a tuple (sl,sr,sigma)
+ where sigma is the unified type and s1 and s2 are type-variable substitutions (a list of pair of the form (typevar,type))
+ such that t1[s1] = t2[s2] = sigma.
+ *)
 let rec unify_polytype t1 t2 = match(t1,t2) with
-    PTypGr,PTypGr -> PTypGr
-   |PTypVar(x),PTypVar(y) -> PTypVar(min x y)
-   |PTypVar(_),_ -> t2
-   |_,PTypVar(_) -> t1
-   |PTypAr(l1,r1), PTypAr(l2,r2) -> PTypAr((unify_polytype l1 l2),(unify_polytype r1 r2))
+    PTypGr,PTypGr -> [],[],PTypGr
+   |PTypVar(x),PTypVar(y) when x<y->  [],[y,PTypVar(x)],  PTypVar(x)
+   |PTypVar(x),PTypVar(y) when y<x -> [x,PTypVar(y)],[],  PTypVar(y)
+   |PTypVar(x),PTypVar(y) -> [],[],PTypVar(x)
+   |PTypVar(x),_ -> [x,t2], [], t2
+   |_,PTypVar(y) -> [],[y,t1],  t1
+   |PTypAr(l1,r1), PTypAr(l2,r2) -> let sl1,sl2,tau1 = unify_polytype l1 l2 in 
+                                    let sr1,sr2,tau2 = unify_polytype (type_substitute sl1 r1) (type_substitute sl2 r2)
+                                    in sl1@sr1, sl2@sr2, PTypAr(tau1,tau2)
    | _ -> raise NotUnifiable;;
    
 exception TypecheckingError;;
+
 
 
 let rec string_of_polytype = function

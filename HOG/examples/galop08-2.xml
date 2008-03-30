@@ -1,0 +1,121 @@
+<worksheet>
+  <compgraph>
+    <source type="lambdaterm" file="galop08-2.lmd" />
+  </compgraph>
+  <traversal>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λf #1 [0]</label>
+      <link>0</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="0" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [1]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="1" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λu #3 [3]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="3" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>u [2]</label>
+      <link>1</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="2" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ#2 [7]</label>
+      <link>3</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="7" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>h [6]</label>
+      <link>5</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="6" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [9]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="9" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>#2 [8]</label>
+      <link>3</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="8" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [5]</label>
+      <link>5</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="5" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>#3 [4]</label>
+      <link>7</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="4" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [11]</label>
+      <link>9</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="11" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>#1 [10]</label>
+      <link>11</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="10" />
+    </occ>
+  </traversal>
+  <traversal>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λf #1 [0]</label>
+      <link>0</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="0" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>@ [1]</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="1" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [11]</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="11" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>#1 [10]</label>
+      <link>3</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="10" />
+    </occ>
+  </traversal>
+</worksheet>

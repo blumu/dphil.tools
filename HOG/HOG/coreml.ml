@@ -64,6 +64,26 @@ exception MissingVariableInContext;;
 
 let lookup_var x context = try List.assoc x context 
                            with Not_found -> raise MissingVariableInContext;;
+                           
+                           
+(********************** Type inference **************************)
+
+(** [namesubst_annotatedterm s aterm] perform the type substitution [s] in all the types occurring in the annotated term [aterm] **)
+let rec namesubst_annotatedterm s (typ,term) = 
+    (type_substitute s typ),
+    (match term with
+     | AnFun(x,a) -> AnFun(x, (namesubst_annotatedterm s a))
+     | AnLet(u,a) -> AnLet((List.map (fun (a,b,c) -> a,b,namesubst_annotatedterm s c) u),namesubst_annotatedterm s a)
+     | AnLetrec(u,a) -> AnLetrec((List.map (fun (a,b,c) -> a,b,namesubst_annotatedterm s c) u),namesubst_annotatedterm s a)
+     | AnIf(a,b,c)   -> AnIf(namesubst_annotatedterm s a, namesubst_annotatedterm s b, namesubst_annotatedterm s c)
+     | AnEqTest(a,b) -> AnEqTest(namesubst_annotatedterm s a, namesubst_annotatedterm s b)
+     | AnMlAppl(a,b) -> AnMlAppl(namesubst_annotatedterm s a, namesubst_annotatedterm s b)
+     | AnMlVar(_)
+     | AnMlInt(_)
+     | AnMlBool(_)
+     | AnPred
+     | AnSucc -> term)
+;;
 
 (* Infer a polymorphic type for a term-in-context *)
 let infer_polytype (context,term) =  
@@ -73,9 +93,10 @@ let infer_polytype (context,term) =
         match term with
           MlVar(x) -> lookup_var x context
         | MlAppl(f,e) -> let tauf, taue = (infer context f),(infer context e) in
-                         (match unify_polytype tauf (PTypAr(taue,PTypVar(new_freshvar()))) with
-                                | PTypAr(_,sigma) -> sigma
-                                | _ -> raise TypecheckingError )
+                         let _,_,sigma = unify_polytype tauf (PTypAr(taue,PTypVar(new_freshvar()))) in
+                         (match sigma with
+                          | PTypAr(_,sigma) -> sigma
+                          | _ -> raise TypecheckingError)
         | Fun(x,e) -> let tau = PTypVar(new_freshvar()) in
                       PTypAr(tau, (infer ((x,tau)::context) e))
         | _ -> failwith "unsupported Ml constructs!"
@@ -99,10 +120,11 @@ let annotate_term ((context,term):ml_termincontext) :ml_annotated_expr =
           MlVar(x) -> (lookup_var x context),(AnMlVar(x))
         | MlAppl(f,e) -> let (tauf,_) as f_annotated = annotate context f
                          and (taue,_) as e_annotated = annotate context e in
-                            (match unify_polytype tauf (PTypAr(taue,PTypVar(new_freshvar()))) with
-                                | PTypAr(_,sigma) -> sigma
-                                | _ -> raise TypecheckingError),
-                            (AnMlAppl(f_annotated,e_annotated))
+                         let subst_f, subst_e, unif = unify_polytype tauf (PTypAr(taue,PTypVar(new_freshvar()))) in
+                         (match unif with
+                         | PTypAr(_,ret_type) -> ret_type, (AnMlAppl((namesubst_annotatedterm subst_f f_annotated),
+                                                                     (namesubst_annotatedterm subst_e e_annotated)))
+                         | _ -> raise TypecheckingError)
                             
         | Fun(x,e) -> let tau = PTypVar(new_freshvar()) in
                       let e_type,e_subanotated = annotate ((x,tau)::context) e in

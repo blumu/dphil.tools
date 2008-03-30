@@ -830,12 +830,12 @@ type TraversalObject =
                                       // find the child node of the lambda node
                                       let firstchild = List.hd x.ws.compgraph.edges.(i) 
                                       
-                                      // Get the span of the node
+                                      // Get the enabler of the node
                                       let enabler = x.ws.compgraph.enabler.(firstchild) in
                                       
                                       // compute the link
                                       let link =
-                                          // if no span 
+                                          // no enabler?
                                           if enabler = -1 then
                                             0 // then it's an @-node so it has no justifier
                                           else
@@ -859,15 +859,16 @@ type TraversalObject =
                                 ()
 
 
-    (** [adjust_to_valid_occurrence i] adujsts the occurrence index i to a valid occurrence position by making sure
+    (** [adjust_to_valid_occurrence i] adjusts the occurrence index i to a valid occurrence position by making sure
         that it does not refer to the trailling dummy node (labelled "...") a the end of the sequence.
         
         @return the index of the first valid occurrence preceding occurrence number i,
         and -1 if there is no such occurrence (if the traversal is empty) **)
     member private x.adjust_to_valid_occurrence i =
-        i - (let occ = x.pstrcontrol.Occurrence(i)
-             if occ.tag = null || pstr_occ_getnode occ = Custom  then 1 else 0)
-
+        let j = max 0 (min (x.pstrcontrol.Length-1) i)
+        let occ = x.pstrcontrol.Occurrence(j)
+        if occ.tag = null || pstr_occ_getnode occ = Custom  then j-1
+        else j
              
     (** undo all the moves played after the selected node **)
     member x.undo()=
@@ -890,7 +891,7 @@ type TraversalObject =
 
     override x.pview() = 
         let seq = pstrseq_pview_at x.ws.compgraph base.pstrcontrol.Sequence (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
-        (new TraversalObject(x.ws,seq)):>WorksheetObject
+        (new EditablePstringObject(x.ws,seq)):>WorksheetObject
     override x.oview() = 
         let seq = pstrseq_oview_at x.ws.compgraph base.pstrcontrol.Sequence (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
         (new EditablePstringObject(x.ws,seq)):>WorksheetObject

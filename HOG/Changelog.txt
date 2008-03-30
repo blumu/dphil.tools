@@ -1,4 +1,6 @@
 == Changelog
+0.0.10
+	+ Bug fixed in the type unification/annotation algorithm causing a malformed eta-long normal form.
 0.0.9
 	+ Bug fixed: the traversal was not computed correctly: when playing for P, it was wrongly assumed that the justifier of the variable node is the p^th last move in the P-view where p is the span of the variable node. However this is only true for cycle-free computation graph (i.e. computation tree).
 	The justifier binder is now found by looking for the last occurrence of the variable's enabler in the P-view.
