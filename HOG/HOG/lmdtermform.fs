@@ -15,6 +15,7 @@ open Common
 open Printf
 open Type
 open Lnf
+
 open Compgraph
 open Coreml
 
@@ -70,12 +71,6 @@ type TermForm =
 
     member this.InitializeComponent lnfterm =
         // 
-        // codeRichTextBox
-        // 
-        this.codeRichTextBox.Text <- string_of_mltermincontext this.lmdterm;
-        colorizeCode this.codeRichTextBox;
-
-        // 
         // graphButton
         // 
         this.btGraph.Click.Add(fun e -> Traversal_form.ShowCompGraphWindow this.MdiParent this.filename this.compgraph ["",lnfterm]);
@@ -101,12 +96,22 @@ type TermForm =
          }
        
        then 
+        let annotterm = annotate_termincontext this.lmdterm
         // convert the term to LNF
         let lnfterm = //try 
-                        lmdterm_to_lnf this.lmdterm
+                        annotatedterm_to_lnf annotterm
                       //with MissingVariableInContext -> 
 
         this.InitializeComponent lnfterm;
+
+        // 
+        // codeRichTextBox
+        // 
+        this.codeRichTextBox.Text <- (string_of_polyalphabet_aux ", " (fst annotterm))
+                                    ^"|-"^(string_of_mlterm (snd this.lmdterm))
+                                    ^" : "^(string_of_polytype (fst (snd annotterm)));
+                                    
+        colorizeCode this.codeRichTextBox;
 
         this.Text <- ("Simply-typed lambda term - "^filename);
         this.filename <- filename;

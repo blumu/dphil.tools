@@ -1331,7 +1331,7 @@ let open_worksheet mdiparent (ws_filename:string) =
                   None -> raise (FileError("The lambda term file associated to this worksheet could not be opened!"));
                 | Some(lmdterm) -> 
                     // convert the term to LNF
-                    [Coreml.lmdterm_to_lnfrule lmdterm]
+                    [Coreml.annotatedterm_to_lnfrule (Coreml.annotate_termincontext lmdterm)]
 
             |"recursionscheme" -> 
                 // parse the recursion scheme file

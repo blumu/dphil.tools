@@ -34,19 +34,6 @@ let rec string_of_type = function
   | Ar(a,b) -> (string_of_type a)^" -> "^(string_of_type b)
 ;;
 
-let string_of_alphabet_aux sep a =
-	let string_of_letter (l,t) =   
-	  l^":"^(string_of_type t) ;
-	in
-	(* List.fold_left (function acc -> function l -> acc^(string_of_letter l)) "" a *)
-	String.concat sep (List.map string_of_letter a) 
-;;
-
-let string_of_alphabet a = (string_of_alphabet_aux eol a)^eol;;
-
-let print_alphabet a = print_string (string_of_alphabet a);;
-
-
 
 (*** ------------------------
      Polymorphic types    ***)
@@ -68,7 +55,7 @@ let rec polytypearity = function  PTypGr|PTypVar(_) ->  0 | PTypAr(_,b) -> 1+ (p
 let rec type_substitute s = function
     PTypGr -> PTypGr
   | PTypVar(x) -> (try List.assoc x s
-                  with Not_found -> PTypVar(x))
+                   with Not_found -> PTypVar(x))
   | PTypAr(a, b) -> PTypAr((type_substitute s a), (type_substitute s b))
 ;;
 
@@ -127,3 +114,28 @@ let rec create_param_polytyp_list p t = match p,t with
   | _ -> failwith ("create_paramtyplist: type does not match with the number of specified parameters.")
 ;;
 
+
+(* convert a typed alphabet into a string *)
+let string_of_alphabet_aux sep a =
+	let string_of_letter (l,t) =   
+	  l^":"^(string_of_type t) ;
+	in
+	(* List.fold_left (function acc -> function l -> acc^(string_of_letter l)) "" a *)
+	String.concat sep (List.map string_of_letter a) 
+;;
+
+(* convert a typed alphabet into a string *)
+let string_of_alphabet a = (string_of_alphabet_aux eol a)^eol;;
+
+(* print a type alphabet *)
+let print_alphabet a = print_string (string_of_alphabet a);;
+
+
+(* convert a polmorhpically-typed alphabet into a string *)
+let string_of_polyalphabet_aux sep a =
+	let string_of_letter (l,t) =   
+	  l^":"^(string_of_polytype t) ;
+	in
+	(* List.fold_left (function acc -> function l -> acc^(string_of_letter l)) "" a *)
+	String.concat sep (List.map string_of_letter a) 
+;;

@@ -29,9 +29,9 @@ open Type;;
 
 %start		                            term_in_context
 
-%type<Coreml.ml_termincontext>      term_in_context
-%type<Coreml.ml_expr>               term
-%type<Coreml.ml_context>            context
+%type<Coreml.ml_termincontext>				  term_in_context
+%type<Coreml.ml_expr>						  term
+%type<Coreml.ml_context>					  context
 
 
 
@@ -46,9 +46,9 @@ context :													    { [] }
 
 
 
-typ :    IDENT													{ if $1 = "o" then Gr else failwith "Invalid type!" }
+typ :    IDENT													{ if $1 = "o" then PTypGr else failwith "Invalid type!" }
         | LP typ RP												{ $2 }
-        | typ ARROW typ 										{ Ar($1,$3) }
+        | typ ARROW typ 										{ PTypAr($1,$3) }
 ;
 
 

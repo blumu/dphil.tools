@@ -20,7 +20,7 @@
     "DebugStartMode" = "1"
     "StartApp" = "c:\\users\\william\\documents\\dphil\\dev\\HOG\\bin\\Debug\\hog.exe"
     "StartAppPath" = "c:\\users\\william\\documents\\dphil\\dev\\HOG\\examples\\"
-    "CustomStartupArguments" = "galop08-2.xml"
+    "CustomStartupArguments" = "order3.lmd"
     }
     "Release|Win32"
     {
