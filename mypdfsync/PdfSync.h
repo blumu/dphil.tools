@@ -8,6 +8,7 @@
 #include <vector>
 #include <hash_map>
 #include <stack>
+#include <stddef.h>
 using namespace std;
 using namespace stdext;
 

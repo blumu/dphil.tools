@@ -8,8 +8,8 @@
 #include <crtdbg.h>
 #include <stdio.h>
 #include <tchar.h>
-#include <iostream>
-#include <fstream>
+//#include <iostream>
+//#include <fstream>
 
 
 record2srcfile_node *Pdfsync::build_decision_tree(int leftrecord, int rightrecord)
@@ -87,7 +87,7 @@ int Pdfsync::scan_and_build_index(FILE *fp)
   pair< hash_map<string,src_scope>::iterator, bool > pr;
 	pr = src_scopes.insert(pair<string,src_scope>(string(jobname), s));
 	if (pr.second == false)
-	  	cerr << "File cannot be added to the hastable!";
+	  	DBG_OUT("File cannot be added to the hastable!");
 	else {                
 		  incstack.push(pr.first);
 	}
@@ -120,7 +120,7 @@ int Pdfsync::scan_and_build_index(FILE *fp)
 		        pair< hash_map<string,src_scope>::iterator, bool > pr;
 		        pr = src_scopes.insert(pair<string,src_scope>(string(filename), s));
             if( pr.second == false) {
-			        cerr << "File cannot be added to the hastable: probably because the same file is included twice!"<<endl;
+			        DBG_OUT("File cannot be added to the hastable: probably because the same file is included twice!\n");
 			        incstack.push(src_scopes.end());
             }
 		        else {                
@@ -150,7 +150,7 @@ int Pdfsync::scan_and_build_index(FILE *fp)
 #endif
 		          UINT columnNumber = 0, lineNumber = 0, recordNumber = 0;
 		          if (fscanf_s(fp, " %u %u %u\n", &recordNumber, &lineNumber, &columnNumber) <2)
-			          cerr << "Bad 'l' line in the pdfsync file"<<endl;
+			          DBG_OUT("Bad 'l' line in the pdfsync file\n");
 		          else {
 			          if (cursec.srcfile == src_scopes.end()){ // section not initiated yet?
 				          cursec.srcfile = incstack.top();
@@ -190,14 +190,15 @@ int Pdfsync::scan_and_build_index(FILE *fp)
 		        pair< hash_map<int,pdfsheet_indexentry>::iterator, bool > pr;
 		        pr = pdfsheet_index.insert(pair<int, pdfsheet_indexentry>(sheetNumber, entry));
 		        if (pr.second == false)
-			        cerr << "Hastable error (pdfsheet_index)!";
+			        DBG_OUT("Hastable error (pdfsheet_index)!\n");
 		        else {                
 			        cursheet = &pr.first->second;
 		        }
             break;
 	        }
           default:
-            cerr << "Malformed pdfsync file: unknown command '" << c << "'";;
+            DBG_OUT("Malformed pdfsync file: unknown command '");
+            DBG_OUT(c); DBG_OUT("'\\n");;
             break;
       }
 	}
@@ -228,7 +229,7 @@ int Pdfsync::rebuild_index()
 
     err = fopen_s(&fp, syncfilename.c_str(), "r");
     if(err!=0) {
-        cerr << "The file " << syncfilename << " cannot be opened\n";
+        DBG_OUT("The file "); DBG_OUT(syncfilename); DBG_OUT(" cannot be opened\n");
         return 1;
     }
     scan_and_build_index(fp);
@@ -245,7 +246,7 @@ UINT Pdfsync::pdf_to_source(UINT sheet, UINT x, UINT y, PSTR filename, UINT cchF
 
     err = fopen_s(&fp, syncfilename.c_str(), "r");
     if(err!=0) {
-        cerr << "The file " << syncfilename << " cannot be opened\n";
+        DBG_OUT("The file "); DBG_OUT(syncfilename); DBG_OUT(" cannot be opened\n");
         return PDFSYNCERR_SYNCFILE_CANNOT_BE_OPENED;
     }
 
@@ -304,7 +305,7 @@ UINT Pdfsync::pdf_to_source(UINT sheet, UINT x, UINT y, PSTR filename, UINT cchF
         _ASSERT(c=='l'); // the section contains only record declaration lines
         UINT columnNumber = 0, lineNumber = 0, recordNumber = 0;
         if (fscanf_s(fp, " %u %u %u\n", &recordNumber, &lineNumber, &columnNumber) <2)
-            cerr << "Bad 'l' line in the pdfsync file";
+            DBG_OUT("Bad 'l' line in the pdfsync file");
         else {
             if (recordNumber == closest_record){
               *line = lineNumber;
