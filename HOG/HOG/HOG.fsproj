@@ -1,0 +1,105 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="3.5" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- Common Property Group -->
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{d7768280-0a21-4e14-ab45-33c1534470e9}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>
+    </RootNamespace>
+    <AssemblyName>HOG</AssemblyName>
+    <Name>HOG</Name>
+  </PropertyGroup>
+  <!-- Configuration Debug -->
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>True</DebugSymbols>
+    <Optimize>False</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>
+    </DefineConstants>
+    <WarningLevel>3</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ReferencePath>C:\Program Files\Microsoft\Microsoft Automatic Graph Layout\bin ; ..\bin\Debug</ReferencePath>
+  </PropertyGroup>
+  <!-- Configuration Release -->
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugSymbols>False</DebugSymbols>
+    <Optimize>True</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>
+    </DefineConstants>
+    <WarningLevel>3</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ReferencePath>C:\Program Files\Microsoft\Microsoft Automatic Graph Layout\bin\ ; bin\Release\</ReferencePath>
+  </PropertyGroup>
+  <!-- References -->
+  <ItemGroup>
+    <Reference Include="Microsoft.Msagl" />
+    <Reference Include="Microsoft.Msagl.Drawing" />
+    <Reference Include="Microsoft.Msagl.GraphViewerGDI" />
+    <Reference Include="GUI" />
+    <Reference Include="Pstring" />
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="FSharp.PowerPack" />
+    <Reference Include="Microsoft.Msagl" />
+    <Reference Include="Microsoft.Msagl.Drawing" />
+    <Reference Include="Microsoft.Msagl.GraphViewerGDI" />
+    <Reference Include="Pstring" />
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="FSharp.PowerPack" />
+  </ItemGroup>
+  <!-- Files -->
+  <ItemGroup>
+    <Compile Include="common.ml" />
+    <Compile Include="type.ml" />
+    <Compile Include="lnf.ml" />
+    <Compile Include="coreml.mli" />
+    <Compile Include="coreml.ml" />
+    <Compile Include="compgraph.ml" />
+    <Compile Include="parsing.fs" />
+    <Content Include="ml_parser.mly" />
+    <Content Include="ml_lexer.mll" />
+    <Compile Include="ml_parser.mli" />
+    <Compile Include="ml_parser.ml" />
+    <Compile Include="ml_lexer.ml" />
+    <Compile Include="traversal.ml" />
+    <Compile Include="texexportform.fs" />
+    <Compile Include="hog.mli" />
+    <Compile Include="hog.ml" />
+    <Compile Include="hog_parser.mli" />
+    <Compile Include="hog_parser.ml" />
+    <Compile Include="hog_lexer.ml" />
+    <Compile Include="traversal_form.fs" />
+    <Compile Include="hocpda.ml" />
+    <Compile Include="cpdaform.fs" />
+    <Compile Include="horsform.fs" />
+    <Compile Include="lmdtermform.fs" />
+    <Compile Include="mainform.fs" />
+    <Content Include="hog_lexer.mll" />
+    <Content Include="hog_parser.mly" />
+    <Content Include="urzyczyn.rs" />
+    <Content Include="lambdaterm.rs" />
+    <Content Include="omakeroot" />
+    <Content Include="omakefile" />
+    <Content Include="example.lmd" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath)\FSharp\1.0\Microsoft.FSharp.Targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+	     Other similar extension points exist, see Microsoft.Common.targets.
+	<Target Name='BeforeBuild'>
+	</Target>
+	<Target Name='AfterBuild'>
+	</Target>
+	-->
+</Project>
