@@ -5,7 +5,7 @@ OMakeVersion(0.9.8.5, 0.9.8.5)
 open Dotnet
 
 .STATIC:
-    FSHARP_BIN = $(CheckProgDirEnvVar fsc,FSHARP_HOME,C:\Program Files\FSharp-1.9.3.14,/bin)
+    FSHARP_BIN = $(CheckProgDirEnvVar fsc,FSHARP_HOME,C:\Program Files\FSharp-1.9.6.2,/bin)
 
 FSC="$(FSHARP_BIN)/fsc.exe"
 FSYACC="$(FSHARP_BIN)/fsyacc.exe"
@@ -13,22 +13,22 @@ FSLEX="$(FSHARP_BIN)/fslex.exe"
 RESXC="$(FSHARP_BIN)/resxc.exe"
 
     
-public.FSFLAGS=--fullpaths --progress --no-warn 40
+public.FSFLAGS=--fullpaths --nowarn 40
 if $(defined DEBUG)
     FSFLAGS+=-Ooff -g
     export
 else
-    FSFLAGS+=-O3
+    FSFLAGS+=-O
     export
 
-public.FSFLAGS_EXE=--target-winexe
+public.FSFLAGS_EXE=--target winexe
 if $(defined DEBUG)
     FSFLAGS_EXE+=
     export
 else
     FSFLAGS_EXE+=--standalone
     export
-public.FSFLAGS_DLL=-a  --target-dll
+public.FSFLAGS_DLL=--target library
 public.FSYACCFLAGS=
 public.FSLEXFLAGS=
 public.FSRESXCFLAGS=

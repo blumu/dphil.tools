@@ -20,4 +20,6 @@ FILES[] =
      
 DLLNAME = Pstring
 
+FSFLAGS+=--mlcompatibility -r FSharp.PowerPack.dll
+
 .DEFAULT: $(FSharpDllAssembly $(DLLNAME), $(FILES))

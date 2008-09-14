@@ -26,7 +26,7 @@ let parse_file parser lexer (fname:string) =
             let parsed_object = try  parser lexer lexbuf
                                 with  MissingSection -> raise (ParseError "Bad file format: some compulsory section is missing!")
                                     | e ->  let pos = lexbuf.EndPos
-                                            raise (ParseError ((sprintf "error near line %d, character %d" (pos.pos_lnum+1) (pos.pos_cnum - pos.pos_bol +1))^Common.eol^e.ToString()^"parsing aborted!"^Common.eol))
+                                            raise (ParseError ((sprintf "error near line %d, character %d" (pos.pos_lnum+1) (pos.pos_cnum-pos.pos_bol+1))^Common.eol^e.ToString()^"parsing aborted!"^Common.eol))
 
             stream.Close();
             

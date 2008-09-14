@@ -77,7 +77,7 @@ type pstring_occ = class
 type pstring = pstring_occ array
 
 
-type NodeClickHandler = IHandlerEvent<NodeClickEventArgs> 
+type NodeClickHandler = obj // IHandlerEvent<NodeClickEventArgs> 
 
 type VerticalAlignement = Top | Bottom | Middle
 
@@ -133,7 +133,7 @@ let height_of_link link = link*link_vertical_increment
 // The Pointer-string control
 type PstringControl = 
   class
-    inherit System.Windows.Forms.UserControl as base
+    inherit System.Windows.Forms.UserControl
 
     val mutable public components : System.ComponentModel.Container;
         override this.Dispose(disposing) =
@@ -147,7 +147,7 @@ type PstringControl =
     val mutable public hScroll : System.Windows.Forms.HScrollBar
     
     //// Events
-    val mutable private nodeClickEventPair : (PstringControl * NodeClickEventArgs -> unit) * IHandlerEvent<NodeClickEventArgs>
+    val mutable private nodeClickEventPair : (PstringControl * NodeClickEventArgs -> unit) * IEvent<PstringControl * NodeClickEventArgs> //IHandlerEvent<NodeClickEventArgs>
     member x.nodeClick with get() = snd x.nodeClickEventPair
 
     //// Properties
@@ -230,7 +230,7 @@ type PstringControl =
             seq_unselection_pen=null
             nodesvalign= Middle;
             // Create the events
-            nodeClickEventPair = Microsoft.FSharp.Control.IEvent.create_HandlerEvent()
+            nodeClickEventPair = Event.create() // Microsoft.FSharp.Control.IEvent.create_HandlerEvent()
            }
         then
             this.BackColor <- System.Drawing.SystemColors.Control
@@ -552,7 +552,7 @@ type PstringControl =
                                         (* justifier selection *)
                                         | Keys.PageUp when this.editable && this.selected_node >= 0 && this.selected_node < Array.length this.sequence ->
                                             let node = this.sequence.(this.selected_node)
-                                            if this.selected_node -node.link-1 >= 0 then
+                                            if this.selected_node-node.link-1 >= 0 then
                                               this.sequence.(this.selected_node) <- {link = node.link+1; tag = node.tag; label=node.label;shape=node.shape;color=node.color}
                                               //this.sequence.(this.selected_node).link <- node.link+1;
                                               this.recompute_bbox()
@@ -607,7 +607,7 @@ type PstringControl =
                                         (if active_selection then selectcolor  else inactive_selectcolor)
                                      else
                                         SystemColors.ControlText),
-                                    (Enum.combine [TextFormatFlags.VerticalCenter;TextFormatFlags.HorizontalCenter]));
+                                    (TextFormatFlags.VerticalCenter ||| TextFormatFlags.HorizontalCenter));
           
           let DrawNode i brush pen arrow_pen = 
               let delta = -this.ScrollShift
@@ -622,7 +622,7 @@ type PstringControl =
 
               TextRenderer.DrawText(e.Graphics, node.label, font, bbox, 
                                      SystemColors.ControlText,
-                                     (Enum.combine [TextFormatFlags.VerticalCenter;TextFormatFlags.HorizontalCenter]));
+                                     ( TextFormatFlags.VerticalCenter ||| TextFormatFlags.HorizontalCenter));
 
               if node.link<>0 then
                 begin

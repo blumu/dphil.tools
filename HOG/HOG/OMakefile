@@ -50,7 +50,7 @@ FS_INCLUDEPATH[]=
     $(MSAGL)
 #    $(GLEE)
     
-FSFLAGS+=--no-warn 62
+FSFLAGS+=-r FSharp.PowerPack.dll --nowarn 62 --mlcompatibility
 
 .DEFAULT: $(FSharpAssembly $(PROGRAM), $(FS_FILES))
 

@@ -1,3 +1,5 @@
+#light
+
 (** $Id$
 	Description: Exportation to Latex
 	Author:		William Blum
@@ -169,7 +171,7 @@ let traversal_to_latex travnode_to_latex (trav:Pstring.pstring) =
                                                                                match travnode.link with
                                                                                       0 when IntSet.mem src named_nodes_set -> ("("^(name_node src)^")"^latex_label^"\ "^acc), named_nodes_set
                                                                                     | 0 -> (latex_label^"\ "^acc), named_nodes_set
-                                                                                    | _ -> let dst = src -travnode.link
+                                                                                    | _ -> let dst = src-travnode.link
                                                                                            ("("^(name_node src)^"-"^(name_node dst)^")"^latex_label^"\ "^acc), (IntSet.add dst named_nodes_set)
                                    ) ("",IntSet.empty) (Array.rev trav))
         )

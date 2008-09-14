@@ -5,7 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{d7768280-0a21-4e14-ab45-33c1534470e9}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <RootNamespace>
     </RootNamespace>
     <AssemblyName>HOG</AssemblyName>
@@ -33,21 +33,38 @@
     <WarningLevel>3</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <ReferencePath>C:\Program Files\Microsoft\Microsoft Automatic Graph Layout\bin\ ; bin\Release\</ReferencePath>
+    <ReferencePath>
+    </ReferencePath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <OtherFlags>--mlcompatibility</OtherFlags>
   </PropertyGroup>
   <!-- References -->
   <ItemGroup>
+    <Reference Include="GUI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+      <Name>GUI</Name>
+      <AssemblyName>GUI.dll</AssemblyName>
+      <HintPath>..\bin\Release\GUI.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="Microsoft.Msagl" />
     <Reference Include="Microsoft.Msagl.Drawing" />
     <Reference Include="Microsoft.Msagl.GraphViewerGDI" />
-    <Reference Include="GUI" />
-    <Reference Include="Pstring" />
+    <Reference Include="Pstring, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+      <Name>Pstring</Name>
+      <AssemblyName>Pstring.dll</AssemblyName>
+      <HintPath>..\bin\Release\Pstring.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+      <Name>System.Data</Name>
+      <AssemblyName>System.Data.dll</AssemblyName>
+    </Reference>
     <Reference Include="System.Xml" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
-    <Reference Include="FSharp.PowerPack" />
     <Reference Include="Microsoft.Msagl" />
     <Reference Include="Microsoft.Msagl.Drawing" />
     <Reference Include="Microsoft.Msagl.GraphViewerGDI" />
@@ -88,11 +105,7 @@
     <Compile Include="mainform.fs" />
     <Content Include="hog_lexer.mll" />
     <Content Include="hog_parser.mly" />
-    <Content Include="urzyczyn.rs" />
-    <Content Include="lambdaterm.rs" />
-    <Content Include="omakeroot" />
     <Content Include="omakefile" />
-    <Content Include="example.lmd" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\FSharp\1.0\Microsoft.FSharp.Targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

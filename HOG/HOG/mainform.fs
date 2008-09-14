@@ -94,11 +94,11 @@ let miOpenWs =  new MenuItem("Open &worksheet...")
 let miQuit  = new MenuItem("&Quit")
 let miAbout = new MenuItem("&About...")
 
-mFile.MenuItems.Add(miOpen)
-mFile.MenuItems.Add(miOpenLmd)
-mFile.MenuItems.Add(miOpenWs)
-mFile.MenuItems.Add(miQuit)
-mHelp.MenuItems.Add(miAbout)
+let _ = mFile.MenuItems.Add(miOpen)
+let _ = mFile.MenuItems.Add(miOpenLmd)
+let _ = mFile.MenuItems.Add(miOpenWs)
+let _ = mFile.MenuItems.Add(miQuit)
+let _ = mHelp.MenuItems.Add(miAbout)
 
 
 

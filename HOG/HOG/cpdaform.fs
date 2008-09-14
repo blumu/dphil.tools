@@ -2,6 +2,7 @@
 	Description: Window for Higher-order collapsible pushdown automata
 	Author:		 William Blum
 **)
+#light
 
 open System
 open System.ComponentModel
@@ -31,7 +32,7 @@ let RichTextbox_SelectLine cum (rtb:RichTextBox) line  =
 
 let RichTextBox_CumulLinesLength (rtb:RichTextBox) = 
     let cum = Array.create rtb.Lines.Length 0 in
-    for i = 0 to rtb.Lines.Length -2 do
+    for i = 0 to rtb.Lines.Length-2 do
         cum .(i+1) <- cum .(i) + rtb.Lines.(i).Length + 1;
     done;
     cum
@@ -91,7 +92,7 @@ let TreeNode_get_path (node:TreeNode) =
          
 type CpdaForm = 
   class
-    inherit GUI.Pda as base
+    inherit GUI.Pda
 
     member this.selectTreeViewNodeSourceline() =
       let node = this.valueTreeView.SelectedNode

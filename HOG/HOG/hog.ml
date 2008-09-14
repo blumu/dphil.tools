@@ -436,8 +436,8 @@ let demiranda_validator path =
         with InvalidPath(msg) -> false, ("Invalid path, "^msg^": "^path_text)
 ;;
 
-let default_validator path =  
-    true, (String.concat " " path)
+let default_validator (path:terminal list) =  
+    true, (Core.String.concat " " path)
 ;;
 
 let reverse_demiranda_validator path = 

@@ -216,10 +216,10 @@ let ShowCompGraphWindow mdiparent filename compgraph lnfrules =
 
     // create a viewer object
     panel1.SuspendLayout();
-    panel1.Anchor <- Enum.combine [ System.Windows.Forms.AnchorStyles.Top ; 
-                                    System.Windows.Forms.AnchorStyles.Bottom ; 
-                                    System.Windows.Forms.AnchorStyles.Left ; 
-                                    System.Windows.Forms.AnchorStyles.Right ];
+    panel1.Anchor <- System.Windows.Forms.AnchorStyles.Top |||
+                     System.Windows.Forms.AnchorStyles.Bottom |||
+                     System.Windows.Forms.AnchorStyles.Left |||
+                     System.Windows.Forms.AnchorStyles.Right;
     panel1.Controls.Add(viewer);
     panel1.Location <- new System.Drawing.Point(1, 29);
     panel1.Margin <- new System.Windows.Forms.Padding(2, 2, 2, 2);
@@ -313,7 +313,7 @@ type WorksheetObject =
 
 type PstringObject = 
   class
-    inherit WorksheetObject as base
+    inherit WorksheetObject
     val pstrcontrol : Pstring.PstringControl
     new (nws,pstr:pstring) as this = {inherit WorksheetObject(nws);
                                       pstrcontrol = new Pstring.PstringControl(pstr) }
@@ -444,7 +444,7 @@ type PstringObject =
 (** Editable pstring object **)
 type EditablePstringObject = 
   class
-    inherit PstringObject as base
+    inherit PstringObject
     
     // Constructor
     new (nws,pstr:pstring) as x = {inherit PstringObject(nws,pstr)} then x.pstrcontrol.Editable <- true
@@ -511,7 +511,7 @@ type EditablePstringObject =
 (** Traversal object: type used for sequence constructed with the traversal rules **)
 type TraversalObject = 
   class
-    inherit PstringObject as base
+    inherit PstringObject
     
     // [valid_omoves] is a map describing the valid o-moves:
     //   - the list of map keys gives the set of valid o-moves (graph node indices)
@@ -567,7 +567,7 @@ type TraversalObject =
       x.recompute_valid_omoves()
           
       // add a handler for click on the nodes of the sequence
-      x.pstrcontrol.nodeClick.Add(fun e -> 
+      x.pstrcontrol.nodeClick.Add(fun (_,e) -> 
         if x.wait_for_ojustifier <> [] then
             if List.mem e.node x.wait_for_ojustifier then
                // update the link
@@ -896,11 +896,11 @@ type TraversalObject =
         let seq = pstrseq_oview_at x.ws.compgraph base.pstrcontrol.Sequence (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
         (new EditablePstringObject(x.ws,seq)):>WorksheetObject
     override x.herproj() =
-        let seq_with_no_trail = Array.sub x.pstrcontrol.Sequence 0 (1+(x.adjust_to_valid_occurrence (x.pstrcontrol.Length -1)))
+        let seq_with_no_trail = Array.sub x.pstrcontrol.Sequence 0 (1+(x.adjust_to_valid_occurrence (x.pstrcontrol.Length-1)))
         let seq = pstrseq_herproj seq_with_no_trail (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
         (new EditablePstringObject(x.ws,seq)):>WorksheetObject
     override x.subtermproj() =
-        let seq_with_no_trail = Array.sub x.pstrcontrol.Sequence 0 (1+(x.adjust_to_valid_occurrence (x.pstrcontrol.Length -1)))
+        let seq_with_no_trail = Array.sub x.pstrcontrol.Sequence 0 (1+(x.adjust_to_valid_occurrence (x.pstrcontrol.Length-1)))
         let seq = pstrseq_subtermproj x.ws.compgraph seq_with_no_trail (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
         (new EditablePstringObject(x.ws,seq)):>WorksheetObject
     override x.prefix()=
@@ -918,9 +918,10 @@ type TraversalObject =
 
 // execute a function on the current selection if it is of a given type
 // the parameter (_:'a->unit) is a trick used to pass the type 'a as a parameter to the function
-let do_onsomeobject_oftype (_:'a->unit) (f:'a->unit)  = function 
-                                                        | Some(c:WorksheetObject) when (c:?'a) -> f (c:?>'a)
-                                                        | _ -> ()
+let do_onsomeobject_oftype (u:'a->unit) (f:'a->unit) =
+     function 
+        | Some(c:WorksheetObject) when (c:?'a) -> f (c:?>'a)
+        | _ -> ()
 
 
 // Return the object corresponding to the ith control of a seqflowPanel

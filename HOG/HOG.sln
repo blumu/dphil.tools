@@ -9,12 +9,19 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{0A7BEB29-F50C-4CD5-9017-D4DF72DD4F9A}"
 	ProjectSection(SolutionItems) = preProject
 		Changelog.txt = Changelog.txt
+		HOG\example.lmd = HOG\example.lmd
+		HOG\lambdaterm.rs = HOG\lambdaterm.rs
 		OMakefile = OMakefile
 		OMakeroot = OMakeroot
+		HOG\omakeroot = HOG\omakeroot
 		README = README
+		HOG\urzyczyn.rs = HOG\urzyczyn.rs
 	EndProjectSection
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "HOG", "HOG\HOG.fsproj", "{D7768280-0A21-4E14-AB45-33C1534470E9}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3BB402E1-9F25-42A1-B092-CE56B1824DBE} = {3BB402E1-9F25-42A1-B092-CE56B1824DBE}
+	EndProjectSection
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "PstringControl", "PstringControl\PstringControl.fsproj", "{3BB402E1-9F25-42A1-B092-CE56B1824DBE}"
 EndProject
@@ -45,6 +52,7 @@ Global
 		{D7768280-0A21-4E14-AB45-33C1534470E9}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
 		{D7768280-0A21-4E14-AB45-33C1534470E9}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
 		{D7768280-0A21-4E14-AB45-33C1534470E9}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{D7768280-0A21-4E14-AB45-33C1534470E9}.Debug|Win32.Build.0 = Debug|Any CPU
 		{D7768280-0A21-4E14-AB45-33C1534470E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D7768280-0A21-4E14-AB45-33C1534470E9}.Release|Any CPU.Build.0 = Release|Any CPU
 		{D7768280-0A21-4E14-AB45-33C1534470E9}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
@@ -55,6 +63,7 @@ Global
 		{3BB402E1-9F25-42A1-B092-CE56B1824DBE}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
 		{3BB402E1-9F25-42A1-B092-CE56B1824DBE}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
 		{3BB402E1-9F25-42A1-B092-CE56B1824DBE}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{3BB402E1-9F25-42A1-B092-CE56B1824DBE}.Debug|Win32.Build.0 = Debug|Any CPU
 		{3BB402E1-9F25-42A1-B092-CE56B1824DBE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3BB402E1-9F25-42A1-B092-CE56B1824DBE}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3BB402E1-9F25-42A1-B092-CE56B1824DBE}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU

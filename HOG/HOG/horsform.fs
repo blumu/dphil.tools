@@ -2,6 +2,8 @@
 	Description: Higher-order recursion scheme window
 	Author:		William Blum
 **)
+#light
+
 open System
 open System.ComponentModel
 open System.Data
@@ -64,7 +66,7 @@ let expand_term_in_treeview hors (treeview_node:TreeNode) =
 
 type HorsForm = 
   class
-    inherit GUI.Recscheme as base
+    inherit GUI.Recscheme
 
     member this.validate_valuetree_path (node:TreeNode) =
       if node.Tag <> null then

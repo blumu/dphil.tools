@@ -2,6 +2,7 @@
     Description: Lambda-term window
     Author:      William Blum
 **)
+#light
 
 open System
 (* open System.Collections.Generic *)
@@ -41,7 +42,7 @@ let colorizeCode(rtb: # RichTextBox) =
     rtb.SelectionColor <- rtb.ForeColor
 
     keywords |> List.iter (fun keyword -> 
-        let mutable keywordPos = rtb.Find(keyword, Enum.combine[RichTextBoxFinds.MatchCase; RichTextBoxFinds.WholeWord])
+        let mutable keywordPos = rtb.Find(keyword, RichTextBoxFinds.MatchCase ||| RichTextBoxFinds.WholeWord)
         while (keywordPos <> -1) do 
             let underscorePos = text.IndexOf("_", keywordPos)
             let commentPos = text.LastIndexOf("//", keywordPos)
@@ -58,7 +59,7 @@ let colorizeCode(rtb: # RichTextBox) =
              then
                 rtb.SelectionColor <- Color.Blue;
 
-            keywordPos <- rtb.Find(keyword, keywordPos + rtb.SelectionLength, Enum.combine[RichTextBoxFinds.MatchCase; RichTextBoxFinds.WholeWord])
+            keywordPos <- rtb.Find(keyword, keywordPos + rtb.SelectionLength, RichTextBoxFinds.MatchCase ||| RichTextBoxFinds.WholeWord)
     );
     rtb.Select(0, 0)
 
@@ -67,7 +68,7 @@ let colorizeCode(rtb: # RichTextBox) =
         
 type TermForm = 
   class
-    inherit GUI.Lambdaterm as base
+    inherit GUI.Lambdaterm
 
     member this.InitializeComponent lnfterm =
         // 
