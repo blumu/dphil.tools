@@ -279,6 +279,7 @@ type WorksheetParam = { graphsource_filename:string;
 
 
 /////////////////////// Worksheet objects
+[<AbstractClass>]
 type WorksheetObject =
   class
     val ws : WorksheetParam
@@ -480,10 +481,10 @@ type EditablePstringObject =
         x.Refocus()
         
     override x.pview() = 
-        let seq = pstrseq_pview_at x.ws.compgraph base.pstrcontrol.Sequence x.pstrcontrol.SelectedNodeIndex
+        let seq = pstrseq_pview_at x.ws.compgraph x.pstrcontrol.Sequence x.pstrcontrol.SelectedNodeIndex
         (new EditablePstringObject(x.ws,seq)):>WorksheetObject
     override x.oview() = 
-        let seq = pstrseq_oview_at x.ws.compgraph base.pstrcontrol.Sequence x.pstrcontrol.SelectedNodeIndex
+        let seq = pstrseq_oview_at x.ws.compgraph x.pstrcontrol.Sequence x.pstrcontrol.SelectedNodeIndex
         (new EditablePstringObject(x.ws,seq)):>WorksheetObject
     override x.herproj() =
         let seq = pstrseq_herproj x.pstrcontrol.Sequence x.pstrcontrol.SelectedNodeIndex
@@ -591,14 +592,14 @@ type TraversalObject =
                                     TraversalObject.init x
 
     override x.Clone() = 
-        let l = Array.length base.pstrcontrol.Sequence
+        let l = Array.length x.pstrcontrol.Sequence
         let nseq =
             if l = 0 then
                 [||]
             else if x.pstrcontrol.Occurrence(l-1).tag = null then
-                Array.sub base.pstrcontrol.Sequence 0 (l-1)
+                Array.sub x.pstrcontrol.Sequence 0 (l-1)
             else
-                base.pstrcontrol.Sequence
+                x.pstrcontrol.Sequence
         in
         new TraversalObject(x.ws,nseq):>WorksheetObject
         
@@ -619,7 +620,7 @@ type TraversalObject =
                                           base.LoadSequenceFromXmlNode xmlPstr
                                           let occ = x.pstrcontrol.Occurrence(x.pstrcontrol.Length-1)
                                           if occ.tag = null || pstr_occ_getnode occ = Custom  then
-                                            base.pstrcontrol.remove_last_occ() // delete the trailing dummy node
+                                            x.pstrcontrol.remove_last_occ() // delete the trailing dummy node
                                           TraversalObject.init x
 
     member x.RefreshLabelInfo() =
@@ -804,7 +805,7 @@ type TraversalObject =
                                     x.valid_omoves <- Map.empty
 
         if not (Map.is_empty x.valid_omoves) then
-          base.pstrcontrol.add_node (create_blank_occ()) // add a dummy node for the forthcoming initial O-move
+          x.pstrcontrol.add_node (create_blank_occ()) // add a dummy node for the forthcoming initial O-move
           x.flush_flowcontainer_to_right()
 
         x.RefreshLabelInfo()
@@ -890,10 +891,10 @@ type TraversalObject =
         (new TraversalObject(x.ws,(pstrseq_prefix x.pstrcontrol.Sequence p))):>WorksheetObject
 
     override x.pview() = 
-        let seq = pstrseq_pview_at x.ws.compgraph base.pstrcontrol.Sequence (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
+        let seq = pstrseq_pview_at x.ws.compgraph x.pstrcontrol.Sequence (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
         (new EditablePstringObject(x.ws,seq)):>WorksheetObject
     override x.oview() = 
-        let seq = pstrseq_oview_at x.ws.compgraph base.pstrcontrol.Sequence (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
+        let seq = pstrseq_oview_at x.ws.compgraph x.pstrcontrol.Sequence (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
         (new EditablePstringObject(x.ws,seq)):>WorksheetObject
     override x.herproj() =
         let seq_with_no_trail = Array.sub x.pstrcontrol.Sequence 0 (1+(x.adjust_to_valid_occurrence (x.pstrcontrol.Length-1)))

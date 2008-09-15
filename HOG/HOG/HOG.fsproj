@@ -10,6 +10,7 @@
     </RootNamespace>
     <AssemblyName>HOG</AssemblyName>
     <Name>HOG</Name>
+    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
   </PropertyGroup>
   <!-- Configuration Debug -->
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -38,22 +39,36 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <OtherFlags>--mlcompatibility</OtherFlags>
+    <OutputPath>..\bin\Debug\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <OtherFlags>--mlcompatibility</OtherFlags>
+    <OutputPath>..\bin\Release\</OutputPath>
   </PropertyGroup>
   <!-- References -->
   <ItemGroup>
-    <Reference Include="GUI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <Name>GUI</Name>
-      <AssemblyName>GUI.dll</AssemblyName>
-      <HintPath>..\bin\Release\GUI.dll</HintPath>
+    <Reference Include="Microsoft.Msagl, Version=1.2.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
+      <Name>Microsoft.Msagl</Name>
+      <AssemblyName>Microsoft.Msagl.dll</AssemblyName>
+      <HintPath>..\bin\Release\Microsoft.Msagl.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Microsoft.Msagl" />
-    <Reference Include="Microsoft.Msagl.Drawing" />
-    <Reference Include="Microsoft.Msagl.GraphViewerGDI" />
-    <Reference Include="Pstring, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <Name>Pstring</Name>
-      <AssemblyName>Pstring.dll</AssemblyName>
-      <HintPath>..\bin\Release\Pstring.dll</HintPath>
+    <Reference Include="Microsoft.Msagl.Drawing, Version=1.2.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
+      <Name>Microsoft.Msagl.Drawing</Name>
+      <AssemblyName>Microsoft.Msagl.Drawing.dll</AssemblyName>
+      <HintPath>..\bin\Release\Microsoft.Msagl.Drawing.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.Msagl.GraphViewerGDI, Version=1.2.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
+      <Name>Microsoft.Msagl.GraphViewerGDI</Name>
+      <AssemblyName>Microsoft.Msagl.GraphViewerGDI.dll</AssemblyName>
+      <HintPath>..\bin\Release\Microsoft.Msagl.GraphViewerGDI.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="PstringControl, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+      <Name>PstringControl</Name>
+      <AssemblyName>PstringControl.dll</AssemblyName>
+      <HintPath>..\PstringControl\bin\Release\PstringControl.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
@@ -106,6 +121,13 @@
     <Content Include="hog_lexer.mll" />
     <Content Include="hog_parser.mly" />
     <Content Include="omakefile" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GUI\GUI.csproj">
+      <Name>GUI</Name>
+      <Project>{f5874e23-ceeb-4e88-8ab9-dff0d09ffe46}</Project>
+      <Private>True</Private>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\FSharp\1.0\Microsoft.FSharp.Targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

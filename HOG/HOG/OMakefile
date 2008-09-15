@@ -38,17 +38,13 @@ FS_DEP_DLLS[]=
     GUI
     
 FS_OTHER_DLLREFS[]=
-    Microsoft.Msagl
-    Microsoft.Msagl.GraphViewerGDI
-    Microsoft.Msagl.Drawing
+	Microsoft.Msagl
+	Microsoft.Msagl.GraphViewerGDI
+	Microsoft.Msagl.Drawing
 
-#    Microsoft.GLEE
-#    Microsoft.GLEE.GraphViewerGDI
-#    Microsoft.GLEE.Drawing
 
 FS_INCLUDEPATH[]=
     $(MSAGL)
-#    $(GLEE)
     
 FSFLAGS+=-r FSharp.PowerPack.dll --nowarn 62 --mlcompatibility
 

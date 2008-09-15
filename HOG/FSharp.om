@@ -13,12 +13,12 @@ FSLEX="$(FSHARP_BIN)/fslex.exe"
 RESXC="$(FSHARP_BIN)/resxc.exe"
 
     
-public.FSFLAGS=--fullpaths --nowarn 40
+public.FSFLAGS=--fullpaths --nowarn 40 --warn 3 --warnaserror 76 --vserrors
 if $(defined DEBUG)
     FSFLAGS+=-Ooff -g
     export
 else
-    FSFLAGS+=-O
+    FSFLAGS+=--optimize
     export
 
 public.FSFLAGS_EXE=--target winexe
