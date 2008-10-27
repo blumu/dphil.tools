@@ -1,7 +1,7 @@
 # by William Blum
 # Version of 05/12/2007
 
-OMakeVersion(0.9.8.5, 0.9.8.5)
+OMakeVersion(0.9.8.5)
 open Dotnet
 
 .STATIC:
@@ -15,7 +15,7 @@ RESXC="$(FSHARP_BIN)/resxc.exe"
     
 public.FSFLAGS=--fullpaths --nowarn 40 --warn 3 --warnaserror 76 --vserrors
 if $(defined DEBUG)
-    FSFLAGS+=-Ooff -g
+    FSFLAGS+=--optimize- -g
     export
 else
     FSFLAGS+=--optimize

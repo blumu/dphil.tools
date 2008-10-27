@@ -7,8 +7,8 @@
 open Hog
 open Type
 
-type validators = None | Demiranda | ReverseDemiranda;;
-let parsed_validator = ref None;;
+type validators = Universal | Demiranda | ReverseDemiranda;;
+let parsed_validator = ref Universal;;
 let parsed_nonterminals = ref [];;
 let parsed_terminals = ref [];;
 let parsed_rules = ref [];;
@@ -58,7 +58,7 @@ hog_specification:
 																		sigma = !parsed_terminals;
 																		rules = !parsed_rules;        
 																		rs_path_validator = match !parsed_validator with
-																								  None ->  Hog.default_validator
+																								  Universal ->  Hog.default_validator
 																								| Demiranda -> Hog.demiranda_validator
 																								| ReverseDemiranda -> Hog.reverse_demiranda_validator
 																	   }
@@ -86,7 +86,7 @@ sec_validator : SEC_VALIDATOR LCB sec_validator_content RCB     { }
 
 sec_validator_content :   REVERSE_DEMIRANDA                     { parsed_validator := ReverseDemiranda }
 						| DEMIRANDA                             { parsed_validator := Demiranda }
-						| NONE                                  { parsed_validator := None }
+						| NONE                                  { parsed_validator := Universal }
 
 ;
 

@@ -1,7 +1,7 @@
 # by William Blum
 # Version of 05/12/2007
 
-OMakeVersion(0.9.8.5, 0.9.8.5)
+OMakeVersion(0.9.8.5)
 
 open Dotnet
 
