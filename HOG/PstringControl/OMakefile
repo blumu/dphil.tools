@@ -18,7 +18,7 @@ FILES[] =
     AssemblyInfo.fs
     pstringcontrol.fs
      
-DLLNAME = Pstring
+DLLNAME = PstringControl
 
 FSFLAGS+=--mlcompatibility -r FSharp.PowerPack.dll
 

@@ -20,7 +20,7 @@ CSHARP_INCLUDEPATH[]=
     $(FSHARP_BIN)
     
 CSHARP_DLLREFS[]=
-    Pstring
+    PstringControl
     
 CSHARP_OTHER_DLLREFS[]=
     Microsoft.Msagl

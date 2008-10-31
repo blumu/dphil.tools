@@ -47,6 +47,12 @@
   </PropertyGroup>
   <!-- References -->
   <ItemGroup>
+    <Reference Include="GUI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+      <Name>GUI</Name>
+      <AssemblyName>GUI.dll</AssemblyName>
+      <HintPath>..\bin\Debug\GUI.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="Microsoft.Msagl, Version=1.2.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
       <Name>Microsoft.Msagl</Name>
       <AssemblyName>Microsoft.Msagl.dll</AssemblyName>
@@ -65,12 +71,6 @@
       <HintPath>..\bin\Release\Microsoft.Msagl.GraphViewerGDI.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="PstringControl, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <Name>PstringControl</Name>
-      <AssemblyName>PstringControl.dll</AssemblyName>
-      <HintPath>..\PstringControl\bin\Release\PstringControl.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
@@ -83,7 +83,6 @@
     <Reference Include="Microsoft.Msagl" />
     <Reference Include="Microsoft.Msagl.Drawing" />
     <Reference Include="Microsoft.Msagl.GraphViewerGDI" />
-    <Reference Include="Pstring" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml" />
@@ -123,9 +122,9 @@
     <Content Include="omakefile" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\GUI\GUI.csproj">
-      <Name>GUI</Name>
-      <Project>{f5874e23-ceeb-4e88-8ab9-dff0d09ffe46}</Project>
+    <ProjectReference Include="..\PstringControl\PstringControl.fsproj">
+      <Name>PstringControl</Name>
+      <Project>{3bb402e1-9f25-42a1-b092-ce56b1824dbe}</Project>
       <Private>True</Private>
     </ProjectReference>
   </ItemGroup>

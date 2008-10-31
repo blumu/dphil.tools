@@ -34,7 +34,7 @@ FS_RESOURCES_FILES[]=
     
 
 FS_DEP_DLLS[]=
-    Pstring
+    PstringControl
     GUI
     
 FS_OTHER_DLLREFS[]=
