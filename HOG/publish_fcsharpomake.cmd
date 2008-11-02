@@ -1,5 +1,5 @@
 7z -tzip -r a fcsharp_omake.zip *.om
-copy fcsharp_omake.zip d:\documents\website\research
+copy fcsharp_omake.zip c:\users\william\documents\website\research
 pscp fcsharp_omake.zip william@www.famille-blum.org:public_html/research/
 @if ERRORLEVEL 1 goto exit
 
