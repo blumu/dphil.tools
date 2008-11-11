@@ -37,11 +37,11 @@ Last modification: 31 Oct 2008
 
 HOG needs to access the following DLLs from the MSAGL library in order to render the computation graphs:
   Microsoft.Msagl.dll
-  Microsoft.Drawing.dll
-  Microsoft.GraphViewerGDI.dll
+  Microsoft.Msagl.Drawing.dll
+  Microsoft.Msagl.GraphViewerGDI.dll
 These files are included in the binary package of HOG which can be downloaded from my website (http://william.famille-blum.org/research/hog_exe.zip). To make sure HOG can find them you can either copy the DLLs next to the HOG main executable file (HOG.exe) or you can add them to the .NET Global Assembly Cache as follows: Launch "Visual Studio 2008 Command Prompt" and enter:
   gacutil /i "C:\Program Files\Microsoft\Microsoft Automatic Graph Layout\bin\Microsoft.Msagl.dll"
-  gacutil /i "C:\Program Files\Microsoft\Microsoft Automatic Graph Layout\bin\Microsoft.Drawing.dll"
-  gacutil /i "C:\Program Files\Microsoft\Microsoft Automatic Graph Layout\bin\Microsoft.GraphViewerGDI.dll"
+  gacutil /i "C:\Program Files\Microsoft\Microsoft Automatic Graph Layout\bin\Microsoft.Msagl.Drawing.dll"
+  gacutil /i "C:\Program Files\Microsoft\Microsoft Automatic Graph Layout\bin\Microsoft.Msagl.GraphViewerGDI.dll"
 
 (Replace 'C:\Program Files\Microsoft\Microsoft Automatic Graph Layout\bin' by the path to the directory where you copied the DLLs.)
