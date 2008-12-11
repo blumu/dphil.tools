@@ -1,0 +1,5 @@
+ e:o |-	(fun f -> fun g -> 
+		f (fun b -> f (fun c-> b) (fun d -> d e)) (fun a -> a e))
+		(fun x -> fun y -> y (fun h -> x h) )
+		e
+;;
