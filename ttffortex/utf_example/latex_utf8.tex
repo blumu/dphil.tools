@@ -1,4 +1,20 @@
-% Can be compiled with both latex and pdflatex
+% by William Blum.
+%
+% This file can be compiled with both latex and pdflatex
+%
+% Prerequisiste: install truetype fonts as follows:
+%   ttffortex.cmd   %systemroot%\fonts\simkai.ttf
+%   ttffortex.cmd   %systemroot%\fonts\simhei.ttf
+%   ttffortex.cmd   %systemroot%\fonts\Cyberbit.ttf
+%   ttffortex.cmd   %systemroot%\fonts\gulim.ttc
+%   ttffortex.cmd   %systemroot%\fonts\batang.ttc
+%   ttffortex.cmd   %systemroot%\fonts\ARIALUNI.ttf
+%   ttffortex.cmd   %systemroot%\fonts\cjsongeb.ttf
+%
+%  In the document refer to the fontname with the same capitalization used in the filename.
+%  E.g. use 'Cyberbit' to refer to the font Cyberbit.ttf
+%       and 'ARIALUNI' to refer to the font ARIALUNI.ttf.
+%
 \documentclass[twocolumn]{article}
 \usepackage{CJK}
 \usepackage{savetrees}
@@ -6,13 +22,18 @@
 
 % we want the Unicode font for normal text also
 \DeclareFontFamily{T1}{ARIALUNI}{}
-\DeclareFontShape{T1}{ARIALUNI}{m}{n}{<-> ARIALU00}{} 
+\DeclareFontShape{T1}{ARIALUNI}{m}{n}{<-> ARIALU00}{}
 
 % we want the Unicode font for normal text also
-\DeclareFontFamily{T1}{CJSONGEB}{} 
-\DeclareFontShape{T1}{CJSONGEB}{m}{n}{<-> CJSONG00}{} 
+\DeclareFontFamily{T1}{cjsongb}{}
+\DeclareFontShape{T1}{cjsongb}{m}{n}{<-> cjsong00}{}
 
 \begin{document}
+
+\begin{CJK*}{UTF8}{Cyberbit} \CJKtilde
+Character given by its unicode number U+4E02:
+\Unicode{"4E}{"02}.
+\end{CJK*}
 
 \begin{CJK*}{UTF8}{Cyberbit} \CJKtilde
 Cyberbit: 中 王 国 大 日 本 小 吗 马 很 不
@@ -22,7 +43,7 @@ Cyberbit: 中 王 国 大 日 本 小 吗 马 很 不
 SimHei: 中 王 国 大 日 本 小 吗 马 很 不
 \end{CJK*}
 
-\begin{CJK*}{UTF8}{SIMKAI} \CJKtilde
+\begin{CJK*}{UTF8}{simkai} \CJKtilde
 SimKai: 中 王 国 大 日 本 小 吗 马 很 不
 \end{CJK*}
 
@@ -34,8 +55,8 @@ Gulim: 中 王 国 大 日 本 小 吗 马 很 不
 Batang: 中 王 国 大 日 本 小 吗 马 很 不
 \end{CJK*}
 
-\begin{CJK*}{UTF8}{CJSONGEB} \CJKtilde
-CJSONGEB: 中 王 国 大 日 本 小 吗 马 很 不
+\begin{CJK*}{UTF8}{cjsongeb} \CJKtilde
+cjsongeb: 中 王 国 大 日 本 小 吗 马 很 不
 \end{CJK*}
 
 \begin{CJK*}{UTF8}{ARIALUNI} \CJKtilde
@@ -52,7 +73,7 @@ Arial Unicode: 中 王 国 大 日 本 小 吗 马 很 不
 \CJKnospace
 \noindent こんにちは 世界
 
-\end{CJK} 
+\end{CJK}
 
 \begin{CJK*}{UTF8}{simhei} \CJKtilde
 
