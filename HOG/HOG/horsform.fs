@@ -1,18 +1,13 @@
 ﻿(** $Id$
-	Description: Higher-order recursion scheme window
-	Author:		William Blum
+    Description: Higher-order recursion scheme window
+    Author: William Blum
 **)
 #light
+module Horsform
 
 open System
-open System.ComponentModel
-open System.Data
-open System.Drawing
-open System.Text
 open System.Windows.Forms
-open System.IO
 open Common
-open Printf
 open Type
 open Lnf
 open Compgraph
@@ -62,8 +57,6 @@ let expand_term_in_treeview hors (treeview_node:TreeNode) =
 ;;
 
 
-#light
-
 type HorsForm = 
   class
     inherit GUI.Recscheme
@@ -102,11 +95,11 @@ type HorsForm =
                         
         this.valueTreeView.add_BeforeCollapse(fun _ e -> 
               // e.Node.Level is incompatible with Mono
-              if e.Node.Parent = null then
+              if isNull e.Node.Parent then
                 e.Cancel <- true;
             );
             
-        this.valueTreeView.add_AfterSelect(fun _ e -> 
+        this.valueTreeView.add_AfterSelect(fun _ _ -> 
             let currentNode = this.valueTreeView.SelectedNode  
             this.btRun.Enabled <- is_expandable_treeviewnode currentNode;
             this.validate_valuetree_path currentNode;
@@ -126,7 +119,7 @@ type HorsForm =
         this.imageList.Images.SetKeyName(2, "BookClosed");
         this.imageList.Images.SetKeyName(3, "BookOpen");
         this.imageList.Images.SetKeyName(4, "Item");
-        this.imageList.Images.SetKeyName(5, "Run");        
+        this.imageList.Images.SetKeyName(5, "Run");
 
         this.txtCode.Text <- (string_of_rs this.hors) ;
 
@@ -137,7 +130,7 @@ type HorsForm =
         this.btRun.ImageList <- this.imageList
         this.btRun.ImageAlign <- System.Drawing.ContentAlignment.MiddleRight;
         this.btRun.ImageKey <- "Run"
-        this.btRun.Click.Add(fun e -> let node = this.valueTreeView.SelectedNode
+        this.btRun.Click.Add(fun _ -> let node = this.valueTreeView.SelectedNode
                                       if is_expandable_treeviewnode node then
                                         begin
                                          while not (expand_term_in_treeview this.hors node) do () done;
@@ -149,17 +142,17 @@ type HorsForm =
         // 
         // graphButton
         // 
-        this.btGraph.Click.Add(fun e -> Traversal_form.ShowCompGraphWindow this.MdiParent this.filename this.compgraph this.lnfrules );
+        this.btGraph.Click.Add(fun _ -> Traversal_form.ShowCompGraphWindow this.MdiParent this.filename this.compgraph this.lnfrules );
 
         // 
         // calculator
         // 
-        this.btCalculator.Click.Add(fun e -> Traversal_form.ShowTraversalCalculatorWindow this.MdiParent this.filename this.compgraph this.lnfrules (fun _ _ -> ()));
+        this.btCalculator.Click.Add(fun _ -> Traversal_form.ShowTraversalCalculatorWindow this.MdiParent this.filename this.compgraph this.lnfrules (fun _ _ -> ()));
         
         //
         // cpdaButton
         //
-        this.btCpda.Click.Add( fun e -> //create the cpda form
+        this.btCpda.Click.Add(fun _ -> //create the cpda form
                                         let form = new Cpdaform.CpdaForm("CPDA built from the recursion scheme "^this.filename,
                                                                          Hocpda.hors_to_cpda Ncpda this.hors this.compgraph this.vartmtypes)
                                         form.MdiParent <- this.MdiParent;
@@ -169,7 +162,7 @@ type HorsForm =
         //
         // pdaButton
         //
-        this.btPda.Click.Add( fun e -> //create the pda
+        this.btPda.Click.Add(fun _ -> //create the pda
                                             let form = new Cpdaform.CpdaForm("PDA built from the recursion scheme "^this.filename,
                                                                              Hocpda.hors_to_cpda Npda this.hors this.compgraph this.vartmtypes)
                                             form.MdiParent <- this.MdiParent;
@@ -180,7 +173,7 @@ type HorsForm =
         //
         // np1pdaButton
         //
-        this.btNp1pda.Click.Add( fun e -> //create the pda
+        this.btNp1pda.Click.Add(fun _ -> //create the pda
                                             let form = new Cpdaform.CpdaForm("n+1-PDA built from the recursion scheme "^this.filename,
                                                                              Hocpda.hors_to_cpda Np1pda this.hors this.compgraph this.vartmtypes)
                                             form.MdiParent <- this.MdiParent;
@@ -238,10 +231,7 @@ type HorsForm =
         this.txtOutput.Text <- "Rules in eta-long normal form:"^Environment.NewLine
                                 ^(String.concat Environment.NewLine (List.map lnfrule_to_string this.lnfrules));
 
-        let SNode = new TreeNode("S")  
-        SNode.ImageKey <- "Help";
-        SNode.SelectedImageKey <- "Help";
-        SNode.Tag <- Nt("S");
-        ignore(rootNode.Nodes.Add(SNode)); 
-        this.valueTreeView.SelectedNode <- SNode;      
-  end
+        let sNode = new TreeNode("S", ImageKey = "Help", SelectedImageKey = "Help", Tag = Nt("S"))
+        ignore(rootNode.Nodes.Add(sNode)); 
+        this.valueTreeView.SelectedNode <- sNode;
+    end

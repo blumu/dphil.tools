@@ -2,6 +2,9 @@
     Description: Traversals
     Author:      William Blum
 **)
+module Traversal
+
+open FSharp.Compatibility.OCaml
 open Common
 open Lnf
 open Compgraph
@@ -276,10 +279,10 @@ let star (gr:computation_graph) get_gennode getlink updatelink seq pos =
   if pos < 0 then [||]
   else
       (* array mapping old index to new index. Cell containing -1 correspond to node that must removed from the sequence [seq]. *)
-      let newindex = Array.create (pos+1) (-1)
+      let newindex = Array.create (pos+1) (-1) in
                                    
       (* number of nodes that have not been removed *)
-      and n_notremoved = ref 0 in
+      let n_notremoved = ref 0 in
       
       (* 1 - Calculate the occurence positions in [occ] that are preserved. *)
       for i = 0 to pos do

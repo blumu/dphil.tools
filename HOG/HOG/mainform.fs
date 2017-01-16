@@ -4,6 +4,7 @@
 **)
 
 #light
+module mainform
 
 (** Application version **)
 let VERSION = "0.0.12";;
@@ -11,7 +12,8 @@ let VERSION = "0.0.12";;
 open System
 open System.Windows.Forms
 open System.IO
-open List
+open FSharp.Compatibility.OCaml
+open FSharp.Compatibility.OCaml.List
 open Common
 open Printf
 open Hog_lexer

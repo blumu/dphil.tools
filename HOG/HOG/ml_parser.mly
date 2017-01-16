@@ -3,8 +3,12 @@
 	Author:		William Blum
 **/
 
-%{ 
-//open Coreml;;
+%{
+(*F#
+open FSharp.Compatibility.OCaml;;
+open FSharp.Compatibility.OCaml.List;;
+F#*)
+
 open Type;;
 %}
 
@@ -27,28 +31,28 @@ open Type;;
 %left           EQUAL
 
 
-%start		                            term_in_context
+%start                                  term_in_context
 
-%type<Coreml.ml_termincontext>				  term_in_context
-%type<Coreml.ml_expr>						  term
-%type<Coreml.ml_context>					  context
+%type<Coreml.ml_termincontext>          term_in_context
+%type<Coreml.ml_expr>                   term
+%type<Coreml.ml_context>                context
 
 
 
 %%
 term_in_context:
-  context VDASH term                                            {$1,$3}  
-   
-context :													    { [] }
-                | IDENT COLON typ           		            { [$1,$3] }
-                | IDENT COLON typ COMMA context		            { ($1,$3)::$5 }
+  context VDASH term                                        {$1,$3}
+
+context :                                                   { [] }
+                | IDENT COLON typ                           { [$1,$3] }
+                | IDENT COLON typ COMMA context             { ($1,$3)::$5 }
 ;
 
 
 
-typ :    IDENT													{ if $1 = "o" then PTypGr else failwith "Invalid type!" }
-        | LP typ RP												{ $2 }
-        | typ ARROW typ 										{ PTypAr($1,$3) }
+typ :    IDENT                                            { if $1 = "o" then PTypGr else failwith "Invalid type!" }
+        | LP typ RP                                       { $2 }
+        | typ ARROW typ                                   { PTypAr($1,$3) }
 ;
 
 
@@ -87,18 +91,18 @@ declaration:
 decl_list_next:
    ident_list EQUAL expression IN expression                    { Coreml.Let([List.hd $1, List.tl $1,$3],$5) }
  | ident_list EQUAL expression AND decl_list_next               { match $5 with
-								                                      Coreml.Let(decl,inexp) ->
-									                                    Coreml.Let(((List.hd $1, List.tl $1,$3)::decl),inexp)
-								                                    |  _ -> failwith "bug in parser!" }
+                                                                  | Coreml.Let(decl,inexp) ->
+                                                                      Coreml.Let(((List.hd $1, List.tl $1,$3)::decl),inexp)
+                                                                  |  _ -> failwith "bug in parser!" }
 
 recdecl_list_next:
    ident_list EQUAL expression IN expression                     { Coreml.Letrec([List.hd $1, List.tl $1,$3],$5) } ;
 /* need to manage mutual recursive definition:
-  | ident_list EQUAL expression AND decl_list_next  {};  
+  | ident_list EQUAL expression AND decl_list_next  {};
 */
 
 
- 
+
 
 application:
  | operator operand                                             { Coreml.MlAppl($1,$2) }

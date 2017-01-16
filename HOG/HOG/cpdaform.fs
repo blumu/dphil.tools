@@ -3,7 +3,9 @@
 	Author:		 William Blum
 **)
 #light
+module Cpdaform
 
+open FSharp.Compatibility.OCaml
 open System
 open System.ComponentModel
 open System.Data
@@ -17,8 +19,6 @@ open Hog
 open Hocpda
 
 
-
-#light;;
 
 let RichTextbox_SelectLine cum (rtb:RichTextBox) line  = 
   if line < Array.length cum then

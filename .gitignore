@@ -24,3 +24,11 @@ HOG/latexexport/*
 *.cmi
 *.cmo
 anagrammes/anagrammes-native.exe
+HOG/.paket/paket.exe
+HOG/packages/*
+HOG/HOG/hog_lexer.fs
+HOG/HOG/hog_parser.fs
+HOG/HOG/hog_parser.fsi
+HOG/HOG/ml_lexer.fs
+HOG/HOG/ml_parser.fs
+HOG/HOG/ml_parser.fsi

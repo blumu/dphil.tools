@@ -5,16 +5,25 @@
 **)
 
 {
+(*F#
+module Hog_lexer
+
+open FSharp.Compatibility.OCaml;;
+open FSharp.Compatibility.OCaml.Lexing;;
+F#*)
 open Hog_parser;;
+
+(*IF-OCAML*)
 open Lexing;;
 open List;;
+(*ENDIF-OCAML*)
 open Hashtbl;;
 
 (* hash table for the keywords.
-  Be careful: here you should only add keywords which are recognized by the 
+  Be careful: here you should only add keywords which are recognized by the
   regular expression ['A'-'Z' 'a'-'z' '_']['A'-'Z' 'a'-'z' '0'-'9' '_' '.' '$' '#' '-']*
-  which is defined in the token rule further down (the kwtable is only used when the token read has 
-  the format of an identifier).  
+  which is defined in the token rule further down (the kwtable is only used when the token read has
+  the format of an identifier).
 *)
 let kwtable =
     let tbl = Hashtbl.create 127 in
@@ -27,20 +36,22 @@ let kwtable =
         ("none",  NONE );
         ("demiranda_urzyczyn",  DEMIRANDA );
         ("reverse_demiranda_urzyczyn",  REVERSE_DEMIRANDA );
-  ];
+      ];
     tbl;;
 
-let lookup s = try Hashtbl.find kwtable s with Not_found -> ATOM s;;
-
+let lookup s =
+  match Hashtbl.tryfind kwtable s with
+  | None -> ATOM s
+  | Some v -> v;;
 
 (*IF-OCAML*)
 let incr_linenum lexbuf =
-	let pos = lexbuf.Lexing.lex_curr_p in
-		lexbuf.Lexing.lex_curr_p <- { 
-			pos with
-				Lexing.pos_lnum = pos.Lexing.pos_lnum + 1;
-				Lexing.pos_bol = pos.Lexing.pos_cnum;
-		}
+  let pos = lexbuf.Lexing.lex_curr_p in
+    lexbuf.Lexing.lex_curr_p <- {
+      pos with
+        Lexing.pos_lnum = pos.Lexing.pos_lnum + 1;
+        Lexing.pos_bol = pos.Lexing.pos_cnum;
+    }
 ;;
 (*ENDIF-OCAML*)
 (*F#
@@ -50,7 +61,7 @@ F#*)
 }
 
 rule token = parse
-  ['A'-'Z' 'a'-'z' '0'-'9' '_' '\\' ']' '[' '*' '.' '$' '#' ]*   { lookup (lexeme lexbuf) }			
+  ['A'-'Z' 'a'-'z' '0'-'9' '_' '\\' ']' '[' '*' '.' '$' '#' ]*   { lookup (lexeme lexbuf) }
 | '"' [^'"']* '"'    { ATOM(lexeme lexbuf) }
 
 //| ['0'-'9']+	     { NUMBER (int_of_string (lexeme lexbuf)) }
@@ -78,18 +89,18 @@ rule token = parse
 //| ">="             { GE }
 //| ".."             { TWODOTS }
 //| "<->"            { EQUIV }
-        
-| eof			     { EOF }
-| _				     { BADTOK }
 
-             
+| eof        { EOF }
+| _          { BADTOK }
+
+
 and linecomment = parse
  ('\n' | '\r' '\n')	   { incr_linenum lexbuf;  }
-| eof				   { () }
-| _					   { linecomment lexbuf }
+| eof          { () }
+| _            { linecomment lexbuf }
 
 and comment = parse
-  //"*)"			   {  }
+  //"*)"       {  }
 | ('\n' | '\r' '\n')   { incr_linenum lexbuf; comment lexbuf }
-| eof			       { () }
-| _			           { comment lexbuf }
+| eof          { () }
+| _            { comment lexbuf }

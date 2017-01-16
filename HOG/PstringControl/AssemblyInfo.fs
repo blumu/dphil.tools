@@ -1,4 +1,4 @@
-#light
+namespace Hog
 
 open System.Reflection
 open System.Runtime.CompilerServices

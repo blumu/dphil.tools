@@ -1,9 +1,11 @@
 ﻿(** $Id$
-	Description: Traversal window
-	Author: William Blum
+    Description: Traversal window
+    Author: William Blum
 **)
+module Traversal_form
 
 #light
+open FSharp.Compatibility.OCaml
 open Common
 open System.Xml
 open System.Drawing
@@ -35,7 +37,7 @@ let player_to_color = function Proponent -> Color.Coral
 (***** Pstring functions *****)
 
 (** Convert a colors of type System.Drawing.Color to a color of type Microsoft.Msagl.Drawing.Color **)
-let sysdrawingcolor_2_msaglcolor (color:System.Drawing.Color) :Microsoft.Msagl.Drawing.Color = 
+let sysdrawingcolor_2_msaglcolor (color:System.Drawing.Color) :Microsoft.Msagl.Drawing.Color =
     Microsoft.Msagl.Drawing.Color(color.R,color.G,color.B)
 
 (** Convert a shape of type Pstring.Shapes to a shape of type Microsoft.Msagl.Drawing.Shape **)
@@ -56,35 +58,35 @@ let occ_from_gennode (compgraph:computation_graph) gennode lnk =
       link = lnk;
       shape=player_to_shape player;
       color=player_to_color player
-    } 
-                                        
+    }
+
 
 (** Return the generalized graph node of a given occurrence in a Pstringcontrol.pstring sequence **)
 let pstr_occ_getnode (nd:pstring_occ) =
     if nd.tag = null then
         failwith "This is not a valid justified sequence. Some node-occurrence does not belong to the computation graph/tree."
-    else 
+    else
         (unbox nd.tag:gen_node)
 
 
 /////////////////////// Sequence transformations
 
 (**** Sequence transformations specialized for sequences of type Pstringcontrol.pstring  ****)
-     
-(** P-View **) 
+
+(** P-View **)
 let pstrseq_pview_at gr seq i = Traversal.seq_Xview
                                      gr
-                                     Proponent 
+                                     Proponent
                                      pstr_occ_getnode        // getnode function
                                      pstr_occ_getlink        // getlink function
                                      pstr_occ_updatelink     // update link function
                                      seq
                                      i // compute the P-view at the occurrence i
-                                     
-let pstrseq_pview gr seq = pstrseq_pview_at gr seq ((Array.length seq)-1)
-                                    
 
-(** O-View **) 
+let pstrseq_pview gr seq = pstrseq_pview_at gr seq ((Array.length seq)-1)
+
+
+(** O-View **)
 let pstrseq_oview_at gr seq i = Traversal.seq_Xview
                                      gr
                                      Opponent
@@ -96,16 +98,16 @@ let pstrseq_oview_at gr seq i = Traversal.seq_Xview
 
 let pstrseq_oview gr seq = pstrseq_oview_at gr seq ((Array.length seq)-1)
 
-(** Subterm projection with respect to a reference root node **) 
+(** Subterm projection with respect to a reference root node **)
 let pstrseq_subtermproj gr = Traversal.subtermproj gr
                                          pstr_occ_getnode
                                          pstr_occ_getlink
                                          pstr_occ_updatelink
 
-(** Hereditary projection **) 
+(** Hereditary projection **)
 let pstrseq_herproj = Traversal.heredproj pstr_occ_getlink
                                 pstr_occ_updatelink
-                                
+
 (** Prefixing **)
 let pstrseq_prefix seq at = let l = Array.length seq in if at <0 || at >= l then [||] else Array.sub seq 0 (at+1)
 
@@ -135,12 +137,12 @@ let pstrseq_ext gr = Traversal.extension gr
     **)
 let msaglgraphnode_set_attributes node_2_color node_2_shape (gr:computation_graph) i (node:Microsoft.Msagl.Drawing.Node) =
     node.Attr.Id <- string_of_int i
-    node.Attr.Shape <- pstringshape_2_msaglshape (node_2_shape gr.nodes.(i))
-    node.Attr.FillColor <- sysdrawingcolor_2_msaglcolor (node_2_color gr.nodes.(i))
+    node.Attr.Shape <- pstringshape_2_msaglshape (node_2_shape gr.nodes.[i])
+    node.Attr.FillColor <- sysdrawingcolor_2_msaglcolor (node_2_color gr.nodes.[i])
     node.Attr.Label <- gr.node_label_with_idsuffix i
-    match gr.nodes.(i) with 
+    match gr.nodes.(i) with
       | NCntTm(tm) -> node.Attr.LabelMargin <- 10;
-      | NCntApp 
+      | NCntApp
       | NCntVar(_)
       | NCntAbs(_,_) -> ()
 ;;
@@ -155,13 +157,13 @@ let grnode_2_shape nd = player_to_shape (graphnode_player nd)
 (** [compgraph_to_graphview node_2_color node_2_shape gr] creates the MSAGL graph view of a computation graph.
     @param node_2_color a mapping from compgraph nodes to colors
     @param node_2_shape a mapping from compgraph nodes to shapes
-    @param gr the computation graph    
+    @param gr the computation graph
     @return the MSAGL graph object representing the computation graph
 **)
 let compgraph_to_graphview node_2_color node_2_shape (gr:computation_graph) =
     (* create a graph object *)
     let msaglgraph = new Microsoft.Msagl.Drawing.Graph("graph") in
-    
+
     (* add the nodes to the graph *)
     for k = 0 to (Array.length gr.nodes)-1 do
         msaglgraphnode_set_attributes grnode_2_color
@@ -174,7 +176,7 @@ let compgraph_to_graphview node_2_color node_2_shape (gr:computation_graph) =
     (* add the edges to the graph *)
     let addtargets source targets =
         let source_id = string_of_int source in
-        let aux i target = 
+        let aux i target =
             let target_id = string_of_int target in
             let edge = msaglgraph.AddEdge(source_id,target_id) in
             (match gr.nodes.(source) with
@@ -185,7 +187,7 @@ let compgraph_to_graphview node_2_color node_2_shape (gr:computation_graph) =
                | _ -> edge.Attr.Label <- string_of_int (i+1);
             )
 
-        in 
+        in
         List.iteri aux targets
     in
     Array.iteri addtargets gr.edges;
@@ -201,7 +203,7 @@ let ShowCompGraphWindow mdiparent filename compgraph lnfrules =
     let panel1 = new System.Windows.Forms.Panel();
     let buttonLatex = new System.Windows.Forms.Button()
 
-    form.SuspendLayout(); 
+    form.SuspendLayout();
     form.MdiParent <- mdiparent;
     form.Text <- "Computation graph of "^filename;
     form.Size <- Size(700,800);
@@ -237,7 +239,7 @@ let ShowCompGraphWindow mdiparent filename compgraph lnfrules =
 
     let nd_2_shape = function NCntVar(_) | NCntAbs(_,_) | NCntApp -> Pstring.Shapes.ShapeOval
                                 | NCntTm(_) -> Pstring.Shapes.ShapeRectangle
-          
+
     viewer.Graph <- compgraph_to_graphview nd_2_col nd_2_shape compgraph;
     viewer.AsyncLayout <- false;
     viewer.AutoScroll <- true;
@@ -260,17 +262,17 @@ let ShowCompGraphWindow mdiparent filename compgraph lnfrules =
     form.ClientSize <- new System.Drawing.Size(970, 532);
 
     form.Controls.Add(buttonLatex);
-    form.Controls.Add(panel1);            
+    form.Controls.Add(panel1);
     panel1.ResumeLayout(false);
-    form.ResumeLayout(false);            
+    form.ResumeLayout(false);
 
     //show the form
     ignore(form.Show())
 ;;
 
 // Worksheet parameters
-type WorksheetParam = { graphsource_filename:string; 
-                        compgraph:computation_graph; 
+type WorksheetParam = { graphsource_filename:string;
+                        compgraph:computation_graph;
                         lnfrules: lnfrule list;
                         msaglviewer: Microsoft.Msagl.GraphViewerGdi.GViewer
                         seqflowpanel: System.Windows.Forms.FlowLayoutPanel
@@ -284,14 +286,14 @@ type WorksheetObject =
   class
     val ws : WorksheetParam
 
-    new(nws) as this = {ws = nws}
-                                                  
+    new(nws) = {ws = nws}
+
     abstract Control : System.Windows.Forms.Control
     abstract Clone : unit -> WorksheetObject
     abstract Selection : unit -> unit
     abstract Deselection : unit -> unit
     abstract Refocus : unit -> unit
-    abstract OnCompGraphNodeMouseDown : MouseEventArgs -> Microsoft.Msagl.Drawing.Node  -> unit 
+    abstract OnCompGraphNodeMouseDown : MouseEventArgs -> Microsoft.Msagl.Drawing.Node  -> unit
 
     // [ToXmlElement xmldoc] converts the object into an XML element.
     // @param xmldoc is the xmldocument
@@ -302,23 +304,23 @@ type WorksheetObject =
     member x.flush_flowcontainer_to_right() =
         ()
         //let viewwidth = x.ws.seqflowpanel.ClientSize.Width // HorizontalScroll.LargeChange
-        //form.seqflowPanel.HorizontalScroll.Maximum - 
+        //form.seqflowPanel.HorizontalScroll.Maximum -
         //base.ws.seqflowpanel.HorizontalScroll.Value <- max 0 (base.pstrcontrol.Width - viewwidth)
         //let p = base.ws.seqflowpanel.AutoScrollPosition in
         //base.ws.seqflowpanel.AutoScrollPosition <- Point((max 0 (base.pstrcontrol.Width - viewwidth)), p.Y)
           //x.ws.seqflowpanel.AutoScrollPosition <- //Point(min 0 (viewwidth-x.pstrcontrol.Width), x.ws.seqflowpanel.AutoScrollPosition.Y)
                                                     //Point(x.ws.seqflowpanel.AutoScrollPosition.Y+10, x.ws.seqflowpanel.AutoScrollPosition.Y)
-        //hscr.Value <- obj.Control.Width 
-    
-  end 
+        //hscr.Value <- obj.Control.Width
 
-type PstringObject = 
+  end
+
+type PstringObject =
   class
     inherit WorksheetObject
     val pstrcontrol : Pstring.PstringControl
-    new (nws,pstr:pstring) as this = {inherit WorksheetObject(nws);
-                                      pstrcontrol = new Pstring.PstringControl(pstr) }
-    
+    new (nws,pstr:pstring) = {inherit WorksheetObject(nws);
+                              pstrcontrol = new Pstring.PstringControl(pstr) }
+
     // specific to objects supporting game-semantic transformations (like editable pstring and traversal)
     abstract pview : unit -> WorksheetObject
     default x.pview() = PstringObject(x.ws,[||]):>WorksheetObject
@@ -332,7 +334,7 @@ type PstringObject =
     default x.ext() = PstringObject(x.ws,[||]):>WorksheetObject
     abstract star : unit -> WorksheetObject
     default x.star() = PstringObject(x.ws,[||]):>WorksheetObject
-    abstract prefix : unit -> WorksheetObject 
+    abstract prefix : unit -> WorksheetObject
     default x.prefix() = PstringObject(x.ws,[||]):>WorksheetObject
 
     override x.Control = x.pstrcontrol:>System.Windows.Forms.Control
@@ -343,7 +345,7 @@ type PstringObject =
         x.pstrcontrol.AutoSizeMaxWidth <- x.ws.seqflowpanel.ClientSize.Width
         x.pstrcontrol.Selection() // tell the control that it's about to be selected using PstringControl.Selection()
         x.pstrcontrol.Select()    // select it with System.Windows.Forms.Form.Select()
-        
+
     override x.Deselection() =
         x.pstrcontrol.AutoSizeMaxWidth <- 0
         x.pstrcontrol.Deselection()
@@ -351,38 +353,38 @@ type PstringObject =
     // Called to give the focus back to the traversal control
     override x.Refocus() =
         x.pstrcontrol.Select()
-        
+
     override x.OnCompGraphNodeMouseDown _ _ = ()
 
     // create a pstring sequence from an XML description
     new (nws,xmlPstr:XmlNode,_) as x =
       {inherit WorksheetObject(nws);
        pstrcontrol = new Pstring.PstringControl([||]) }
-      then 
+      then
         assert_xmlname "pstring" xmlPstr;
         x.LoadSequenceFromXmlNode xmlPstr
-    
-        
+
+
     // convert the pstring sequence to an XML element.
-    override x.ToXmlElement xmldoc = 
+    override x.ToXmlElement xmldoc =
       let xmlPstr = xmldoc.CreateElement("pstring")
       x.SequenceToXml xmldoc xmlPstr
       xmlPstr
-      
+
     // load the pstring sequence from an XML description
     member x.LoadSequenceFromXmlNode (xmlPstr:XmlNode) =
-      let xml_to_occ (xmlOcc:XmlNode) = 
+      let xml_to_occ (xmlOcc:XmlNode) =
         assert_xmlname "occ" xmlOcc;
-        
-        let xmlColor = xmlOcc.SelectSingleNode("color")
-        and xmlLabel = xmlOcc.SelectSingleNode("label")
-        and xmlLink = xmlOcc.SelectSingleNode("link")
-        and xmlShape = xmlOcc.SelectSingleNode("shape")
-        and xmlTreenode = xmlOcc.SelectSingleNode("graphnode")
+
+        let xmlColor = xmlOcc.SelectSingleNode("color") in
+        let xmlLabel = xmlOcc.SelectSingleNode("label") in
+        let xmlLink = xmlOcc.SelectSingleNode("link") in
+        let xmlShape = xmlOcc.SelectSingleNode("shape") in
+        let xmlTreenode = xmlOcc.SelectSingleNode("graphnode")
         in
             { tag= box (
                         match xmlTreenode.Attributes.GetNamedItem("type").Value with
-                            "node" -> InternalNode(int_of_string (xmlTreenode.Attributes.GetNamedItem("index").Value))                           
+                            "node" -> InternalNode(int_of_string (xmlTreenode.Attributes.GetNamedItem("index").Value))
                           | "value" -> ValueLeaf(int_of_string (xmlTreenode.Attributes.GetNamedItem("index").Value),
                                                  int_of_string (xmlTreenode.Attributes.GetNamedItem("value").Value))
                           | "custom" -> Custom;
@@ -394,12 +396,12 @@ type PstringObject =
       in
         let p = xmlPstr.ChildNodes.Count in
         x.pstrcontrol.Sequence <- Array.init p (fun i -> xml_to_occ (xmlPstr.ChildNodes.Item(i)))
-    
-        
+
+
     // Convert the occurrences of the pstring sequence into XML nodes and attach them to a given root XML element.
     // @param xmldoc is the xmldocument
     // @param root the root element to which the XML nodes will be attached
-    member x.SequenceToXml xmldoc rootelement = 
+    member x.SequenceToXml xmldoc rootelement =
       let occ_to_xml occ =
         let xmlOcc = xmldoc.CreateElement("occ")
 
@@ -420,7 +422,7 @@ type PstringObject =
         xmlOcc.AppendChild(xmlShape) |> ignore
 
         let xmlTreenode = xmldoc.CreateElement("graphnode")
-        if occ.tag = null then
+        if isNull occ.tag then
           xmlTreenode.SetAttribute("type","custom");
         else
           match (occ.tag :?> gen_node) with
@@ -430,30 +432,30 @@ type PstringObject =
           | ValueLeaf(i,v) -> xmlTreenode.SetAttribute("type","value");
                               xmlTreenode.SetAttribute("index",(string_of_int i));
                               xmlTreenode.SetAttribute("value",(string_of_int v));
-          
-            
+
+
         xmlOcc.AppendChild(xmlTreenode) |> ignore
 
         rootelement.AppendChild(xmlOcc) |> ignore
 
       in
        Array.iter occ_to_xml x.pstrcontrol.Sequence
-        
+
   end
-  
-             
+
+
 (** Editable pstring object **)
-type EditablePstringObject = 
+type EditablePstringObject =
   class
     inherit PstringObject
-    
+
     // Constructor
     new (nws,pstr:pstring) as x = {inherit PstringObject(nws,pstr)} then x.pstrcontrol.Editable <- true
-    
+
     override x.Clone() = new EditablePstringObject(x.ws,x.pstrcontrol.Sequence):>WorksheetObject
 
     // Convert the pstring sequence to an XML element.
-    override x.ToXmlElement xmldoc = 
+    override x.ToXmlElement xmldoc =
       let xmlPstr = xmldoc.CreateElement("editablepstring")
       x.SequenceToXml xmldoc xmlPstr
       xmlPstr
@@ -464,13 +466,13 @@ type EditablePstringObject =
         then
           x.pstrcontrol.Editable <- true
           assert_xmlname "editablepstring" xmlPstr;
-          base.LoadSequenceFromXmlNode xmlPstr      
+          base.LoadSequenceFromXmlNode xmlPstr
 
     // a graph-node has been clicked while this object was selected
     override x.OnCompGraphNodeMouseDown e msaglnode =
         // add the selected graph node at the end of the sequence
         let gr_nodeindex = int_of_string msaglnode.Attr.Id
-        
+
         // add an internal node to the traversal
         if e.Button = MouseButtons.Left then
             x.pstrcontrol.add_node (occ_from_gennode x.ws.compgraph (InternalNode(gr_nodeindex)) 0 )
@@ -479,11 +481,11 @@ type EditablePstringObject =
             x.pstrcontrol.add_node (occ_from_gennode x.ws.compgraph (ValueLeaf(gr_nodeindex,1)) 0 )
 
         x.Refocus()
-        
-    override x.pview() = 
+
+    override x.pview() =
         let seq = pstrseq_pview_at x.ws.compgraph x.pstrcontrol.Sequence x.pstrcontrol.SelectedNodeIndex
         (new EditablePstringObject(x.ws,seq)):>WorksheetObject
-    override x.oview() = 
+    override x.oview() =
         let seq = pstrseq_oview_at x.ws.compgraph x.pstrcontrol.Sequence x.pstrcontrol.SelectedNodeIndex
         (new EditablePstringObject(x.ws,seq)):>WorksheetObject
     override x.herproj() =
@@ -501,7 +503,7 @@ type EditablePstringObject =
     override x.star()=
         let seq = pstrseq_star x.ws.compgraph x.pstrcontrol.Sequence x.pstrcontrol.SelectedNodeIndex
         (new EditablePstringObject(x.ws,seq)):>WorksheetObject
-                       
+
 
     member x.remove_last_occ() = x.pstrcontrol.remove_last_occ()
     member x.add_occ() = x.pstrcontrol.add_node (create_blank_occ())
@@ -510,21 +512,21 @@ type EditablePstringObject =
 
 
 (** Traversal object: type used for sequence constructed with the traversal rules **)
-type TraversalObject = 
+type TraversalObject =
   class
     inherit PstringObject
-    
+
     // [valid_omoves] is a map describing the valid o-moves:
     //   - the list of map keys gives the set of valid o-moves (graph node indices)
     //   - each key i is mapped to the list of occurrences of its enabler in the traversal that are valid justifiers
     //     for the corresponding O-move.
     val mutable valid_omoves : Map<int,int list>
-    
+
     // [wait_for_ojustifier] is a list which is not empty iff O has selected a move but has not chosen his justifier yet.
     // It contains the list of valid justifier for the given move.
     val mutable wait_for_ojustifier : int list
 
-    // highlight the occurrence in the sequence that are valid justifiers for the O-move 
+    // highlight the occurrence in the sequence that are valid justifiers for the O-move
     // that has been selected by the user.
     member x.highlight_potential_justifiers() =
         let n = x.pstrcontrol.Length
@@ -558,40 +560,40 @@ type TraversalObject =
                                           shape= o.shape;
                                           color = player_to_color Proponent
                                         } ) x.wait_for_ojustifier
-                                        
-              x.pstrcontrol.Sequence <- seq 
+
+              x.pstrcontrol.Sequence <- seq
 
     // a *static* function used to initialize the traversal
     static member init (x:TraversalObject) =
       // it is assumed that pstr is an odd-length sequence (finishing with an O-move)
       x.pstrcontrol.Editable <- false
       x.recompute_valid_omoves()
-          
+
       // add a handler for click on the nodes of the sequence
-      x.pstrcontrol.nodeClick.Add(fun (_,e) -> 
+      x.pstrcontrol.nodeClick.AddHandler(new Handler<PstringControl * NodeClickEventArgs>(fun _ (_,e) ->
         if x.wait_for_ojustifier <> [] then
-            if List.mem e.node x.wait_for_ojustifier then
+            if List.mem e.Node x.wait_for_ojustifier then
                // update the link
-               x.pstrcontrol.updatejustifier (x.pstrcontrol.Length-1) e.node
+               x.pstrcontrol.updatejustifier (x.pstrcontrol.Length-1) e.Node
                x.wait_for_ojustifier <- []
                x.highlight_potential_justifiers()
                // play for the computer
                x.play_for_p()
             else
               ignore( MessageBox.Show("This justifier is not valid for the selected move!","This is not a valid justifier!", MessageBoxButtons.OK, MessageBoxIcon.Exclamation))
-              
-          )
-    
+
+          ))
+
 
     // Constructor
     new (ws,pstr:pstring) as x = {inherit PstringObject(ws,pstr)
                                   valid_omoves=Map.empty
                                   wait_for_ojustifier=[]
                                  }
-                                 then 
+                                 then
                                     TraversalObject.init x
 
-    override x.Clone() = 
+    override x.Clone() =
         let l = Array.length x.pstrcontrol.Sequence
         let nseq =
             if l = 0 then
@@ -602,10 +604,10 @@ type TraversalObject =
                 x.pstrcontrol.Sequence
         in
         new TraversalObject(x.ws,nseq):>WorksheetObject
-        
-            
 
-    override x.ToXmlElement xmldoc = 
+
+
+    override x.ToXmlElement xmldoc =
       let xmlPstr = xmldoc.CreateElement("traversal")
       x.SequenceToXml xmldoc xmlPstr
       xmlPstr
@@ -615,7 +617,7 @@ type TraversalObject =
                                        valid_omoves=Map.empty
                                        wait_for_ojustifier=[]
                                       }
-                                      then 
+                                      then
                                           assert_xmlname "traversal" xmlPstr;
                                           base.LoadSequenceFromXmlNode xmlPstr
                                           let occ = x.pstrcontrol.Occurrence(x.pstrcontrol.Length-1)
@@ -624,11 +626,11 @@ type TraversalObject =
                                           TraversalObject.init x
 
     member x.RefreshLabelInfo() =
-        x.ws.labinfo.Text <- if Map.is_empty x.valid_omoves then "Traversal completed!"
+        x.ws.labinfo.Text <- if Map.isEmpty x.valid_omoves then "Traversal completed!"
                              else if x.wait_for_ojustifier = [] then  "Pick a node in the graph!"
                              else "Pick a justifier in the sequence!"
-    
-    
+
+
     // adujust the scrolling of the flow container so that the node occurrence i is visible
     member x.scroll_flowcontainer_to_occ i =
         ()
@@ -638,55 +640,51 @@ type TraversalObject =
         //let p = base.ws.seqflowpanel.AutoScrollPosition in
         //base.ws.seqflowpanel.AutoScrollPosition <- Point((max 0 (bb.Right - viewwidth)), -p.Y)
         //base.ws.seqflowpanel.HorizontalScroll.Value <- max 0 (bb.Right - viewwidth)
-        
+
     override x.Selection()=
         x.RefreshCompGraphViewer()
         x.RefreshLabelInfo()
         base.Selection()
         base.flush_flowcontainer_to_right()
-        
+
 
     override x.Deselection()=
         x.RestoreCompGraphViewer()
         base.Deselection()
-        
+
     (* a graph-node has been clicked while this object was selected *)
-    override x.OnCompGraphNodeMouseDown e msaglnode = 
+    override x.OnCompGraphNodeMouseDown e msaglnode =
         let gr_nodeindex = int_of_string msaglnode.Attr.Id
         let l = x.pstrcontrol.Length
-        
+
         // valid O-move?
-        try
-            let valid_justifiers = Map.find gr_nodeindex x.valid_omoves in
-        
-           
-            match valid_justifiers with
-                [] -> // no justifier
-                      // create a new occurrence for the corresponding graph node
-                      let newocc = occ_from_gennode x.ws.compgraph (InternalNode(gr_nodeindex)) 0
-                      x.pstrcontrol.replace_last_node newocc // add the occurrence at the end of the sequence
-                      x.wait_for_ojustifier <- []
-                      x.play_for_p() // play for the Propoment
-                      
-              | [j] -> // only one justifier, the Opponent has no choice
-                      let newocc = occ_from_gennode x.ws.compgraph (InternalNode(gr_nodeindex)) ((l-1)-j)
-                      x.pstrcontrol.replace_last_node newocc
-                      x.wait_for_ojustifier <- []
-                      x.play_for_p()
-                      
-              | j::q -> // more than one choice: wait for the Opponent to choose one before playing for P
-                      let newocc = occ_from_gennode x.ws.compgraph (InternalNode(gr_nodeindex)) 0
-                      x.pstrcontrol.replace_last_node newocc
-                      x.wait_for_ojustifier <- valid_justifiers
-                      x.highlight_potential_justifiers()
-                      x.RefreshLabelInfo()
-                          
-           
-        // Invalid move 
-        with Not_found -> ()
-        
+        let valid_justifiers = Map.tryFind gr_nodeindex x.valid_omoves in
+
+        match valid_justifiers with
+        | None -> // Invalid move: traversal contains no valid justifier
+            ()
+        | Some [] -> // no justifier
+            // create a new occurrence for the corresponding graph node
+            let newocc = occ_from_gennode x.ws.compgraph (InternalNode(gr_nodeindex)) 0
+            x.pstrcontrol.replace_last_node newocc // add the occurrence at the end of the sequence
+            x.wait_for_ojustifier <- []
+            x.play_for_p() // play for the Propoment
+
+        | Some [j] -> // only one justifier, the Opponent has no choice
+            let newocc = occ_from_gennode x.ws.compgraph (InternalNode(gr_nodeindex)) ((l-1)-j)
+            x.pstrcontrol.replace_last_node newocc
+            x.wait_for_ojustifier <- []
+            x.play_for_p()
+
+        | Some valid_justifiers -> // more than one choice: wait for the Opponent to choose one before playing for P
+            let newocc = occ_from_gennode x.ws.compgraph (InternalNode(gr_nodeindex)) 0
+            x.pstrcontrol.replace_last_node newocc
+            x.wait_for_ojustifier <- valid_justifiers
+            x.highlight_potential_justifiers()
+            x.RefreshLabelInfo()
+
         x.Refocus()
-    
+
     (* Add an occurrence of a gennode to the end of the traversal *)
     member private x.add_gennode gennode link =
         x.pstrcontrol.add_node (occ_from_gennode x.ws.compgraph gennode link)
@@ -696,7 +694,7 @@ type TraversalObject =
         let msaglgraph = x.ws.msaglviewer.Graph
         for k = 0 to msaglgraph.NodeCount-1 do
            let msaglnode = msaglgraph.FindNode(string_of_int k)
-           msaglgraphnode_set_attributes (fun _ -> if Map.mem k x.valid_omoves then player_to_color Opponent 
+           msaglgraphnode_set_attributes (fun _ -> if Map.containsKey k x.valid_omoves then player_to_color Opponent
                                                    else Color.LightGray )
                                          grnode_2_shape
                                          x.ws.compgraph
@@ -717,8 +715,8 @@ type TraversalObject =
                                         msaglnode
         done;
         x.ws.msaglviewer.Invalidate()
-    
-    (* Compute the list of valid O-moves *)    
+
+    (* Compute the list of valid O-moves *)
     member private x.recompute_valid_omoves() =
         let l = x.pstrcontrol.Length
         // Rule (Root)
@@ -728,69 +726,69 @@ type TraversalObject =
             let last = x.pstrcontrol.Occurrence(l-1)
             // What is the type of the last occurrence?
             match pstr_occ_getnode last with
-            
+
                   Custom -> failwith "Bad traversal! There is an occurence of a node that does not belong to the computation graph!"
-                
+
                 // it is an intenal-node
                 | InternalNode(i) -> match x.ws.compgraph.nodes.(i) with
                                       // Traversal rule (Lmd):
                                       | NCntAbs(_,_) ->
                                           failwith "O has no valid move since it's P's turn!"
-                                      
+
                                       // Rule (App): O can only play the 0th child of the node i
                                       |NCntApp ->
                                           // find the child node of the lambda node
-                                          let firstchild = List.hd x.ws.compgraph.edges.(i) 
+                                          let firstchild = List.hd x.ws.compgraph.edges.(i)
                                           x.valid_omoves <- Map.add firstchild [l-1] Map.empty
-                                      
+
                                       // Rule (Var) or (InputVar): O can play any P-move whose parent occur in the O-view
                                       | NCntVar(_) | NCntTm(_) ->
                                           // function mapping an occurrence to the index of the corresponding node in the graph
                                           let get_grnodeindex_from_occ occ =
-                                                match pstr_occ_getnode (x.pstrcontrol.Occurrence(occ)) with 
+                                                match pstr_occ_getnode (x.pstrcontrol.Occurrence(occ)) with
                                                   | Custom | ValueLeaf(_,_) -> failwith "Bad traversal!" // the O-view cannot contain value leaf since the traversal ends with a variable node
                                                   | InternalNode(i) -> i
-                                          
+
                                           // Is it an input variable?
                                           if x.ws.compgraph.he_by_root.(i) then
                                               // Rule (InputVar): O can play any P-move whose parent occur in the O-view
-                                             
+
                                               // get the list of occurrence from the O-view
                                               let oview_occs = Traversal.seq_occs_in_Xview
                                                                   x.ws.compgraph
-                                                                  Opponent 
+                                                                  Opponent
                                                                   pstr_occ_getnode        // getnode function
                                                                   pstr_occ_getlink        // getlink function
                                                                   pstr_occ_updatelink     // update link function
                                                                   x.pstrcontrol.Sequence
                                                                   (l-1)
-                                              
+
                                               // filter the list to keep only occurrences of Opponent nodes
                                               let parents_occs = List.filter (fun o -> (x.ws.compgraph.gennode_player (pstr_occ_getnode (x.pstrcontrol.Occurrence(o)))) = Proponent) oview_occs
-                                              
+
                                               // given an occurrence occ of a graph node,
                                               // map all its children in the graph to itself
                                               let map_children_to_occ occ m =
                                                 List.fold_right (fun j s ->
-                                                                    Map.add j (occ::(try Map.find j s with Not_found -> [])) s)
+                                                                    Map.add j (occ::(match Map.tryFind j s with Some v -> v | None -> [])) s)
                                                                 x.ws.compgraph.edges.(get_grnodeindex_from_occ occ)
                                                                 m
-                                                
-                                              // finally compute a Map which associate for each node of the tree 
+
+                                              // finally compute a Map which associate for each node of the tree
                                               // whose parent occurs in the O-view, the set of occurrences
                                               // of its parent in the O-view.
                                               let children_to_parentoccs = List.fold_left (fun s o -> map_children_to_occ o s)
                                                                                           Map.empty
                                                                                           parents_occs
-                                              
-                                              
+
+
                                               // children_to_parentoccs is precisely the list of valid O-moves:
                                               // a map from valid O-moves to the list of all valid justifiers in the traversal!
                                               x.valid_omoves <- children_to_parentoccs
 
-                                           
+
                                            else // it is not an input variable
-                                             
+
                                              // Rule (Var): O can only copy-cat the last P-move
                                              let justifier = l - 1 - last.link - 1
                                              let copycat_node =
@@ -799,41 +797,41 @@ type TraversalObject =
                                              in
                                              x.valid_omoves <- Map.add copycat_node [justifier] Map.empty
 
-                                      
+
                 // it is a value leaf
                 | ValueLeaf(i,v) -> // TODO: play using the copycat rule (Value) or the (InputValue) rule
                                     x.valid_omoves <- Map.empty
 
-        if not (Map.is_empty x.valid_omoves) then
+        if not (Map.isEmpty x.valid_omoves) then
           x.pstrcontrol.add_node (create_blank_occ()) // add a dummy node for the forthcoming initial O-move
           x.flush_flowcontainer_to_right()
 
         x.RefreshLabelInfo()
-                                    
-    
+
+
     (* Play the next move for P according to the strategy given by the term *)
     member x.play_for_p() =
         let l = x.pstrcontrol.Length
         if l = 0 then failwith "The game has not started yet! You (the Opponent) must start!"
-            
+
         let last = x.pstrcontrol.Occurrence(l-1)
         // What is the type of the last occurrence?
         match pstr_occ_getnode last with
             | Custom -> failwith "Bad traversal! There is an occurence of a node that does not belong to the computation graph!"
-            
+
             // it is an intenal-node
             | InternalNode(i) -> match x.ws.compgraph.nodes.(i) with
-                                    NCntApp | NCntVar(_) | NCntTm(_) 
+                                    NCntApp | NCntVar(_) | NCntTm(_)
                                         -> failwith "It is your turn. You are playing the Opponent!"
 
                                   // Traversal rule (Lmd):
                                   | NCntAbs(_,_) ->
                                       // find the child node of the lambda node
-                                      let firstchild = List.hd x.ws.compgraph.edges.(i) 
-                                      
+                                      let firstchild = List.hd x.ws.compgraph.edges.(i)
+
                                       // Get the enabler of the node
                                       let enabler = x.ws.compgraph.enabler.(firstchild) in
-                                      
+
                                       // compute the link
                                       let link =
                                           // no enabler?
@@ -843,18 +841,18 @@ type TraversalObject =
                                             l-
                                               // get the occurrence of the binder in the P-view
                                               (Traversal.seq_find_lastocc_in_Xview x.ws.compgraph
-                                                               Proponent 
+                                                               Proponent
                                                                pstr_occ_getnode        // getnode function
                                                                pstr_occ_getlink        // getlink function
                                                                pstr_occ_updatelink     // update link function
                                                                x.pstrcontrol.Sequence
                                                                (l-1)
                                                                (InternalNode(enabler)))
-                                      
-                                      x.add_gennode (InternalNode(firstchild)) link 
+
+                                      x.add_gennode (InternalNode(firstchild)) link
                                       x.recompute_valid_omoves()
                                       x.RefreshCompGraphViewer()
-                                  
+
             // it is a value leaf
             | ValueLeaf(i,v) -> // TODO: play using the copycat rule (Value)
                                 ()
@@ -862,38 +860,38 @@ type TraversalObject =
 
     (** [adjust_to_valid_occurrence i] adjusts the occurrence index i to a valid occurrence position by making sure
         that it does not refer to the trailling dummy node (labelled "...") a the end of the sequence.
-        
+
         @return the index of the first valid occurrence preceding occurrence number i,
         and -1 if there is no such occurrence (if the traversal is empty) **)
     member private x.adjust_to_valid_occurrence i =
         let j = max 0 (min (x.pstrcontrol.Length-1) i)
         let occ = x.pstrcontrol.Occurrence(j)
-        if occ.tag = null || pstr_occ_getnode occ = Custom  then j-1
+        if isNull occ.tag || pstr_occ_getnode occ = Custom  then j-1
         else j
-             
+
     (** undo all the moves played after the selected node **)
     member x.undo()=
         // If there is no selection then by default we take the last occurrence
-        let s = if x.pstrcontrol.SelectedNodeIndex >= 0 then x.pstrcontrol.SelectedNodeIndex else x.pstrcontrol.Length-1 
+        let s = if x.pstrcontrol.SelectedNodeIndex >= 0 then x.pstrcontrol.SelectedNodeIndex else x.pstrcontrol.Length-1
         let p = // if the traversal is empty then take the empty prefix
                 if s = -1 then
-                    -1 
-                else 
+                    -1
+                else
                     // if the selection is on the dummy trailing node then we only undo the last O-move
                     let occ = x.pstrcontrol.Occurrence(s)
-                    if occ.tag = null || pstr_occ_getnode occ = Custom  then
+                    if isNull occ.tag || pstr_occ_getnode occ = Custom then
                         s-3 // we remove the last three nodes: the dummy node + last P-move + last O-move
-                    // othwerise undo up to the last Proponent move 
-                    else if x.ws.compgraph.gennode_player (pstr_occ_getnode (x.pstrcontrol.Occurrence(s))) = Opponent then 
+                    // othwerise undo up to the last Proponent move
+                    else if x.ws.compgraph.gennode_player (pstr_occ_getnode (x.pstrcontrol.Occurrence(s))) = Opponent then
                         s-1
                     else
                         s
         (new TraversalObject(x.ws,(pstrseq_prefix x.pstrcontrol.Sequence p))):>WorksheetObject
 
-    override x.pview() = 
+    override x.pview() =
         let seq = pstrseq_pview_at x.ws.compgraph x.pstrcontrol.Sequence (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
         (new EditablePstringObject(x.ws,seq)):>WorksheetObject
-    override x.oview() = 
+    override x.oview() =
         let seq = pstrseq_oview_at x.ws.compgraph x.pstrcontrol.Sequence (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
         (new EditablePstringObject(x.ws,seq)):>WorksheetObject
     override x.herproj() =
@@ -920,7 +918,7 @@ type TraversalObject =
 // execute a function on the current selection if it is of a given type
 // the parameter (_:'a->unit) is a trick used to pass the type 'a as a parameter to the function
 let do_onsomeobject_oftype (u:'a->unit) (f:'a->unit) =
-     function 
+     function
         | Some(c:WorksheetObject) when (c:?'a) -> f (c:?>'a)
         | _ -> ()
 
@@ -935,20 +933,20 @@ let object_from_controlindex (ws:WorksheetParam) (i:int) = ws.seqflowpanel.Contr
 (** Save the worksheet to an XML file **)
 let save_worksheet (filename:string) (ws:WorksheetParam)  =
     let xmldoc = new XmlDocument()
-    
+
     //Create Parent Node
     let xmlWorksheet = xmldoc.CreateElement("worksheet")
     xmldoc.AppendChild(xmlWorksheet) |> ignore
-    
+
     // source of the computation graph
     let xmlCompgraph = xmldoc.CreateElement("compgraph")
     let xmlSource = xmldoc.CreateElement("source")
-    xmlSource.SetAttribute("type",match Parsing.get_file_extension ws.graphsource_filename with 
+    xmlSource.SetAttribute("type",match Parsing.get_file_extension ws.graphsource_filename with
                                   | "rs" -> "recursionscheme"
                                   | "lmd" -> "lambdaterm"
                                   | _ -> "unknown");
-    xmlSource.SetAttribute("file",ws.graphsource_filename);    
-    xmlCompgraph.AppendChild(xmlSource) |> ignore    
+    xmlSource.SetAttribute("file",ws.graphsource_filename);
+    xmlCompgraph.AppendChild(xmlSource) |> ignore
     xmlWorksheet.AppendChild(xmlCompgraph) |> ignore
 
     for i = 0 to ws.seqflowpanel.Controls.Count-1 do
@@ -963,10 +961,10 @@ let save_worksheet (filename:string) (ws:WorksheetParam)  =
 let import_worksheet (filename:string) (ws:WorksheetParam) addObjectFunc =
     let xmldoc = new XmlDocument()
     xmldoc.Load(filename);
-    
+
     let xmlWorksheet = xmldoc.SelectSingleNode("worksheet") in
     assert_xmlnotnull xmlWorksheet;
-    
+
     let n = xmlWorksheet.ChildNodes.Count in
     for i = 1 to n-1 do
       let xmlnode = xmlWorksheet.ChildNodes.Item(i)
@@ -991,7 +989,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     let form  = new GUI.Traversal()
 
     // create the MSAGL graph
-    let msaglgraph = compgraph_to_graphview grnode_2_color grnode_2_shape compgraph            
+    let msaglgraph = compgraph_to_graphview grnode_2_color grnode_2_shape compgraph
 
     // this holds the WorksheetObject that is currently selected.
     let selection : WorksheetObject option ref = ref None
@@ -1009,11 +1007,11 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     // bSel true if a control is selected
     // bTrav true if the selected control is a traversal
     let enable_buttons bSel bTrav =
-        form.grpNode.Enabled <- not bTrav        
+        form.grpNode.Enabled <- not bTrav
         form.btUndo.Enabled <- bTrav
         form.btPlay.Enabled <- bTrav
         form.labGameInfo.Enabled <- bTrav
-        
+
         form.btDelete.Enabled <- bSel
         form.btDuplicate.Enabled <- bSel
         form.btOview.Enabled <- bSel
@@ -1027,21 +1025,21 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
         form.btPrefix.Enabled <- bSel
         form.btStar.Enabled <- bSel
         form.btExt.Enabled <- bSel
-            
 
-                
+
+
     // execute a function on the currently selected worksheet object if there is one
     let apply_to_selection f =
         do_onsome f !selection
 
     // execute a function on the current selection if it is of a given type
     // the parameter (_:'a->unit) is a trick used to pass the type 'a as a parameter to the function
-    let apply_to_selection_ifoftype subtype (f:'a->unit) = 
+    let apply_to_selection_ifoftype subtype (f:'a->unit) =
         do_onsomeobject_oftype subtype f !selection
 
     // unselect the currently selected object
     let unselect_object() =
-        apply_to_selection 
+        apply_to_selection
           (fun obj ->
             enable_buttons false false
             obj.Deselection();
@@ -1058,13 +1056,13 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     let change_selection_object (wsobj:WorksheetObject) =
         apply_to_selection (fun curobj -> curobj.Deselection() ) // if an object is already selected then deselect it
         select_object wsobj
-            
+
     // change the current selection
     let change_selection_object (wsobj:WorksheetObject) =
         apply_to_selection (fun curobj -> curobj.Deselection() ) // if an object is already selected then deselect it
         select_object wsobj
 
-    // Add an object to the worksheet    
+    // Add an object to the worksheet
     let AddObject (new_obj:WorksheetObject) =
         let ctrl = new_obj.Control
         ctrl.AutoSize <- true
@@ -1074,21 +1072,21 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
         // add an event handler to the a given pstring control in order to detect selection
         // of the control by the user
         ctrl.MouseDown.Add(fun _ -> change_selection_object new_obj );
-        ctrl.KeyDown.Add( fun e -> match e.KeyCode with 
-                                              Keys.Up -> let i = match !selection with 
+        ctrl.KeyDown.Add( fun e -> match e.KeyCode with
+                                              Keys.Up -> let i = match !selection with
                                                                           None -> -1
                                                                         | Some(selobj) -> form.seqflowPanel.Controls.GetChildIndex(selobj.Control)
                                                          // if there is a predecessor then select it
                                                          if i-1 >=0 then
                                                              change_selection_object (object_from_controlindex wsparam (i-1))
-                                            | Keys.Down -> let i = match !selection with 
+                                            | Keys.Down -> let i = match !selection with
                                                                           None -> -1
                                                                         | Some(selobj) -> form.seqflowPanel.Controls.GetChildIndex(selobj.Control)
                                                            // if there is a successor then select it
                                                            if i+1 < form.seqflowPanel.Controls.Count then
                                                              change_selection_object (object_from_controlindex wsparam (i+1))
                                             | _ -> ()
-                               ); 
+                               );
         // we need to add the control of that object to the seqflowPanel control
         form.seqflowPanel.Controls.Add ctrl
         new_obj
@@ -1103,13 +1101,13 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     (* map a button click event to an in-place transformation *)
     let map_button_to_transform_inplace (bt:System.Windows.Forms.Button) (inplacetransform:'a->unit) =
         bt.Click.Add(fun _ -> apply_to_selection_ifoftype
-                                    (fun (_:'a) -> ()) 
+                                    (fun (_:'a) -> ())
                                     (fun cursel -> inplacetransform cursel))
-        
+
     // Return the object corresponding to the ith control of the seqflowPanel
     let object_from_controlindex (i:int) = form.seqflowPanel.Controls.Item(i).Tag:?>WorksheetObject
 
-    // Add an object to the worksheet    
+    // Add an object to the worksheet
     let AddObject (new_obj:WorksheetObject) =
         let ctrl = new_obj.Control
         ctrl.AutoSize <- true
@@ -1119,31 +1117,31 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
         // add an event handler to the a given pstring control in order to detect selection
         // of the control by the user
         ctrl.MouseDown.Add(fun _ -> change_selection_object new_obj );
-        ctrl.KeyDown.Add( fun e -> match e.KeyCode with 
-                                              Keys.Up -> let i = match !selection with 
+        ctrl.KeyDown.Add( fun e -> match e.KeyCode with
+                                              Keys.Up -> let i = match !selection with
                                                                           None -> -1
                                                                         | Some(selobj) -> form.seqflowPanel.Controls.GetChildIndex(selobj.Control)
                                                          // if there is a predecessor then select it
                                                          if i-1 >=0 then
                                                              change_selection_object (object_from_controlindex (i-1))
-                                            | Keys.Down -> let i = match !selection with 
+                                            | Keys.Down -> let i = match !selection with
                                                                           None -> -1
                                                                         | Some(selobj) -> form.seqflowPanel.Controls.GetChildIndex(selobj.Control)
                                                            // if there is a successor then select it
                                                            if i+1 < form.seqflowPanel.Controls.Count then
                                                              change_selection_object (object_from_controlindex (i+1))
                                             | _ -> ()
-                               ); 
+                               );
         // we need to add the control of that object to the seqflowPanel control
         form.seqflowPanel.Controls.Add ctrl
         new_obj
-            
+
 
     // Give the focus back to the currently selected line
     let refocus_object() =
         apply_to_selection (fun curobj -> curobj.Refocus() )
 
-    
+
     // The user has clicked in the void.
     form.seqflowPanel.MouseDown.Add(fun _ -> // if the control (or one of the controls it contains) already has the focus
                                                   if form.seqflowPanel.ContainsFocus then
@@ -1152,24 +1150,24 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
                                                      // otherwise gives the focus back to the currently selected line
                                                      refocus_object()
                                               )
-    
+
     form.seqflowPanel.Enter.Add( fun _ -> apply_to_selection (fun cursel -> cursel.Control.Invalidate() ) )
     form.seqflowPanel.Leave.Add( fun _ -> apply_to_selection (fun cursel -> cursel.Control.Invalidate() ) )
     form.seqflowPanel.SizeChanged.Add( fun _ -> apply_to_selection (fun cursel -> cursel.Selection() ) )
-    
+
     ////// experimental:
     //form.seqflowPanel.AutoScroll <- false
     //form.seqflowPanel.HScroll
     ////
-    
-    
+
+
     // Traversal buttons
     form.btNewGame.Click.Add(fun _ -> change_selection_object (AddObject ((new TraversalObject(wsparam,[||])):>WorksheetObject)) );
     //map_button_to_transform_inplace form.btPlay (fun (trav:TraversalObject) -> trav.play_for_p())
     map_button_to_transform form.btUndo (fun (trav:TraversalObject) -> trav.undo())
 
     // Sequence buttons
-    map_button_to_transform form.btDuplicate (fun (pstrobj:WorksheetObject) -> pstrobj.Clone())    
+    map_button_to_transform form.btDuplicate (fun (pstrobj:WorksheetObject) -> pstrobj.Clone())
     map_button_to_transform form.btPview (fun (pstrobj) -> (pstrobj:PstringObject).pview())
     map_button_to_transform form.btOview (fun (pstrobj:PstringObject) -> pstrobj.oview())
     map_button_to_transform form.btHerProj (fun (pstrobj:PstringObject) -> pstrobj.herproj())
@@ -1180,7 +1178,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
 
     form.btNew.Click.Add(fun _ -> change_selection_object (AddObject (new EditablePstringObject(wsparam,[||]):>WorksheetObject)))
     map_button_to_transform_inplace  form.btDelete
-                                     (fun selbobj -> 
+                                     (fun selbobj ->
                                         let i = form.seqflowPanel.Controls.GetChildIndex(selbobj.Control)
                                         // last line removed?
                                         if i = form.seqflowPanel.Controls.Count-1 then
@@ -1192,33 +1190,33 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
                                         else // it's not the last line that is removed
                                             // select the next line
                                             change_selection_object (object_from_controlindex (i+1))
-                                            
+
                                         // remove the control of the object from the flow panel
-                                        form.seqflowPanel.Controls.Remove(selbobj.Control)                                              
+                                        form.seqflowPanel.Controls.Remove(selbobj.Control)
                                       );
-               
+
     map_button_to_transform_inplace form.btBackspace (fun (editobj:EditablePstringObject) -> editobj.remove_last_occ())
     map_button_to_transform_inplace form.btAdd (fun (editobj:EditablePstringObject) -> editobj.add_occ())
     map_button_to_transform_inplace form.btEditLabel (fun (editobj:EditablePstringObject) -> editobj.edit_occ_label())
-                                              
+
 
     // Worksheet buttons
     let filter = "Traversal worksheet *.xml|*.xml|All files *.*|*.*" in
     form.btSave.Click.Add(fun _ -> // savefile dialog box
-                                    let d = new SaveFileDialog() in 
+                                    let d = new SaveFileDialog() in
                                     d.Filter <- filter;
                                     d.FilterIndex <- 1;
                                     if d.ShowDialog() = DialogResult.OK then
                                         save_worksheet d.FileName wsparam )
 
     form.btImport.Click.Add(fun _ ->  // openfile dialog box
-                                      let d = new OpenFileDialog() in 
+                                      let d = new OpenFileDialog() in
                                       d.Filter <- filter
                                       d.FilterIndex <- 1
                                       d.Title <- "Import a worksheet..."
                                       if d.ShowDialog() = DialogResult.OK then
                                         import_worksheet d.FileName wsparam AddObject )
-                           
+
 
 
     // bind the graph to the viewer
@@ -1241,35 +1239,35 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     form.gViewer.ZoomWindowThreshold <- 0.10;
 
     let (msaglgraph_last_hovered_node: Microsoft.Msagl.Drawing.Node option ref) = ref None
-    form.gViewer.SelectionChanged.Add(fun _ -> if form.gViewer.SelectedObject = null then
+    form.gViewer.SelectionChanged.Add(fun _ -> if isNull form.gViewer.SelectedObject then
                                                  msaglgraph_last_hovered_node := None
                                                else if (form.gViewer.SelectedObject :? Microsoft.Msagl.Drawing.Node) then
                                                  msaglgraph_last_hovered_node := Some(form.gViewer.SelectedObject :?> Microsoft.Msagl.Drawing.Node)
                                                else
                                                  msaglgraph_last_hovered_node := None
                                           );
-    
-    form.gViewer.MouseDown.Add(fun e -> 
-            match !selection, !msaglgraph_last_hovered_node  with 
+
+    form.gViewer.MouseDown.Add(fun e ->
+            match !selection, !msaglgraph_last_hovered_node  with
                 Some(selobj), Some(nd) -> selobj.OnCompGraphNodeMouseDown e nd
               | _ -> ()
         );
-        
-    
+
+
     //////////
     // convert an node-occurrence to latex code
     let pstrocc_to_latex (pstrnode:pstring_occ) =
-        if pstrnode.tag = null then
+        if isNull pstrnode.tag then
           pstrnode.label
         else
           compgraph.gennode_to_latex ((unbox pstrnode.tag) : gen_node)
-    
+
     form.btExportGraph.Click.Add(fun _ -> Texexportform.LoadExportGraphToLatexWindow mdiparent lnfrules)
-    
+
     map_button_to_transform_inplace form.btExportSeq
-                                    (fun (trav:PstringObject) -> 
+                                    (fun (trav:PstringObject) ->
                                         Texexportform.LoadExportPstringToLatexWindow mdiparent pstrocc_to_latex trav.pstrcontrol.Sequence)
-    
+
     form.btExportWS.Click.Add(fun _ ->  let p = form.seqflowPanel.Controls.Count
                                         let exp = ref ""
                                         for i = 0 to p-1 do
@@ -1282,8 +1280,8 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
 
 \\begin{document}
 \\begin{itemize}
-"
-                                        and latex_post = "
+"                                       in
+                                        let latex_post = "
 \\end{itemize}
 \\end{document}
 "
@@ -1291,26 +1289,26 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
 
     // execute the worksheet initialization function
     initialize_ws wsparam AddObject
-    
+
     // select the last line
     let p = form.seqflowPanel.Controls.Count
     if p > 0 then
         select_object (object_from_controlindex (p-1))
 
     form.MdiParent <- mdiparent;
-    form.WindowState<-FormWindowState.Maximized;    
-    ignore(form.Show()) 
+    form.WindowState<-FormWindowState.Maximized;
+    ignore(form.Show())
 
 
 
 
 (** Open a worksheet file **)
 exception FileError of string;;
-let open_worksheet mdiparent (ws_filename:string) = 
+let open_worksheet mdiparent (ws_filename:string) =
 
     let xmldoc = new XmlDocument()
     xmldoc.Load(ws_filename);
-    
+
     let xmlWorksheet = xmldoc.SelectSingleNode("worksheet") in
     assert_xmlnotnull xmlWorksheet;
 
@@ -1324,18 +1322,18 @@ let open_worksheet mdiparent (ws_filename:string) =
 
     // set the current directory to the directory containing the worksheet file
     System.IO.Directory.SetCurrentDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(ws_filename)))
-    try 
+    try
         let lnfrules =
             match xmlTyp.InnerText with
             "lambdaterm" ->
                 // parse the lambda term
                 match Parsing.parse_file Ml_parser.term_in_context Ml_lexer.token filename with
                   None -> raise (FileError("The lambda term file associated to this worksheet could not be opened!"));
-                | Some(lmdterm) -> 
+                | Some(lmdterm) ->
                     // convert the term to LNF
                     [Coreml.annotatedterm_to_lnfrule (Coreml.annotate_termincontext lmdterm)]
 
-            |"recursionscheme" -> 
+            |"recursionscheme" ->
                 // parse the recursion scheme file
                 match Parsing.parse_file Hog_parser.hog_specification Hog_lexer.token filename with
                    None -> raise (FileError("The recursion scheme file associated to this worksheet could not be opened!"));
@@ -1352,8 +1350,8 @@ let open_worksheet mdiparent (ws_filename:string) =
                             compgraph    // computation graph
                             lnfrules     // lnf rules
                             (import_worksheet ws_filename) // Initialization function: import a default worksheet
-    
+
     with FileError(msg) -> ignore(MessageBox.Show(msg, "File error!", MessageBoxButtons.OK, MessageBoxIcon.Exclamation))
          | :?System.NotSupportedException -> ignore(MessageBox.Show("Cannot open the source of the computation graph associated to this worksheet.", "File error!", MessageBoxButtons.OK, MessageBoxIcon.Exclamation))
-         
+
     ;;

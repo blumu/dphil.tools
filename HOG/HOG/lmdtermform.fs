@@ -3,17 +3,12 @@
     Author:      William Blum
 **)
 #light
+module Lmdtermform
 
-open System
 (* open System.Collections.Generic *)
-open System.ComponentModel
-open System.Data
 open System.Drawing
-open System.Text
 open System.Windows.Forms
-open System.IO
 open Common
-open Printf
 open Type
 open Lnf
 
@@ -34,8 +29,7 @@ let keywords =
       "then";"to";"true";      
       "while";"with";"="; "->"; "|"; "|-"; ]   ;;
 
-      
-#light;;
+
 let colorizeCode(rtb: # RichTextBox) = 
     let text = rtb.Text 
     rtb.SelectAll()
@@ -63,9 +57,7 @@ let colorizeCode(rtb: # RichTextBox) =
     );
     rtb.Select(0, 0)
 
-#light
 
-        
 type TermForm = 
   class
     inherit GUI.Lambdaterm
@@ -74,12 +66,12 @@ type TermForm =
         // 
         // graphButton
         // 
-        this.btGraph.Click.Add(fun e -> Traversal_form.ShowCompGraphWindow this.MdiParent this.filename this.compgraph ["",lnfterm]);
+        this.btGraph.Click.Add(fun _ -> Traversal_form.ShowCompGraphWindow this.MdiParent this.filename this.compgraph ["",lnfterm]);
         
         //
         // Play traversal
         //
-        this.btCalculator.Click.Add( fun e -> Traversal_form.ShowTraversalCalculatorWindow this.MdiParent this.filename this.compgraph ["",lnfterm] (fun _ _ -> ()));
+        this.btCalculator.Click.Add(fun _ -> Traversal_form.ShowTraversalCalculatorWindow this.MdiParent this.filename this.compgraph ["",lnfterm] (fun _ _ -> ()));
         
         //select_pstrcontrol (createAndAddPstringCtrl [||])
 

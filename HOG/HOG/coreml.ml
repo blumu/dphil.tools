@@ -2,6 +2,7 @@
 	Description: Structures for encoding Core Ml terms
 	Author:		William Blum
 **)
+open FSharp.Compatibility.OCaml
 open Common
 open Type
 open Lnf
@@ -22,7 +23,7 @@ type ml_expr =
   | Succ
 
 type ml_context = (ident * poltyp) list
-   
+
 type ml_termincontext = ml_context*ml_expr
 
 
@@ -35,14 +36,14 @@ and ml_annotated_subexpr =
   | AnLet of (ml_annotated_ident * (ml_annotated_ident list) * ml_annotated_expr) list * ml_annotated_expr
   | AnLetrec of (ml_annotated_ident * (ml_annotated_ident list) * ml_annotated_expr) list * ml_annotated_expr
   | AnIf of ml_annotated_expr * ml_annotated_expr * ml_annotated_expr
-  | AnMlInt of int 
+  | AnMlInt of int
   | AnMlBool of bool
   | AnEqTest of ml_annotated_expr * ml_annotated_expr
   | AnPred
   | AnSucc
 
 type ml_annotated_termincontext = ml_context*ml_annotated_expr
- 
+
 (* ************************************************************** *)
 (* Pretty-printing functions                                      *)
 
@@ -53,7 +54,7 @@ let rec string_of_mlterm = function
   |MlAppl(e1,e2) -> (string_in_bracket e1)^" "^(string_in_bracket e2);
   |Fun(x,e) -> "fun "^x^" -> "^(string_of_mlterm e)
   | _ -> failwith "unsupported Ml constructs!"
-      
+
 and string_in_bracket = function
     MlVar(x) -> x;
   | e -> "("^(string_of_mlterm e)^")";
@@ -64,23 +65,25 @@ let string_of_mltermincontext (c,t) =
 
 exception MissingVariableInContext;;
 
-let lookup_var x context = try List.assoc x context 
-                           with Not_found -> raise MissingVariableInContext;;
-                           
-                           
+let lookup_var x context =
+    match List.try_assoc x context with
+    | Some v -> v
+    | None -> raise MissingVariableInContext;;
+
+
 
 (********************** Type inference **************************)
 
 
 
-(** [namesubst_annotatedterm s context] performs the type substitution [s] for all the 
+(** [namesubst_annotatedterm s context] performs the type substitution [s] for all the
     types occurring in the context [context] **)
-let rec namesubst_context s = 
-    List.map (function (v,t) -> v, (type_substitute s t)) 
+let rec namesubst_context s =
+    List.map (function (v,t) -> v, (type_substitute s t))
 ;;
 
 (** [namesubst_annotatedterm s aterm] performs the type substitution [s] in all the types occurring in the annotated term [aterm] **)
-let rec namesubst_annotatedterm s (typ,term) = 
+let rec namesubst_annotatedterm s (typ,term) =
     let ts = type_substitute s typ in
     ts,
     (match term with
@@ -98,7 +101,7 @@ let rec namesubst_annotatedterm s (typ,term) =
 ;;
 
 (* Infer a polymorphic type for a term-in-context *)
-let infer_polytype (context,term) =  
+let infer_polytype (context,term) =
     let freshvar = ref (-1) in
     let new_freshvar() = incr(freshvar); "'"^(string_of_char (char_of_int ((int_of_char 'a')+ !freshvar))) in
     let rec infer context (term:ml_expr) =
@@ -126,7 +129,7 @@ flatten_polytype pt;
 (** Calculate the principal type of each subterms of some term-in-context and return an
     annotated version of the term-in-context.
  **)
-let annotate_termincontext ((context,term):ml_termincontext) :ml_annotated_termincontext =  
+let annotate_termincontext ((context,term):ml_termincontext) :ml_annotated_termincontext =
     let freshvar = ref (-1) in
     let new_freshvar() = incr(freshvar); "'"^(string_of_char (char_of_int ((int_of_char 'a')+ !freshvar))) in
     (* annotated the term [term] in the typed-context [context].
@@ -144,13 +147,13 @@ let annotate_termincontext ((context,term):ml_termincontext) :ml_annotated_termi
                          | PTypAr(_,ret_type) -> ret_type, (AnMlAppl((namesubst_annotatedterm subst_f f_annotated),
                                                                      (namesubst_annotatedterm subst_e e_annotated)))
                          | _ -> raise TypecheckingError)
-                            
+
         | Fun(x,e) -> let ncontext, (e_type,e_subanotated) = annotate ((x,PTypVar(new_freshvar()))::context) e in
                       let xtype = List.assoc x ncontext in
                       (List.tl ncontext), ((PTypAr(xtype, e_type)),  (AnFun((xtype,x),(e_type,e_subanotated))))
-                                               
+
         | _ -> failwith "unsupported Ml constructs!"
-        
+
     in annotate context term
 ;;
 
@@ -165,7 +168,7 @@ let annotate_termincontext ((context,term):ml_termincontext) :ml_annotated_termi
 
 *)
 
-(** Decompose an term 'op e1 .... ek' into its constituents parts. 
+(** Decompose an term 'op e1 .... ek' into its constituents parts.
    @return a pair (op,operands) where op is the operator (a terminal, variable or non-terminal) and
     operands is the list of operands terms. **)
 let rec annotml_applicative_decomposition t = match snd t with
@@ -183,38 +186,38 @@ let rec annotml_applicative_decomposition t = match snd t with
 ;;
 
 
-(** [annotatedlmdterm_to_lnfrule termincontext tmincontext] converts an annotated term-in-context 
+(** [annotatedlmdterm_to_lnfrule termincontext tmincontext] converts an annotated term-in-context
     to eta-long normal form.
     @param tmincontext the input term-in-context
     @return the (name,lnf) where lnf is the long normal form of [tmincontext] and name is a dummy rule name.
 **)
-let annotatedterm_to_lnfrule ((_,annotterm):ml_annotated_termincontext) :lnfrule = 
+let annotatedterm_to_lnfrule ((_,annotterm):ml_annotated_termincontext) :lnfrule =
     (* For the creation of fresh variables *)
     let freshvar = ref 0 in
     let new_freshvar() = incr(freshvar); "#"^(string_of_int !freshvar) in
- 
-    let rec lnf_of ((polytyp,term):ml_annotated_expr as annot_term) :lnf = 
+
+    let rec lnf_of ((polytyp,term):ml_annotated_expr as annot_term) :lnf =
         match term with
-            (* In the abstraction case, we just accumulate the abstracted variable to the abstraction 
+            (* In the abstraction case, we just accumulate the abstracted variable to the abstraction
                 part of the etanf of the subterm e. *)
             | AnFun(x,e) -> let abse,appe = lnf_of e in
                             snd x::abse, appe
             (* Otherwise *)
             | _ ->
                 (* decompose the term in the form e_0 e_1 ... e_k *)
-                let op,operands = annotml_applicative_decomposition annot_term in   
+                let op,operands = annotml_applicative_decomposition annot_term in
                 (* Create a list of fresh variables Phi_1 ... Phi_n where n is the arity of appterm *)
                 let absvars = Array.to_list (Array.init (polytypearity polytyp) (fun i -> new_freshvar()) ) in
                 (* create an association list mapping Phi_1 ... Phi_n to their respective types *)
-                let absvars_types = create_param_polytyp_list absvars polytyp
+                let absvars_types = create_param_polytyp_list absvars polytyp in
                 (* compute the lnfs of the operands *)
-                and lnfoperands = List.map lnf_of operands in
-                (* add 'lnf(Phi_1) ... lnf(Phi_n)'  to the list of operands *)    
+                let lnfoperands = List.map lnf_of operands in
+                (* add 'lnf(Phi_1) ... lnf(Phi_n)'  to the list of operands *)
                 let lnfoperands_ext = lnfoperands@(List.map (function (v,t) -> lnf_of (t,(AnMlVar(v)))) absvars_types) in
                 match snd op with
                 | AnMlVar(v) -> absvars, LnfAppVar(v, lnfoperands_ext)
                 | AnFun(abs, operands) -> absvars, LnfAppAbs((lnf_of op), lnfoperands_ext)
-                
+
                 | AnMlAppl(_) -> (* this cannot be reached *)
                                  failwith "annotatedlmdterm_to_lnfrule: the operator calculated by ml_applicative_decomposition is inconsistent!"
                 | _ ->  failwith "unsupported Ml constructs!"

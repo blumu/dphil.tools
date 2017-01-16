@@ -1,0 +1,8 @@
+source https://www.nuget.org/api/v2
+
+nuget FSharp.Compatibility.OCaml
+nuget FSharp.Compatibility.OCaml.Format
+nuget FSharp.Compatibility.OCaml.LexYacc
+nuget FSharp.Compatibility.OCaml.System
+nuget FsLexYacc
+nuget FsLexYacc.Runtime

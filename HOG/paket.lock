@@ -1,0 +1,14 @@
+NUGET
+  remote: https://www.nuget.org/api/v2
+    FSharp.Compatibility.OCaml (0.1.12)
+    FSharp.Compatibility.OCaml.Format (0.1.12)
+      FSharp.Compatibility.OCaml (>= 0.1.12)
+    FSharp.Compatibility.OCaml.LexYacc (0.1.12)
+      FSharp.Compatibility.OCaml (>= 0.1.12)
+    FSharp.Compatibility.OCaml.System (0.1.12)
+      FSharp.Compatibility.OCaml (>= 0.1.12)
+    FSharp.Core (4.0.0.1)
+    FsLexYacc (7.0.3)
+      FsLexYacc.Runtime (>= 7.0.3 < 7.1)
+    FsLexYacc.Runtime (7.0.3)
+      FSharp.Core (>= 3.1.2.5)

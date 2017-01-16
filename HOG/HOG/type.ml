@@ -3,7 +3,10 @@
 	Author:		 William Blum
 **)
 
+module Type
+
 open Common
+open FSharp.Compatibility.OCaml
 
 (*** ------------------------
      Simple types         ***)
@@ -15,7 +18,7 @@ let rec typeorder = function  Gr ->  0 | Ar(a,b) -> max (1+ typeorder a) (typeor
 let rec typearity = function  Gr ->  0 | Ar(_,b) -> 1+ (typearity b) ;;
 
 
-(* Create an association list mapping parameter names from a list [p] to 
+(* Create an association list mapping parameter names from a list [p] to
   the type of the parameters in the type [t].
   e.g.  create_param_typ_list ["x","y","z"] Ar(Gr,Ar(Gr,Gr),Ar(Gr,Gr),Ar(Gr,Ar(Gr,Gr)))
        = [("x",Gr); ("y",Ar(Gr,Gr)); ("z",Ar(Gr,Gr))]
@@ -53,9 +56,10 @@ let rec polytypearity = function  PTypGr|PTypVar(_) ->  0 | PTypAr(_,b) -> 1+ (p
 (** [type_substitute s t] performs the type substitution [s] on the type [t].
     The substitution is given by a a list of pair of the form (typevar,typ) **)
 let rec type_substitute s = function
-    PTypGr -> PTypGr
-  | PTypVar(x) -> (try List.assoc x s
-                   with Not_found -> PTypVar(x))
+  | PTypGr -> PTypGr
+  | PTypVar(x) -> (match List.try_assoc x s with
+                   | Some v -> v
+                   | None -> PTypVar(x))
   | PTypAr(a, b) -> PTypAr((type_substitute s a), (type_substitute s b))
 ;;
 
@@ -73,11 +77,11 @@ let rec unify_polytype t1 t2 = match(t1,t2) with
    |PTypVar(x),PTypVar(y) -> [],[],PTypVar(x)
    |PTypVar(x),_ -> [x,t2], [], t2
    |_,PTypVar(y) -> [],[y,t1],  t1
-   |PTypAr(l1,r1), PTypAr(l2,r2) -> let sl1,sl2,tau1 = unify_polytype l1 l2 in 
+   |PTypAr(l1,r1), PTypAr(l2,r2) -> let sl1,sl2,tau1 = unify_polytype l1 l2 in
                                     let sr1,sr2,tau2 = unify_polytype (type_substitute sl1 r1) (type_substitute sl2 r2)
                                     in sl1@sr1, sl2@sr2, PTypAr(tau1,tau2)
    | _ -> raise NotUnifiable;;
-   
+
 exception TypecheckingError;;
 
 
@@ -92,10 +96,10 @@ let rec string_of_polytype = function
 
 (** Flatten a polymorphic type into a simple type by replacing occurrences
     of type-variable by the ground type. **)
-let rec flatten_polytype = function 
+let rec flatten_polytype = function
       PTypGr -> Gr
     | PTypVar(_) -> Gr
-    | PTypAr(l,r) -> Ar((flatten_polytype l), (flatten_polytype r))   
+    | PTypAr(l,r) -> Ar((flatten_polytype l), (flatten_polytype r))
 ;;
 
 (** Injection mapping simple types to their polymorphic equivalent **)
@@ -117,11 +121,11 @@ let rec create_param_polytyp_list p t = match p,t with
 
 (* convert a typed alphabet into a string *)
 let string_of_alphabet_aux sep a =
-	let string_of_letter (l,t) =   
+	let string_of_letter (l,t) =
 	  l^":"^(string_of_type t) ;
 	in
 	(* List.fold_left (function acc -> function l -> acc^(string_of_letter l)) "" a *)
-	String.concat sep (List.map string_of_letter a) 
+	String.concat sep (List.map string_of_letter a)
 ;;
 
 (* convert a typed alphabet into a string *)
@@ -133,9 +137,9 @@ let print_alphabet a = print_string (string_of_alphabet a);;
 
 (* convert a polmorhpically-typed alphabet into a string *)
 let string_of_polyalphabet_aux sep a =
-	let string_of_letter (l,t) =   
+	let string_of_letter (l,t) =
 	  l^":"^(string_of_polytype t) ;
 	in
 	(* List.fold_left (function acc -> function l -> acc^(string_of_letter l)) "" a *)
-	String.concat sep (List.map string_of_letter a) 
+	String.concat sep (List.map string_of_letter a)
 ;;
