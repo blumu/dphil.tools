@@ -74,6 +74,7 @@
     <Content Include="App.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Compile Include="Richtext.fs" />
     <Compile Include="common.ml" />
     <Compile Include="type.ml" />
     <Compile Include="lnf.ml" />

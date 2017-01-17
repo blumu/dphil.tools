@@ -1,7 +1,15 @@
-(* Neil Jones's "varity two" example. *)
+(* Neil Jones's "varity two" example. 
+(@999 (Lam t.(@1 (@2 (@3 t (Lam n.(Lam a.(Lam x.(@4 n (Lam s.(Lam z.(@5 (@6 a s) (@7 (@8 x s) z))))))))) (Lam a.a)) (Lam s0.(Lam z0.z0)))) 
+(Lam s2.(Lam z2.(@20 s2 (@21 s2 z2)))))
 
-(lambda t.(t (lambda n u x . n (lambda s z . a s (x s z)))) (lambda a. a))
-(lambda s z . z) 
+Extracting its normal form gives:
 
-// Two church numerals
+(Lam x.(Lam x1.(Lam s.(Lam z.(@7 (@8 x s) (@7 (@8 x1 s) z))))))
+
+Lam x x1 s z. x s (x1 s z)
+
+*)
+
+(lambda t.t (lambda n a x . n (lambda s z . a s (x s z))) (lambda a. a) (lambda z0 . z0))
+(lambda s2 z2 . s2 (s2 z2)) // Two church numerals
 

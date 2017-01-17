@@ -1,6 +1,8 @@
 (** $Id$
-	Description: Structures for encoding Core Ml terms
-	Author:		William Blum
+    Description: Structures for encoding Core Ml terms
+    In the context of the HOG tool, only the lambda calculus sublanguage of CoreML is used,
+    (that is the simply-typed lambda calculus).
+    Author:	William Blum
 **)
 open FSharp.Compatibility.OCaml
 open Common

@@ -16,22 +16,16 @@ open Common
 // be loaded properly.
 do Application.EnableVisualStyles();
 
+let mainform = new GUI.Main()
 
-// RichtxtConsoleox - text area 
-let txtConsole = new RichTextBox()
-txtConsole.Dock <- DockStyle.Bottom
-txtConsole.ReadOnly <- true
-
-// text
-let setText s = txtConsole.Text <- s; txtConsole.SelectionStart <- txtConsole.TextLength;
-let getText () = txtConsole.Text
+// Console text
+let setText s = mainform.txtConsole.Text <- s; mainform.txtConsole.SelectionStart <- mainform.txtConsole.TextLength;
+let getText () = mainform.txtConsole.Text
 setText ("Console:"^eol)
 
 
 // redirect the debug output to the console textbox
 Common.Debug_print := function str -> setText (getText()^eol^str);;
-
-let mainform = new System.Windows.Forms.Form()
 
 // open a file containing either a term or a Rec scheme
 let open_file filename =
@@ -73,34 +67,7 @@ mainform.Load.Add( fun _ -> if Array.length Sys.argv = 2 then
                                 end
                               else
                                 open_file Sys.argv.(1));
-mainform.IsMdiContainer <- true;
-mainform.Width  <- 1000
-mainform.Height <- 600
 mainform.Text <- "HOG Version "^VERSION
-mainform.Controls.Add(txtConsole)
-
-// menu bar and menus 
-let mMain = mainform.Menu <- new MainMenu()
-let mFile = mainform.Menu.MenuItems.Add("&File")
-let mWindowList = mainform.Menu.MenuItems.Add("&Window")
-let mHelp = mainform.Menu.MenuItems.Add("&Help")
-mWindowList.MdiList <- true
-
-// menu items 
-let miOpen  = new MenuItem("Open &scheme...")
-let miOpenStlt = new MenuItem("Open simply-typed lambda &term...")
-let miOpenUlt = new MenuItem("Open &untyped lambda-term...")
-let miOpenWs = new MenuItem("Open &worksheet...")
-let miQuit  = new MenuItem("&Quit")
-let miAbout = new MenuItem("&About...")
-
-let _ = mFile.MenuItems.Add(miOpen)
-let _ = mFile.MenuItems.Add(miOpenStlt)
-let _ = mFile.MenuItems.Add(miOpenUlt)
-let _ = mFile.MenuItems.Add(miOpenWs)
-let _ = mFile.MenuItems.Add(miQuit)
-let _ = mHelp.MenuItems.Add(miAbout)
-
 
 type FileType = RecSchemeFile | SimplyTypedTermFile | UntypedTermFile | Worksheet
 
@@ -112,18 +79,27 @@ let open_dialog defaulttype _ =
     if d.ShowDialog() = DialogResult.OK then
         open_file d.FileName
 
-let opAbout _ = 
-    MessageBox.Show("HOG version "^VERSION^" by William Blum, 2007-2017"^Common.eol^"Graphs are generated using the MSAGL library from Microsoft.","About HOG") |> ignore
+// Add an "open" menu for each type of parseable object
+let mFile = mainform.fileToolStripMenuItem
 
-let opExitForm _ = mainform.Close ()
+let addMenu (text:string) fileType =
+    let menu = new ToolStripMenuItem(text)
+    mFile.DropDownItems.Insert(0, menu)
+    menu.Click.Add(open_dialog fileType)
+
+addMenu "Open &untyped lambda-term..." UntypedTermFile
+addMenu "Open simply-typed lambda &term..." SimplyTypedTermFile
+addMenu "Open &scheme..." RecSchemeFile
+addMenu "Open &worksheet..." Worksheet
 
 // callbacks 
-miOpen.Click.Add(open_dialog RecSchemeFile)
-miOpenStlt.Click.Add(open_dialog SimplyTypedTermFile)
-miOpenUlt.Click.Add(open_dialog UntypedTermFile)
-miOpenWs.Click.Add(open_dialog Worksheet)
-miQuit.Click.Add(opExitForm)
-miAbout.Click.Add(opAbout)
+mainform.quitToolStripMenuItem.Click.Add(fun _ ->
+    Application.Exit()
+)
+
+mainform.aboutToolStripMenuItem .Click.Add(fun _ -> 
+    MessageBox.Show("HOG version "^VERSION^" by William Blum, 2007-2017"^Common.eol^"Graphs are generated using the MSAGL library from Microsoft.","About HOG") |> ignore
+)
   
 
 /// <summary>
