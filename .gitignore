@@ -26,6 +26,8 @@ HOG/latexexport/*
 anagrammes/anagrammes-native.exe
 HOG/.paket/paket.exe
 HOG/packages/*
+.fake
+build/
 HOG/HOG/hog_lexer.fs
 HOG/HOG/hog_parser.fs
 HOG/HOG/hog_parser.fsi
