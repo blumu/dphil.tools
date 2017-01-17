@@ -34,3 +34,6 @@ HOG/HOG/hog_parser.fsi
 HOG/HOG/ml_lexer.fs
 HOG/HOG/ml_parser.fs
 HOG/HOG/ml_parser.fsi
+HOG/HOG/ulc_lexer.fs
+HOG/HOG/ulc_parser.fs
+HOG/HOG/ulc_parser.fsi

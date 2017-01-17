@@ -1,6 +1,0 @@
-(* A gound type term *)
-e:o |- (fun f -> fun g -> f (fun b -> f (fun b'-> b) (fun a' b'-> e))
-                        (fun u v -> e))
-    (fun x -> fun y -> y (fun h -> x (h e)) e)
-    e
-;;

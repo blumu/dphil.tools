@@ -1,6 +1,6 @@
 /** $Id$
-	Description: Parser for Core Ml
-	Author:		William Blum
+    Description: Parser for Core ML (A subset of it is used in this project to parse simply-typed lambda terms in-context)
+    Author:    William Blum
 **/
 
 %{

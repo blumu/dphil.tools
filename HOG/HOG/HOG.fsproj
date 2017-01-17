@@ -71,45 +71,48 @@
 	</Target>
 	-->
   <ItemGroup>
+    <Content Include="App.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Compile Include="common.ml" />
     <Compile Include="type.ml" />
     <Compile Include="lnf.ml" />
     <Compile Include="coreml.mli" />
     <Compile Include="coreml.ml" />
+    <Compile Include="ulc.ml" />
     <Compile Include="compgraph.ml" />
     <Compile Include="parsing.fs" />
-    <Content Include="App.config">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-
     <FsYacc Include="ml_parser.mly">
       <OtherFlags>--module Ml_parser --light-off</OtherFlags>
     </FsYacc>
     <Compile Include="ml_parser.fsi" />
     <Compile Include="ml_parser.fs" />
-
     <FsLex Include="ml_lexer.mll" />
     <Compile Include="ml_lexer.fs" />
-
     <Compile Include="traversal.ml" />
     <Compile Include="texexportform.fs" />
     <Compile Include="hog.mli" />
     <Compile Include="hog.ml" />
-
-    <FsYacc Include="hog_parser.mly" >
+    <FsYacc Include="hog_parser.mly">
       <OtherFlags>--module Hog_parser --light-off</OtherFlags>
     </FsYacc>
     <Compile Include="hog_parser.fsi" />
     <Compile Include="hog_parser.fs" />
-
     <FsLex Include="hog_lexer.mll" />
     <Compile Include="hog_lexer.fs" />
-
+    <FsYacc Include="ulc_parser.mly">
+      <OtherFlags>--module Ulc_parser --light-off</OtherFlags>
+    </FsYacc>
+    <Compile Include="ulc_parser.fsi" />
+    <Compile Include="ulc_parser.fs" />
+    <FsLex Include="ulc_lexer.mll" />
+    <Compile Include="ulc_lexer.fs" />
     <Compile Include="traversal_form.fs" />
     <Compile Include="hocpda.ml" />
-    <Compile Include="cpdaform.fs" />
-    <Compile Include="horsform.fs" />
-    <Compile Include="lmdtermform.fs" />
+    <Compile Include="view_CPDA.fs" />
+    <Compile Include="view_HORS.fs" />
+    <Compile Include="view_ULT.fs" />
+    <Compile Include="view_STLT.fs" />
     <Compile Include="mainform.fs" />
     <Content Include="omakefile" />
     <None Include="paket.references" />

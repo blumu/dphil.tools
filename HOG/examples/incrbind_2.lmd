@@ -1,6 +1,0 @@
-(* second example used in the section of the thesis introducing
-incremental binding *)
- |-  fun u -> fun v -> v (fun z -> u)
-;;
-
-

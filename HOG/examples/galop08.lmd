@@ -1,6 +1,0 @@
-	|- 
-	fun f -> 
-		(fun u -> fun v -> u v)
-		f
-
-;;

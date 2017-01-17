@@ -1,6 +1,5 @@
-(** $Id: $
-    Description: Traversals
-    Author:      William Blum
+(** Description: This module implements the basic operations on traversals (P-view, O-view, projection, extension, ...).
+    Author:  William Blum
 **)
 module Traversal
 

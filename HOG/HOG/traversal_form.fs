@@ -1,10 +1,11 @@
-﻿(** $Id$
-    Description: Traversal window
+﻿(** Description: Traversal view.
+    This module contains the view used to represent and manipulate traversals, as well as the logic 
+    to let the user "play the traversal game" on a given copmutation graph.
+
     Author: William Blum
 **)
 module Traversal_form
 
-#light
 open FSharp.Compatibility.OCaml
 open Common
 open System.Xml
@@ -24,7 +25,7 @@ let assert_xmlname nameexpected (node:XmlNode) =
     failwith "Bad worksheet xml file!"
 
 let assert_xmlnotnull (node:XmlNode) =
-  if node = null then
+  if isNull node then
     failwith "Bad worksheet xml file!"
 
 
@@ -63,7 +64,7 @@ let occ_from_gennode (compgraph:computation_graph) gennode lnk =
 
 (** Return the generalized graph node of a given occurrence in a Pstringcontrol.pstring sequence **)
 let pstr_occ_getnode (nd:pstring_occ) =
-    if nd.tag = null then
+    if isNull nd.tag then
         failwith "This is not a valid justified sequence. Some node-occurrence does not belong to the computation graph/tree."
     else
         (unbox nd.tag:gen_node)
@@ -196,7 +197,7 @@ let compgraph_to_graphview node_2_color node_2_shape (gr:computation_graph) =
 
 
 (** Loads a window showing a computation graph and permitting the user to export it to latex. **)
-let ShowCompGraphWindow mdiparent filename compgraph lnfrules =
+let ShowCompGraphWindow mdiparent filename compgraph (lnfrules:lnfrule list) =
     // create a form
     let form = new System.Windows.Forms.Form()
     let viewer = new Microsoft.Msagl.GraphViewerGdi.GViewer()
@@ -207,14 +208,14 @@ let ShowCompGraphWindow mdiparent filename compgraph lnfrules =
     form.MdiParent <- mdiparent;
     form.Text <- "Computation graph of "^filename;
     form.Size <- Size(700,800);
+    
     buttonLatex.Location <- new System.Drawing.Point(1, 1)
     buttonLatex.Name <- "button1"
     buttonLatex.Size <- new System.Drawing.Size(267, 23)
     buttonLatex.TabIndex <- 2
     buttonLatex.Text <- "Export to Latex"
     buttonLatex.UseVisualStyleBackColor <- true
-    buttonLatex.Click.Add(fun e -> Texexportform.LoadExportGraphToLatexWindow mdiparent lnfrules )
-
+    buttonLatex.Click.Add(fun _ -> Texexportform.LoadExportGraphToLatexWindow mdiparent lnfrules)
 
     // create a viewer object
     panel1.SuspendLayout();
@@ -270,17 +271,19 @@ let ShowCompGraphWindow mdiparent filename compgraph lnfrules =
     ignore(form.Show())
 ;;
 
-// Worksheet parameters
-type WorksheetParam = { graphsource_filename:string;
-                        compgraph:computation_graph;
-                        lnfrules: lnfrule list;
-                        msaglviewer: Microsoft.Msagl.GraphViewerGdi.GViewer
-                        seqflowpanel: System.Windows.Forms.FlowLayoutPanel
-                        labinfo: System.Windows.Forms.Label
-                      }
+/// Worksheet parameters that are serialized to XML
+type WorksheetParam = 
+    {
+        graphsource_filename:string;
+        compgraph:computation_graph;
+        lnfrules: lnfrule list;
+        msaglviewer: Microsoft.Msagl.GraphViewerGdi.GViewer
+        seqflowpanel: System.Windows.Forms.FlowLayoutPanel
+        labinfo: System.Windows.Forms.Label
+    }
 
 
-/////////////////////// Worksheet objects
+/// Represent an object from the Worksheet
 [<AbstractClass>]
 type WorksheetObject =
   class
@@ -314,6 +317,7 @@ type WorksheetObject =
 
   end
 
+/// Represent a justification sequence object
 type PstringObject =
   class
     inherit WorksheetObject
@@ -444,7 +448,7 @@ type PstringObject =
   end
 
 
-(** Editable pstring object **)
+/// Represents an editable justification sequence object
 type EditablePstringObject =
   class
     inherit PstringObject
@@ -1151,9 +1155,9 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
                                                      refocus_object()
                                               )
 
-    form.seqflowPanel.Enter.Add( fun _ -> apply_to_selection (fun cursel -> cursel.Control.Invalidate() ) )
-    form.seqflowPanel.Leave.Add( fun _ -> apply_to_selection (fun cursel -> cursel.Control.Invalidate() ) )
-    form.seqflowPanel.SizeChanged.Add( fun _ -> apply_to_selection (fun cursel -> cursel.Selection() ) )
+    form.seqflowPanel.Enter.Add(fun _ -> apply_to_selection (fun cursel -> cursel.Control.Invalidate() ) )
+    form.seqflowPanel.Leave.Add(fun _ -> apply_to_selection (fun cursel -> cursel.Control.Invalidate() ) )
+    form.seqflowPanel.SizeChanged.Add(fun _ -> apply_to_selection (fun cursel -> cursel.Selection() ) )
 
     ////// experimental:
     //form.seqflowPanel.AutoScroll <- false

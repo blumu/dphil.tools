@@ -1,0 +1,7 @@
+(* Neil Jones's "varity two" example. *)
+
+(lambda t.(t (lambda n u x . n (lambda s z . a s (x s z)))) (lambda a. a))
+(lambda s z . z) 
+
+// Two church numerals
+

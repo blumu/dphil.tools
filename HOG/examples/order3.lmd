@@ -1,7 +1,0 @@
-(* order 3 term  *)
-
-(* g:(o->o)->o |-  (fun f -> f (fun x -> f (fun y-> x) )) g *)
-
-
- |-  fun g -> (fun f -> f (fun x -> f (fun y-> x) )) g
-;;
