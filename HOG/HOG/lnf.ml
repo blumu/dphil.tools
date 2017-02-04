@@ -1,7 +1,7 @@
 ﻿(** $Id$
     Description: Eta-long expressions
-    Defines a structure to store terms in eta-long (normal) form.
-    
+    Defines a structure to store terms in eta-long expansions of terms form.
+
     For Higher-order recursion schemes, a LNF expression is an abstraction of applicative term of ground type.
     In the simply-typed lambda calculus, a LNF expression is an alternation of abstractions and applicative LNF expressions of ground type.
     In the untyped lambda calculus, a LNF expression is an alternation of abstractions and applicative LNF expressions.
@@ -19,17 +19,17 @@ type nonterminal = ident;;
 
 (* A LNF expression is an alternation of abstraction and applicative term of ground type *)
 type lnf = lnfabstraction
-(* an abstraction lnf is a list of identifiers (the abstracted variables) and 
+(* an abstraction lnf is a list of identifiers (the abstracted variables) and
  an applicative term in lnf *)
 and lnfabstraction = ident list * lnfapplicativepart
 (* an applicative expression is given by
  (leftmost) operator (either @, a variable or a nonterminal)
   and the list of operands that are abstraction lnf. *)
-and lnfapplicativepart = 
+and lnfapplicativepart =
   | LnfAppVar of ident * lnfabstraction list
   | LnfAppTm of terminal * lnfabstraction list
   | LnfAppNt of nonterminal * lnfabstraction list
-  
+
   (* this constructor is only use for lnf of simply-typed terms-in-context,
      not for HORS *)
   | LnfAppAbs of lnfabstraction * lnfabstraction list

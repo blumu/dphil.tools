@@ -94,19 +94,28 @@ type cg_edges = int list array;;
 
 
 
-(*** Generalized graph-nodes (=internal nodes+value leaves) ***)
+(*** Generalized graph-nodes.
+    Those are either:
+    - internal nodes of the computation graph representing nodes of the AST of the represented structure (term or recursion scheme)
+    -  value leaves that are children of internal nodes (needed for languages with interpreted constants like PCF)
+) ***)
 
-(** Type of the value leaves **)
+(** Type of the value leaves. For simplicity we just encode them as integers **)
 type leaf_value = int
 
 (** Convert a value-leaf into a string **)
 let string_of_value = string_of_int
 
 (** Type of a generalized graph node i.e. a node of the full computation graph with value-leaves attached to each node **)
-type gen_node =    Custom    (* a custom node that is not in the computation graph *)
-                 | InternalNode of int  (* the index of a node of the computation graph *)
-                 | ValueLeaf of int * leaf_value (* the index of the parent node in the computation graph
-                                                    and a value *)
+type gen_node =
+    (* a custom node that is not in the computation graph *)
+    | Custom
+    (* a custom ghost node that is not in the original computation graph, labelled by an integer *)
+    | Ghost of int
+    (* the index of a node of the computation graph *)
+    | InternalNode of int
+    (* a value leaf given by the index of the parent node in the computation graph and the value *)
+    | ValueLeaf of int * leaf_value
 
 
 (** [graph_addedge edges src tar] adds an edge going from [src] to [tar] in the graph [gr].
@@ -170,7 +179,6 @@ let graphnodelabel_to_latex = function
 
 
 (** The type of a computation graph **)
-//type computation_graph = cg_nodes * cg_edges;;
 type computation_graph = class
     val nodes : cg_nodes
     val edges : cg_edges
@@ -210,7 +218,7 @@ type computation_graph = class
     **)
     val childindex : int array
 
-    (** he_by_root.(i) = true iif the graph node i is hereditarily enable by the root. **)
+    (** he_by_root.(i) = true iif the graph node i is hereditarily enabled by the root. **)
     val he_by_root : bool array
 
 
@@ -227,6 +235,7 @@ type computation_graph = class
     (** Convert a generalized node to latex. **)
     member x.gennode_to_latex = function
      | Custom -> "?"
+     | Ghost i -> "{\hat{"^(string_of_int i)^"}}"
      | InternalNode(gr_inode) -> graphnodelabel_to_latex x.nodes.(gr_inode)
      | ValueLeaf(gr_inode,value) -> "{"^(string_of_value value)^"}_{"^(graph_node_label x.nodes.(gr_inode))^"}"
 
@@ -235,7 +244,8 @@ type computation_graph = class
         @param gennode the generalized graph node
          **)
     member x.gennode_player = function
-          Custom -> Opponent
+        | Custom -> Opponent
+        | Ghost _ -> Opponent
         | InternalNode(gr_i) -> graphnode_player x.nodes.(gr_i)
         | ValueLeaf(gr_i,_) -> player_permute (graphnode_player x.nodes.(gr_i))
 
@@ -256,22 +266,40 @@ type computation_graph = class
         @return true iff [gennd] is the gennode is a @-node, a constant node or a leaf of a @/constant node
     **)
     member x.gennode_is_app_or_constant = function
-          Custom -> false
+        | Custom -> false
+        | Ghost _ -> false
         | InternalNode(gr_i) | ValueLeaf(gr_i,_) ->
             match x.nodes.(gr_i) with
                 NCntAbs(_,_)  | NCntVar(_) -> false
               | NCntApp | NCntTm(_) -> true
 
+    (** [children_count grnodeindex] returns the number of child nodes of a graph node identified by 
+    its index [grnodeindex] **)
+    member x.children_count grnodeindex =
+        List.length x.edges.(grnodeindex)
+
+    (** [arity grnodeindex] returns the arity of a graph node identified by 
+    its index [grnodeindex] **)
+    member x.arity grnodeindex =
+        match x.nodes.(grnodeindex) with
+        // Arity of a lambda node is the number of abstracted variables
+        |NCntAbs(_, variables) -> List.length variables
+        // Arity of an @ node is the number of _operand_ children
+        |NCntApp -> (x.children_count grnodeindex) - 1
+        // Arity of a variable node is the number of children
+        |NCntVar(_) | NCntTm(_) -> x.children_count grnodeindex
+
     (** [nth_child grnodeindex n] returns the nth child of the graph node number grnodeindex
         where the child index [n] is given using the computation graph convention
         (starts at 0 for @-nodes and at 1 for variable nodes and lambda-nodes) **)
     member x.nth_child grnodeindex n =
-        List.item
-            (match x.nodes.(grnodeindex) with
+        let childArrayIndex =
+            match x.nodes.(grnodeindex) with
             |NCntAbs(_,_) -> assert(n=0); 1 // a lambda nodes has only one child
             |NCntApp -> n
-            |NCntVar(_) | NCntTm(_) -> n-1)
-            x.edges.(grnodeindex)
+            |NCntVar(_) | NCntTm(_) -> n-1
+        in        
+        List.item childArrayIndex x.edges.(grnodeindex)
 
     (** [compute_nodesinfo()] fills up the information arrays
         [x.enabler] [x.span] [x.bindingindex] and [x.binderchild] **)

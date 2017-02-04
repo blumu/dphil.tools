@@ -51,7 +51,8 @@ let occ_from_gennode (compgraph:computation_graph) gennode lnk =
     let player = compgraph.gennode_player gennode
     let lab =
         match gennode with
-          Custom -> "?"
+        | Ghost label -> string_of_int label
+        | Custom -> "?"
         | ValueLeaf(nodeindex,v) -> (string_of_int nodeindex)^"_{"^(compgraph.node_label_with_idsuffix nodeindex)^"}"
         | InternalNode(nodeindex) -> compgraph.node_label_with_idsuffix nodeindex
     { label= lab;
@@ -129,6 +130,18 @@ let pstrseq_ext gr = Traversal.extension gr
 
 /////////////////////// MSAGL graph generation
 
+(** Set the style attributes for a node of the graph
+    @param node_2_color a mapping from compgraph nodes to colors
+    @param node_2_shape a mapping from compgraph nodes to shapes
+    @param gr is the computation graph
+    @param nodecontent is the node of the computation graph
+    @param node is the MSAGL graph node
+    **)
+let msaglgraphnode_set_attributes_styles node_2_color node_2_shape (gr:computation_graph) (cgnode:nodecontent) (node:Microsoft.Msagl.Drawing.Node) =
+    node.Attr.Shape <- pstringshape_2_msaglshape (node_2_shape cgnode)
+    node.Attr.FillColor <- sysdrawingcolor_2_msaglcolor (node_2_color cgnode)
+;;
+
 (** Set the attributes for a node of the graph
     @param node_2_color a mapping from compgraph nodes to colors
     @param node_2_shape a mapping from compgraph nodes to shapes
@@ -138,9 +151,8 @@ let pstrseq_ext gr = Traversal.extension gr
     **)
 let msaglgraphnode_set_attributes node_2_color node_2_shape (gr:computation_graph) i (node:Microsoft.Msagl.Drawing.Node) =
     node.Attr.Id <- string_of_int i
-    node.Attr.Shape <- pstringshape_2_msaglshape (node_2_shape gr.nodes.[i])
-    node.Attr.FillColor <- sysdrawingcolor_2_msaglcolor (node_2_color gr.nodes.[i])
     node.Attr.Label <- gr.node_label_with_idsuffix i
+    msaglgraphnode_set_attributes_styles node_2_color node_2_shape gr gr.nodes.(i) node
     match gr.nodes.(i) with
       | NCntTm(tm) -> node.Attr.LabelMargin <- 10;
       | NCntApp
@@ -154,6 +166,9 @@ let grnode_2_color nd = player_to_color (graphnode_player nd)
 (** Example of shaping functions for computation graph nodes **)
 let grnode_2_shape nd = player_to_shape (graphnode_player nd)
 
+(* Id used for the single placeholder MSAGL node representing all the ghost lambda-nodes
+ involved during a traversal game *)
+let MsaglGraphGhostButtonId = "-1"
 
 (** [compgraph_to_graphview node_2_color node_2_shape gr] creates the MSAGL graph view of a computation graph.
     @param node_2_color a mapping from compgraph nodes to colors
@@ -166,13 +181,21 @@ let compgraph_to_graphview node_2_color node_2_shape (gr:computation_graph) =
     let msaglgraph = new Microsoft.Msagl.Drawing.Graph("graph") in
 
     (* add the nodes to the graph *)
-    for k = 0 to (Array.length gr.nodes)-1 do
-        msaglgraphnode_set_attributes grnode_2_color
-                                     grnode_2_shape
-                                     gr
-                                     k
-                                     (msaglgraph.AddNode (string_of_int k))
-    done;
+    gr.nodes |> Array.iteri 
+        (fun k _ -> msaglgraph.AddNode (string_of_int k)
+                    |> msaglgraphnode_set_attributes
+                        grnode_2_color
+                        grnode_2_shape
+                        gr
+                        k)
+    
+    (* Add one extra "ghost" node to be used to play ghost moves in a traversal game. *)
+    let ghostNode = msaglgraph.AddNode MsaglGraphGhostButtonId
+    ghostNode.Attr.Id <- MsaglGraphGhostButtonId
+    ghostNode.Attr.Shape <- pstringshape_2_msaglshape Shapes.ShapeRectangle
+    ghostNode.Attr.FillColor <- sysdrawingcolor_2_msaglcolor (Color.Azure)
+    ghostNode.Attr.Label <- "Ghost"
+
 
     (* add the edges to the graph *)
     let addtargets source targets =
@@ -391,6 +414,7 @@ type PstringObject =
                             "node" -> InternalNode(int_of_string (xmlTreenode.Attributes.GetNamedItem("index").Value))
                           | "value" -> ValueLeaf(int_of_string (xmlTreenode.Attributes.GetNamedItem("index").Value),
                                                  int_of_string (xmlTreenode.Attributes.GetNamedItem("value").Value))
+                          | "ghost" -> Ghost(int_of_string (xmlTreenode.Attributes.GetNamedItem("label").Value))
                           | "custom" -> Custom;
                           | _ -> failwith "Incorrect occurrence type attribute.");
               color=Color.FromName(xmlColor.InnerText);
@@ -430,6 +454,8 @@ type PstringObject =
           xmlTreenode.SetAttribute("type","custom");
         else
           match (occ.tag :?> gen_node) with
+          | Ghost l -> xmlTreenode.SetAttribute("type","ghost");
+                       xmlTreenode.SetAttribute("label",(string_of_int l));
           | Custom -> xmlTreenode.SetAttribute("type","custom");
           | InternalNode(i) -> xmlTreenode.SetAttribute("type","node");
                                xmlTreenode.SetAttribute("index",(string_of_int i));
@@ -646,7 +672,7 @@ type TraversalObject =
         //base.ws.seqflowpanel.HorizontalScroll.Value <- max 0 (bb.Right - viewwidth)
 
     override x.Selection()=
-        x.RefreshCompGraphViewer()
+        x.HighlightAllowedMovesOnCompGraph()
         x.RefreshLabelInfo()
         base.Selection()
         base.flush_flowcontainer_to_right()
@@ -658,16 +684,17 @@ type TraversalObject =
 
     (* a graph-node has been clicked while this object was selected *)
     override x.OnCompGraphNodeMouseDown e msaglnode =
-        let gr_nodeindex = int_of_string msaglnode.Attr.Id
         let l = x.pstrcontrol.Length
 
         // valid O-move?
+        let gr_nodeindex = int_of_string msaglnode.Attr.Id
         let valid_justifiers = Map.tryFind gr_nodeindex x.valid_omoves in
 
         match valid_justifiers with
-        | None -> // Invalid move: traversal contains no valid justifier
+        | None -> // Invalid move: traversal is complete: no valid move wiht valid justifier
             ()
-        | Some [] -> // no justifier
+
+        | Some [] -> // valid initial move with no justifier
             // create a new occurrence for the corresponding graph node
             let newocc = occ_from_gennode x.ws.compgraph (InternalNode(gr_nodeindex)) 0
             x.pstrcontrol.replace_last_node newocc // add the occurrence at the end of the sequence
@@ -675,7 +702,17 @@ type TraversalObject =
             x.play_for_p() // play for the Propoment
 
         | Some [j] -> // only one justifier, the Opponent has no choice
-            let newocc = occ_from_gennode x.ws.compgraph (InternalNode(gr_nodeindex)) ((l-1)-j)
+    
+            let generalizedNode =
+                // Did the user click on the ghost node place-holder button?
+                if msaglnode.Attr.Id = MsaglGraphGhostButtonId then
+                    // read the label of the ghost node from the custom data field of the ghost button
+                    Ghost(msaglnode.UserData :?> int)
+                else
+                    // Generate a new traversal occurrence of the computation graph node that was clicked
+                    InternalNode(gr_nodeindex)
+
+            let newocc = occ_from_gennode x.ws.compgraph generalizedNode ((l-1)-j)
             x.pstrcontrol.replace_last_node newocc
             x.wait_for_ojustifier <- []
             x.play_for_p()
@@ -693,118 +730,166 @@ type TraversalObject =
     member private x.add_gennode gennode link =
         x.pstrcontrol.add_node (occ_from_gennode x.ws.compgraph gennode link)
 
-    (* Update the graph node colors to indicate to the user which moves are allowed *)
-    member x.RefreshCompGraphViewer() =
+    (* Update the graph node colors according to the specified coloring function *)
+    member x.RefreshCompGraphViewer (color:int -> nodecontent -> Color) =
         let msaglgraph = x.ws.msaglviewer.Graph
-        for k = 0 to msaglgraph.NodeCount-1 do
-           let msaglnode = msaglgraph.FindNode(string_of_int k)
-           msaglgraphnode_set_attributes (fun _ -> if Map.containsKey k x.valid_omoves then player_to_color Opponent
-                                                   else Color.LightGray )
+
+        let compgraph_node =
+            function 
+            | -1 -> NCntAbs("Lam", [])
+            | i -> x.ws.compgraph.nodes.(i)
+
+        msaglgraph.NodeMap.Keys
+        |> Seq.cast<string>
+        |> Seq.iter(fun id ->
+           let i = int_of_string id
+           msaglgraph.FindNode(id)
+           |> msaglgraphnode_set_attributes_styles (color i)
                                          grnode_2_shape
                                          x.ws.compgraph
-                                         k
-                                         msaglnode
-        done;
+                                         (compgraph_node i)
+        )
         x.ws.msaglviewer.Invalidate()
+
+
+    (* Update the graph node colors to indicate to the user which moves are allowed *)
+    member x.HighlightAllowedMovesOnCompGraph() =
+        x.RefreshCompGraphViewer (fun id _ -> if Map.containsKey id x.valid_omoves then
+                                                 player_to_color Opponent
+                                              else
+                                                 Color.LightGray)
 
     (* Restore the original node colors in the graph-view *)
     member x.RestoreCompGraphViewer() =
-        let msaglgraph = x.ws.msaglviewer.Graph
-        for k = 0 to msaglgraph.NodeCount-1 do
-           let msaglnode = msaglgraph.FindNode(string_of_int k)
-           msaglgraphnode_set_attributes grnode_2_color
-                                        grnode_2_shape
-                                        x.ws.compgraph
-                                        k
-                                        msaglnode
-        done;
-        x.ws.msaglviewer.Invalidate()
-
+        x.RefreshCompGraphViewer (fun _ -> grnode_2_color)
+        
     (* Compute the list of valid O-moves *)
     member private x.recompute_valid_omoves() =
         let l = x.pstrcontrol.Length
         // Rule (Root)
-        if  l = 0 then // seq is the empty traversal ?
-            x.valid_omoves <- Map.add 0 [] Map.empty
-        else
-            let last = x.pstrcontrol.Occurrence(l-1)
-            // What is the type of the last occurrence?
-            match pstr_occ_getnode last with
+        x.valid_omoves <-
+            if  l = 0 then // seq is the empty traversal ?
+                Map.add 0 [] Map.empty
+            else
+                let last = x.pstrcontrol.Occurrence(l-1)
+                // What is the type of the last occurrence?
+                match pstr_occ_getnode last with
 
-                  Custom -> failwith "Bad traversal! There is an occurence of a node that does not belong to the computation graph!"
-
-                // it is an intenal-node
-                | InternalNode(i) -> match x.ws.compgraph.nodes.(i) with
-                                      // Traversal rule (Lmd):
-                                      | NCntAbs(_,_) ->
-                                          failwith "O has no valid move since it's P's turn!"
-
-                                      // Rule (App): O can only play the 0th child of the node i
-                                      |NCntApp ->
-                                          // find the child node of the lambda node
-                                          let firstchild = List.hd x.ws.compgraph.edges.(i)
-                                          x.valid_omoves <- Map.add firstchild [l-1] Map.empty
-
-                                      // Rule (Var) or (InputVar): O can play any P-move whose parent occur in the O-view
-                                      | NCntVar(_) | NCntTm(_) ->
-                                          // function mapping an occurrence to the index of the corresponding node in the graph
-                                          let get_grnodeindex_from_occ occ =
-                                                match pstr_occ_getnode (x.pstrcontrol.Occurrence(occ)) with
-                                                  | Custom | ValueLeaf(_,_) -> failwith "Bad traversal!" // the O-view cannot contain value leaf since the traversal ends with a variable node
-                                                  | InternalNode(i) -> i
-
-                                          // Is it an input variable?
-                                          if x.ws.compgraph.he_by_root.(i) then
-                                              // Rule (InputVar): O can play any P-move whose parent occur in the O-view
-
-                                              // get the list of occurrence from the O-view
-                                              let oview_occs = Traversal.seq_occs_in_Xview
-                                                                  x.ws.compgraph
-                                                                  Opponent
-                                                                  pstr_occ_getnode        // getnode function
-                                                                  pstr_occ_getlink        // getlink function
-                                                                  pstr_occ_updatelink     // update link function
-                                                                  x.pstrcontrol.Sequence
-                                                                  (l-1)
-
-                                              // filter the list to keep only occurrences of Opponent nodes
-                                              let parents_occs = List.filter (fun o -> (x.ws.compgraph.gennode_player (pstr_occ_getnode (x.pstrcontrol.Occurrence(o)))) = Proponent) oview_occs
-
-                                              // given an occurrence occ of a graph node,
-                                              // map all its children in the graph to itself
-                                              let map_children_to_occ occ m =
-                                                List.fold_right (fun j s ->
-                                                                    Map.add j (occ::(match Map.tryFind j s with Some v -> v | None -> [])) s)
-                                                                x.ws.compgraph.edges.(get_grnodeindex_from_occ occ)
-                                                                m
-
-                                              // finally compute a Map which associate for each node of the tree
-                                              // whose parent occurs in the O-view, the set of occurrences
-                                              // of its parent in the O-view.
-                                              let children_to_parentoccs = List.fold_left (fun s o -> map_children_to_occ o s)
-                                                                                          Map.empty
-                                                                                          parents_occs
-
-
-                                              // children_to_parentoccs is precisely the list of valid O-moves:
-                                              // a map from valid O-moves to the list of all valid justifiers in the traversal!
-                                              x.valid_omoves <- children_to_parentoccs
-
-
-                                           else // it is not an input variable
-
-                                             // Rule (Var): O can only copy-cat the last P-move
-                                             let justifier = l - 1 - last.link - 1
-                                             let copycat_node =
-                                                x.ws.compgraph.nth_child (get_grnodeindex_from_occ justifier)
-                                                                         x.ws.compgraph.parameterindex.(i)
-                                             in
-                                             x.valid_omoves <- Map.add copycat_node [justifier] Map.empty
-
+                | Custom -> failwith "Bad traversal! There is an occurence of a node that does not belong to the computation graph!"
 
                 // it is a value leaf
-                | ValueLeaf(i,v) -> // TODO: play using the copycat rule (Value) or the (InputValue) rule
-                                    x.valid_omoves <- Map.empty
+                // TODO: play using the copycat rule (Value) or the (InputValue) rule
+                | ValueLeaf(i,v) -> Map.empty
+
+                // A ghost lambda node?
+                | Ghost l ->
+                        failwith "O has no valid move since it's P's turn!"
+
+                // it is an internal-node
+                | InternalNode(i) ->
+                    match x.ws.compgraph.nodes.(i) with
+                    // Traversal rule (Lmd):
+                    | NCntAbs(_,_) ->
+                        failwith "O has no valid move since it's P's turn!"
+
+                    // Rule (App): O can only play the 0th child of the node i
+                    |NCntApp ->
+                        // find the child node of the lambda node
+                        let firstchild = List.hd x.ws.compgraph.edges.(i)
+                        Map.add firstchild [l-1] Map.empty
+
+                    // Rule (Var) or (InputVar): O can play any P-move whose parent occur in the O-view
+                    | NCntVar(_) | NCntTm(_) ->
+                        // function mapping an occurrence to the index of the corresponding node in the graph
+                        let get_grnodeindex_from_occ occ =
+                            match pstr_occ_getnode (x.pstrcontrol.Occurrence(occ)) with
+                                | Custom | ValueLeaf(_,_) -> failwith "Bad traversal!" // the O-view cannot contain value leaf since the traversal ends with a variable node
+                                | InternalNode(i) -> i
+
+                        // Is it an input variable?
+                        if x.ws.compgraph.he_by_root.(i) then
+                            // Rule (InputVar): O can play any P-move whose parent occur in the O-view
+
+                            // get the list of occurrence from the O-view
+                            let oview_occs = Traversal.seq_occs_in_Xview
+                                                x.ws.compgraph
+                                                Opponent
+                                                pstr_occ_getnode        // getnode function
+                                                pstr_occ_getlink        // getlink function
+                                                pstr_occ_updatelink     // update link function
+                                                x.pstrcontrol.Sequence
+                                                (l-1)
+
+                            // filter the list to keep only occurrences of Opponent nodes
+                            let parents_occs = List.filter (fun o -> (x.ws.compgraph.gennode_player (pstr_occ_getnode (x.pstrcontrol.Occurrence(o)))) = Proponent) oview_occs
+
+                            // given an occurrence occ of a graph node,
+                            // map all its children in the graph to itself
+                            let map_children_to_occ occ m =
+                                List.fold_right (fun j s ->
+                                                    Map.add j (occ::(match Map.tryFind j s with Some v -> v | None -> [])) s)
+                                            x.ws.compgraph.edges.(get_grnodeindex_from_occ occ)
+                                            m
+
+                            // finally compute a Map which associate for each node of the tree
+                            // whose parent occurs in the O-view, the set of occurrences
+                            // of its parent in the O-view.
+                            let children_to_parentoccs = List.fold_left (fun s o -> map_children_to_occ o s)
+                                                                        Map.empty
+                                                                        parents_occs
+
+
+                            // children_to_parentoccs is precisely the list of valid O-moves:
+                            // a map from valid O-moves to the list of all valid justifiers in the traversal!
+                            children_to_parentoccs
+
+
+                        else // it is not an input variable
+
+                            // Rule (Var): O can only copy-cat the last P-move
+                                             
+                            // [justifier] is the occurrence index in the traversal of the variable or @ node
+                            // that will justify the next O-move.
+                            // By the definition of the Var rule it is the immediate predecessor of the justifier of the variable node:
+                            let justifier = (l - 1) - last.link - 1
+
+                            // Get the corresponding node in the computation tree
+                            let justifier_node = get_grnodeindex_from_occ justifier
+
+                            // the arity of the justifying node (variable or @) tells us how many chidren it has         
+                            let justifier_arity = x.ws.compgraph.arity justifier_node
+                                             
+                            // Get the variable link label, which is also the index of the variable 
+                            // name within the list of varibles names abstracted by its binder node.
+                            let variable_bindingindex = x.ws.compgraph.parameterindex.(i)
+
+                            let copycat_node =
+                                // Justifier has enough children to apply the copy-cat rule?
+                                if variable_bindingindex <= justifier_arity then
+                                    x.ws.compgraph.nth_child justifier_node variable_bindingindex
+                            
+                                // the justifier does not have enough children..
+                                else
+                                    // __On-the-fly eta-expansion__
+                                    // Conceptually we eta-expand the sub-term rooted at justifier_node 
+                                    // sufficiently enough so that the the justifier node has at least 
+                                    // variable_bindingindex children (ghost) lambda nodes.
+                                    // This trick allows us to proceed using the (Var) rules on ghost nodes
+                                    // as if there were genuine nodes.
+
+                                    // So we introduce the ghost lambda node that is the variable_bindingindex^th
+                                    // child of [justifier_node].
+                                    //
+                                    // A ghost lambda node are labelled by their child index relatively to its parent
+                                    // [justifier_node]. We store temporarily this label in the ghost button of the MSAGL graph
+                                    // so that the value can be obtained back when the user clicks on the node for the next move
+                                    let msaglGhostButton = x.ws.msaglviewer.Graph.FindNode(MsaglGraphGhostButtonId)
+                                    msaglGhostButton.UserData <- variable_bindingindex
+                                    msaglGhostButton.Attr.Label <- sprintf "Ghost %d" variable_bindingindex
+                                    int_of_string MsaglGraphGhostButtonId
+                            
+                            Map.add copycat_node [justifier] Map.empty
+
 
         if not (Map.isEmpty x.valid_omoves) then
           x.pstrcontrol.add_node (create_blank_occ()) // add a dummy node for the forthcoming initial O-move
@@ -823,7 +908,7 @@ type TraversalObject =
         match pstr_occ_getnode last with
             | Custom -> failwith "Bad traversal! There is an occurence of a node that does not belong to the computation graph!"
 
-            // it is an intenal-node
+            // it is an internal-node
             | InternalNode(i) -> match x.ws.compgraph.nodes.(i) with
                                     NCntApp | NCntVar(_) | NCntTm(_)
                                         -> failwith "It is your turn. You are playing the Opponent!"
@@ -855,7 +940,7 @@ type TraversalObject =
 
                                       x.add_gennode (InternalNode(firstchild)) link
                                       x.recompute_valid_omoves()
-                                      x.RefreshCompGraphViewer()
+                                      x.HighlightAllowedMovesOnCompGraph()
 
             // it is a value leaf
             | ValueLeaf(i,v) -> // TODO: play using the copycat rule (Value)
