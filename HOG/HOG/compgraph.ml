@@ -110,8 +110,10 @@ let string_of_value = string_of_int
 type gen_node =
     (* a custom node that is not in the computation graph *)
     | Custom
-    (* a custom ghost node that is not in the original computation graph, labelled by an integer *)
-    | Ghost of int
+    (* a custom ghost lambda node (i.e. not in the original computation graph) labelled by an integer *)
+    | GhostLambda of int
+    (* a custom ghost variable node (i.e. not in the original computation graph) labelled by an integer *)
+    | GhostVariable of int
     (* the index of a node of the computation graph *)
     | InternalNode of int
     (* a value leaf given by the index of the parent node in the computation graph and the value *)
@@ -235,7 +237,8 @@ type computation_graph = class
     (** Convert a generalized node to latex. **)
     member x.gennode_to_latex = function
      | Custom -> "?"
-     | Ghost i -> "{\hat{"^(string_of_int i)^"}}"
+     | GhostLambda i -> "{\hat{\lambda_{"^(string_of_int i)^"}}}"
+     | GhostVariable i -> "{\hat{"^(string_of_int i)^"}}"
      | InternalNode(gr_inode) -> graphnodelabel_to_latex x.nodes.(gr_inode)
      | ValueLeaf(gr_inode,value) -> "{"^(string_of_value value)^"}_{"^(graph_node_label x.nodes.(gr_inode))^"}"
 
@@ -245,7 +248,8 @@ type computation_graph = class
          **)
     member x.gennode_player = function
         | Custom -> Opponent
-        | Ghost _ -> Opponent
+        | GhostLambda _ -> Opponent
+        | GhostVariable _ -> Proponent
         | InternalNode(gr_i) -> graphnode_player x.nodes.(gr_i)
         | ValueLeaf(gr_i,_) -> player_permute (graphnode_player x.nodes.(gr_i))
 
@@ -266,8 +270,9 @@ type computation_graph = class
         @return true iff [gennd] is the gennode is a @-node, a constant node or a leaf of a @/constant node
     **)
     member x.gennode_is_app_or_constant = function
-        | Custom -> false
-        | Ghost _ -> false
+        | Custom
+        | GhostLambda _
+        | GhostVariable _ -> false
         | InternalNode(gr_i) | ValueLeaf(gr_i,_) ->
             match x.nodes.(gr_i) with
                 NCntAbs(_,_)  | NCntVar(_) -> false

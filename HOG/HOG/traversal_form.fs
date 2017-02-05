@@ -49,13 +49,14 @@ let pstringshape_2_msaglshape =
 (** Create a pstring occurrence from a gennode **)
 let occ_from_gennode (compgraph:computation_graph) gennode lnk =
     let player = compgraph.gennode_player gennode
-    let lab =
+    let label =
         match gennode with
-        | Ghost label -> string_of_int label
+        | GhostLambda i -> string_of_int i
+        | GhostVariable i -> string_of_int i
         | Custom -> "?"
         | ValueLeaf(nodeindex,v) -> (string_of_int nodeindex)^"_{"^(compgraph.node_label_with_idsuffix nodeindex)^"}"
         | InternalNode(nodeindex) -> compgraph.node_label_with_idsuffix nodeindex
-    { label= lab;
+    { label = label;
       tag = box gennode; // Use the tag field to store the generalized graph node
       link = lnk;
       shape=player_to_shape player;
@@ -414,7 +415,8 @@ type PstringObject =
                             "node" -> InternalNode(int_of_string (xmlTreenode.Attributes.GetNamedItem("index").Value))
                           | "value" -> ValueLeaf(int_of_string (xmlTreenode.Attributes.GetNamedItem("index").Value),
                                                  int_of_string (xmlTreenode.Attributes.GetNamedItem("value").Value))
-                          | "ghost" -> Ghost(int_of_string (xmlTreenode.Attributes.GetNamedItem("label").Value))
+                          | "ghostVariable" -> GhostVariable(int_of_string (xmlTreenode.Attributes.GetNamedItem("label").Value))
+                          | "ghostLambda" -> GhostLambda(int_of_string (xmlTreenode.Attributes.GetNamedItem("label").Value))
                           | "custom" -> Custom;
                           | _ -> failwith "Incorrect occurrence type attribute.");
               color=Color.FromName(xmlColor.InnerText);
@@ -454,14 +456,21 @@ type PstringObject =
           xmlTreenode.SetAttribute("type","custom");
         else
           match (occ.tag :?> gen_node) with
-          | Ghost l -> xmlTreenode.SetAttribute("type","ghost");
-                       xmlTreenode.SetAttribute("label",(string_of_int l));
-          | Custom -> xmlTreenode.SetAttribute("type","custom");
-          | InternalNode(i) -> xmlTreenode.SetAttribute("type","node");
-                               xmlTreenode.SetAttribute("index",(string_of_int i));
-          | ValueLeaf(i,v) -> xmlTreenode.SetAttribute("type","value");
-                              xmlTreenode.SetAttribute("index",(string_of_int i));
-                              xmlTreenode.SetAttribute("value",(string_of_int v));
+          | GhostLambda l -> 
+                xmlTreenode.SetAttribute("type","ghostLambda");
+                xmlTreenode.SetAttribute("label",(string_of_int l));
+          | GhostVariable l ->
+                xmlTreenode.SetAttribute("type","ghostVariable");
+                xmlTreenode.SetAttribute("label",(string_of_int l));
+          | Custom ->
+                xmlTreenode.SetAttribute("type","custom");
+          | InternalNode(i) ->
+                xmlTreenode.SetAttribute("type","node");
+                xmlTreenode.SetAttribute("index",(string_of_int i));
+          | ValueLeaf(i,v) ->
+                xmlTreenode.SetAttribute("type","value");
+                xmlTreenode.SetAttribute("index",(string_of_int i));
+                xmlTreenode.SetAttribute("value",(string_of_int v));
 
 
         xmlOcc.AppendChild(xmlTreenode) |> ignore
@@ -539,7 +548,6 @@ type EditablePstringObject =
     member x.add_occ() = x.pstrcontrol.add_node (create_blank_occ())
     member x.edit_occ_label() = x.pstrcontrol.EditLabel()
   end
-
 
 (** Traversal object: type used for sequence constructed with the traversal rules **)
 type TraversalObject =
@@ -707,7 +715,7 @@ type TraversalObject =
                 // Did the user click on the ghost node place-holder button?
                 if msaglnode.Attr.Id = MsaglGraphGhostButtonId then
                     // read the label of the ghost node from the custom data field of the ghost button
-                    Ghost(msaglnode.UserData :?> int)
+                    GhostLambda(msaglnode.UserData :?> int)
                 else
                     // Generate a new traversal occurrence of the computation graph node that was clicked
                     InternalNode(gr_nodeindex)
@@ -762,134 +770,168 @@ type TraversalObject =
     (* Restore the original node colors in the graph-view *)
     member x.RestoreCompGraphViewer() =
         x.RefreshCompGraphViewer (fun _ -> grnode_2_color)
+
+    (* get the arity of a traversal occurrence *)
+    member x.occurrence_arity occ =
+        match pstr_occ_getnode (x.pstrcontrol.Occurrence(occ)) with
+        | Custom -> failwith "Bad traversal! Custom nodes are not supported!"
+        | ValueLeaf(_,_) ->  0
+        | GhostVariable _ -> 0
+        | GhostLambda _ -> 0
+        | InternalNode(i) -> x.ws.compgraph.arity i
+
+    (* Get the n^th child a traversal occurrence
+       If the n^th child does not exist then return a ghost node (etiher lambda or variable) *)
+    member x.occurrence_child occ n =
+        // the arity of the node tells us how many chidren it has         
+        let justifier_arity = x.occurrence_arity occ
+
+        match pstr_occ_getnode (x.pstrcontrol.Occurrence(occ)) with
+        | Custom -> failwith "Bad traversal! Custom nodes are not supported!"
+        | ValueLeaf(_,_) ->  failwith "A leaf node does not have children!"
+        | GhostVariable _ -> GhostLambda n 
+        | GhostLambda _ -> GhostVariable n
+        | InternalNode i when n <= justifier_arity -> InternalNode (x.ws.compgraph.nth_child i n)
+        | InternalNode i when graphnode_player x.ws.compgraph.nodes.(i) = Opponent -> GhostVariable n
+        | InternalNode _ -> GhostLambda n
         
-    (* Compute the list of valid O-moves *)
+    (* Calculate the list of valid O-moves at this point. Returns a Map whose keys are the possible nodes to play and
+    values are the list of possible justification pointers for each possible node to play. *)
     member private x.recompute_valid_omoves() =
         let l = x.pstrcontrol.Length
+
+        // Rule (Var): Only possible move for O is the copy-cat of the last P-move
+        // Pre-condition: the last node occurrence in the traversal is a (possibly ghost) variable node
+        // that is hereditarily justified by an @ node.
+        let rule_var variable_bindingindex =
+            // The last occurrence in the traversal (i.e. the variable node occurrence)
+            let last = x.pstrcontrol.Occurrence(l-1)
+            // index to the justifier of the variable occurrence
+            let var_justifier = (l - 1) - last.link
+
+            // [justifier] is the index in the traversal of the occurrence of the variable or @ node
+            // that will justify the next O-move.
+            // By the definition of the (Var) rule it is the immediate predecessor of the justifier of the variable node:
+            let justifier = var_justifier - 1
+                                             
+            match x.occurrence_child justifier variable_bindingindex with
+            | Custom | ValueLeaf(_,_) | GhostVariable _ ->
+                failwith "Not possible. The next move can only be a lambda node!"
+                                
+            // the justifier's child exist in the computation graph
+            | InternalNode i ->  
+                Map.ofList [i, [justifier]]
+
+            // if the last node is a ghost variable node justified by the root then no further move is allowed
+            | GhostLambda k when var_justifier = 0 ->
+                Map.empty
+
+            // the justifier does not have enough children..
+            | GhostLambda k -> 
+                // __On-the-fly eta-expansion__
+                // Conceptually we eta-expand the sub-term rooted at [justifier] 
+                // sufficiently enough so that the the justifier node has at least 
+                // variable_bindingindex children (ghost) lambda nodes.
+                // This trick allows us to proceed using the (Var) rules on ghost nodes
+                // as if there were genuine nodes.
+
+                // The ghost lambda node that we introduce is the variable_bindingindex^th
+                // child of [justifier].
+                //
+                // A ghost lambda node is labelled by its child index relatively to its parent
+                // [justifier]. We temporarily store this label in the ghost button of the MSAGL graph
+                // so that its value is readily available when the user clicks on the Ghost button to play the move.
+                let msaglGhostButton = x.ws.msaglviewer.Graph.FindNode(MsaglGraphGhostButtonId)
+                msaglGhostButton.UserData <- k
+                msaglGhostButton.Attr.Label <- sprintf "Ghost %d" k
+
+                let ghost_copycat_node_index = int_of_string MsaglGraphGhostButtonId                            
+                Map.ofList [ghost_copycat_node_index, [justifier]]
+
+        // Rule (InputVar): O can play any P-move whose parent occur in the O-view
+        // Pre-condition: the last node occurrence in the traversal is a (possibly ghost) variable node
+        // that is hereditarily justified by the initial root node.
+        let rule_inputvar () =
+            // get the list of occurrence from the O-view
+            let oview_occs = Traversal.seq_occs_in_Xview
+                                x.ws.compgraph
+                                Opponent
+                                pstr_occ_getnode        // getnode function
+                                pstr_occ_getlink        // getlink function
+                                pstr_occ_updatelink     // update link function
+                                x.pstrcontrol.Sequence
+                                (l-1)
+
+            // filter the list to keep only occurrences of Opponent nodes
+            let parents_occs = List.filter (fun o -> (x.ws.compgraph.gennode_player (pstr_occ_getnode (x.pstrcontrol.Occurrence(o)))) = Proponent) oview_occs
+
+            // map a traversal occurrence index to the corresponding node index in the graph
+            let get_grnodeindex_from_occ occ =
+                match pstr_occ_getnode (x.pstrcontrol.Occurrence(occ)) with
+                | Custom -> failwith "Bad traversal! Custom nodes are not supported!" 
+                | ValueLeaf(_,_) -> failwith "Bad traversal! The O-view cannot contain value leaf since the traversal ends with a variable node"
+                | GhostVariable _ | GhostLambda _ -> failwith "Bad traversal! The O-view only contains node hereditarily justified by the root since the last node in the traversal is. Hence there cannot be any ghost node in the O-view!"
+                | InternalNode(i) -> i
+
+            // given an occurrence occ of a graph node,
+            // map all its children in the graph to itself
+            let map_children_to_occ m occ =
+                List.fold_right (fun j s ->
+                                    Map.add j (occ::(match Map.tryFind j s with Some v -> v | None -> [])) s)
+                            x.ws.compgraph.edges.(get_grnodeindex_from_occ occ)
+                            m
+
+            // finally compute a Map which associate for each node of the tree
+            // whose parent occurs in the O-view, the set of occurrences
+            // of its parent in the O-view.
+            let children_to_parentoccs = List.fold_left map_children_to_occ
+                                                        Map.empty
+                                                        parents_occs
+
+
+            // children_to_parentoccs is precisely the list of valid O-moves:
+            // a map from valid O-moves to the list of all valid justifiers in the traversal!
+            children_to_parentoccs
+
         // Rule (Root)
         x.valid_omoves <-
-            if  l = 0 then // seq is the empty traversal ?
+            if l = 0 then
+                // Rule (Root): only possible initial move is the root of the computation graph
                 Map.add 0 [] Map.empty
             else
+                // What is the node type of the last occurrence?
                 let last = x.pstrcontrol.Occurrence(l-1)
-                // What is the type of the last occurrence?
                 match pstr_occ_getnode last with
-
                 | Custom -> failwith "Bad traversal! There is an occurence of a node that does not belong to the computation graph!"
+                | GhostLambda l -> failwith "O has no valid move since it's P's turn!"
+                | ValueLeaf(i,v) -> Map.empty // TODO: ValueLeaf: play value using the copycat rule (Value) or the (InputValue) rule
+                
+                // TODO
+                //| GhostVariable variable_bindingindex when heredirearily justified by initial move ->
+                //  rule_inputvar ()
 
-                // it is a value leaf
-                // TODO: play using the copycat rule (Value) or the (InputValue) rule
-                | ValueLeaf(i,v) -> Map.empty
+                | GhostVariable variable_bindingindex ->
+                    rule_var variable_bindingindex
 
-                // A ghost lambda node?
-                | Ghost l ->
-                        failwith "O has no valid move since it's P's turn!"
-
-                // it is an internal-node
                 | InternalNode(i) ->
                     match x.ws.compgraph.nodes.(i) with
-                    // Traversal rule (Lmd):
                     | NCntAbs(_,_) ->
                         failwith "O has no valid move since it's P's turn!"
 
                     // Rule (App): O can only play the 0th child of the node i
-                    |NCntApp ->
+                    | NCntApp ->
                         // find the child node of the lambda node
                         let firstchild = List.hd x.ws.compgraph.edges.(i)
-                        Map.add firstchild [l-1] Map.empty
+                        Map.ofList [firstchild,[l-1]]
 
-                    // Rule (Var) or (InputVar): O can play any P-move whose parent occur in the O-view
+                    // Rule (InputVar): O can play any P-move whose parent occur in the O-view
+                    | NCntVar(_) | NCntTm(_) when x.ws.compgraph.he_by_root.(i) ->
+                        rule_inputvar ()
+                    
+                    // Rule (Var): variable node hereditarily justified by an @ node
                     | NCntVar(_) | NCntTm(_) ->
-                        // function mapping an occurrence to the index of the corresponding node in the graph
-                        let get_grnodeindex_from_occ occ =
-                            match pstr_occ_getnode (x.pstrcontrol.Occurrence(occ)) with
-                                | Custom | ValueLeaf(_,_) -> failwith "Bad traversal!" // the O-view cannot contain value leaf since the traversal ends with a variable node
-                                | InternalNode(i) -> i
-
-                        // Is it an input variable?
-                        if x.ws.compgraph.he_by_root.(i) then
-                            // Rule (InputVar): O can play any P-move whose parent occur in the O-view
-
-                            // get the list of occurrence from the O-view
-                            let oview_occs = Traversal.seq_occs_in_Xview
-                                                x.ws.compgraph
-                                                Opponent
-                                                pstr_occ_getnode        // getnode function
-                                                pstr_occ_getlink        // getlink function
-                                                pstr_occ_updatelink     // update link function
-                                                x.pstrcontrol.Sequence
-                                                (l-1)
-
-                            // filter the list to keep only occurrences of Opponent nodes
-                            let parents_occs = List.filter (fun o -> (x.ws.compgraph.gennode_player (pstr_occ_getnode (x.pstrcontrol.Occurrence(o)))) = Proponent) oview_occs
-
-                            // given an occurrence occ of a graph node,
-                            // map all its children in the graph to itself
-                            let map_children_to_occ occ m =
-                                List.fold_right (fun j s ->
-                                                    Map.add j (occ::(match Map.tryFind j s with Some v -> v | None -> [])) s)
-                                            x.ws.compgraph.edges.(get_grnodeindex_from_occ occ)
-                                            m
-
-                            // finally compute a Map which associate for each node of the tree
-                            // whose parent occurs in the O-view, the set of occurrences
-                            // of its parent in the O-view.
-                            let children_to_parentoccs = List.fold_left (fun s o -> map_children_to_occ o s)
-                                                                        Map.empty
-                                                                        parents_occs
-
-
-                            // children_to_parentoccs is precisely the list of valid O-moves:
-                            // a map from valid O-moves to the list of all valid justifiers in the traversal!
-                            children_to_parentoccs
-
-
-                        else // it is not an input variable
-
-                            // Rule (Var): O can only copy-cat the last P-move
-                                             
-                            // [justifier] is the occurrence index in the traversal of the variable or @ node
-                            // that will justify the next O-move.
-                            // By the definition of the Var rule it is the immediate predecessor of the justifier of the variable node:
-                            let justifier = (l - 1) - last.link - 1
-
-                            // Get the corresponding node in the computation tree
-                            let justifier_node = get_grnodeindex_from_occ justifier
-
-                            // the arity of the justifying node (variable or @) tells us how many chidren it has         
-                            let justifier_arity = x.ws.compgraph.arity justifier_node
-                                             
-                            // Get the variable link label, which is also the index of the variable 
-                            // name within the list of varibles names abstracted by its binder node.
-                            let variable_bindingindex = x.ws.compgraph.parameterindex.(i)
-
-                            let copycat_node =
-                                // Justifier has enough children to apply the copy-cat rule?
-                                if variable_bindingindex <= justifier_arity then
-                                    x.ws.compgraph.nth_child justifier_node variable_bindingindex
-                            
-                                // the justifier does not have enough children..
-                                else
-                                    // __On-the-fly eta-expansion__
-                                    // Conceptually we eta-expand the sub-term rooted at justifier_node 
-                                    // sufficiently enough so that the the justifier node has at least 
-                                    // variable_bindingindex children (ghost) lambda nodes.
-                                    // This trick allows us to proceed using the (Var) rules on ghost nodes
-                                    // as if there were genuine nodes.
-
-                                    // So we introduce the ghost lambda node that is the variable_bindingindex^th
-                                    // child of [justifier_node].
-                                    //
-                                    // A ghost lambda node are labelled by their child index relatively to its parent
-                                    // [justifier_node]. We store temporarily this label in the ghost button of the MSAGL graph
-                                    // so that the value can be obtained back when the user clicks on the node for the next move
-                                    let msaglGhostButton = x.ws.msaglviewer.Graph.FindNode(MsaglGraphGhostButtonId)
-                                    msaglGhostButton.UserData <- variable_bindingindex
-                                    msaglGhostButton.Attr.Label <- sprintf "Ghost %d" variable_bindingindex
-                                    int_of_string MsaglGraphGhostButtonId
-                            
-                            Map.add copycat_node [justifier] Map.empty
-
+                        // The variable name index is given by the link label
+                        rule_var x.ws.compgraph.parameterindex.(i)
 
         if not (Map.isEmpty x.valid_omoves) then
           x.pstrcontrol.add_node (create_blank_occ()) // add a dummy node for the forthcoming initial O-move
@@ -906,45 +948,60 @@ type TraversalObject =
         let last = x.pstrcontrol.Occurrence(l-1)
         // What is the type of the last occurrence?
         match pstr_occ_getnode last with
-            | Custom -> failwith "Bad traversal! There is an occurence of a node that does not belong to the computation graph!"
+        | Custom ->
+            failwith "Bad traversal! There is an occurence of a node that does not belong to the computation graph!"
 
-            // it is an internal-node
-            | InternalNode(i) -> match x.ws.compgraph.nodes.(i) with
-                                    NCntApp | NCntVar(_) | NCntTm(_)
-                                        -> failwith "It is your turn. You are playing the Opponent!"
+        // it is a value leaf
+        // TODO: play using the copycat rule (Value)
+        | ValueLeaf(i,v) -> ()
 
-                                  // Traversal rule (Lmd):
-                                  | NCntAbs(_,_) ->
-                                      // find the child node of the lambda node
-                                      let firstchild = List.hd x.ws.compgraph.edges.(i)
+        | GhostVariable _ ->
+            failwith "It is your turn. You are playing the Opponent!"
+        
+        | GhostLambda i ->
+            // compute the link
+            let ghostlambda_justifier = l-1 - last.link
+            // The justifier of the next P-move is ip(jp(t))
+            let justifier = ghostlambda_justifier - 1
+            let link = l-justifier // = last.link + 2
+            let alpha = (x.occurrence_arity justifier) + i - (x.occurrence_arity ghostlambda_justifier)
+            x.add_gennode (GhostVariable(alpha)) link
 
-                                      // Get the enabler of the node
-                                      let enabler = x.ws.compgraph.enabler.(firstchild) in
+        // it is an internal-node
+        | InternalNode(i) ->
+            match x.ws.compgraph.nodes.(i) with
+            | NCntApp | NCntVar(_) | NCntTm(_)
+                -> failwith "It is your turn. You are playing the Opponent!"
 
-                                      // compute the link
-                                      let link =
-                                          // no enabler?
-                                          if enabler = -1 then
-                                            0 // then it's an @-node so it has no justifier
-                                          else
-                                            l-
-                                              // get the occurrence of the binder in the P-view
-                                              (Traversal.seq_find_lastocc_in_Xview x.ws.compgraph
-                                                               Proponent
-                                                               pstr_occ_getnode        // getnode function
-                                                               pstr_occ_getlink        // getlink function
-                                                               pstr_occ_updatelink     // update link function
-                                                               x.pstrcontrol.Sequence
-                                                               (l-1)
-                                                               (InternalNode(enabler)))
+            // Traversal rule (Lmd):
+            | NCntAbs(_,_) ->
+                // find the child node of the lambda node
+                let firstchild = List.hd x.ws.compgraph.edges.(i)
 
-                                      x.add_gennode (InternalNode(firstchild)) link
-                                      x.recompute_valid_omoves()
-                                      x.HighlightAllowedMovesOnCompGraph()
+                // Get the enabler of the node
+                let enabler = x.ws.compgraph.enabler.(firstchild) in
 
-            // it is a value leaf
-            | ValueLeaf(i,v) -> // TODO: play using the copycat rule (Value)
-                                ()
+                // compute the link
+                let link =
+                    // no enabler?
+                    if enabler = -1 then
+                        0 // then it's an @-node so it has no justifier
+                    else
+                        l-
+                        // get the occurrence of the binder in the P-view
+                        (Traversal.seq_find_lastocc_in_Xview x.ws.compgraph
+                                        Proponent
+                                        pstr_occ_getnode        // getnode function
+                                        pstr_occ_getlink        // getlink function
+                                        pstr_occ_updatelink     // update link function
+                                        x.pstrcontrol.Sequence
+                                        (l-1)
+                                        (InternalNode(enabler)))
+
+                x.add_gennode (InternalNode(firstchild)) link
+
+        x.recompute_valid_omoves()
+        x.HighlightAllowedMovesOnCompGraph()
 
 
     (** [adjust_to_valid_occurrence i] adjusts the occurrence index i to a valid occurrence position by making sure

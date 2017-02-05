@@ -23,6 +23,7 @@
     <DefineConstants>
     </DefineConstants>
     <WarningLevel>3</WarningLevel>
+    <StartArguments>C:\Users\wiblum\OneDrive\research\oxford.dphil\tools.git\HOG\examples\varity_two.ult</StartArguments>
   </PropertyGroup>
   <PropertyGroup>
     <ReferencePath>C:\Program Files\Microsoft\Microsoft Automatic Graph Layout\bin ; ..\bin\Debug</ReferencePath>

@@ -27,10 +27,15 @@ let shape_of_string = function "ShapeRectangle" -> ShapeRectangle | "ShapeOval" 
 
 // Type for nodes occurrences
 type pstring_occ = {
+    /// Value associated with the occurrence
     tag: obj;
+    /// Label attached to the occurrence
     label: string;
+    /// Different between the index of the occurrence and the index of its justifing node in the justified sequence
     link:int;
+    /// Shape used to represent the occurrence
     shape:Shapes;
+    /// Color used to represent the occurrence
     color:Color
 }
 
