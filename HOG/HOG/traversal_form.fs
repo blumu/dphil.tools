@@ -16,6 +16,15 @@ open Compgraph
 open GUI
 open Pstring
 
+/// Defines possible ghost lambda moves that can be played by 
+/// the user when clicking on the Ghost button in the computation graph
+type GhostMoveParameters =            
+    /// Play with the (InputVar) traversal rule
+    | InputVar_Justifiers of int list // Possible Proponent node justifiers in the O-view. The link label (child index) is to be chosen interactively by the user.
+
+    /// Play with the (Var) traversal rule
+    | Var_Label of int // The label for both the lambda node to be played and its link label.
+
 
 /////////////////////// Some usefull functions
 
@@ -169,7 +178,8 @@ let grnode_2_shape nd = player_to_shape (graphnode_player nd)
 
 (* Id used for the single placeholder MSAGL node representing all the ghost lambda-nodes
  involved during a traversal game *)
-let MsaglGraphGhostButtonId = "-1"
+let MsaglGraphGhostButtonIndex = -1
+let MsaglGraphGhostButtonId = string_of_int MsaglGraphGhostButtonIndex
 
 (** [compgraph_to_graphview node_2_color node_2_shape gr] creates the MSAGL graph view of a computation graph.
     @param node_2_color a mapping from compgraph nodes to colors
@@ -715,7 +725,11 @@ type TraversalObject =
                 // Did the user click on the ghost node place-holder button?
                 if msaglnode.Attr.Id = MsaglGraphGhostButtonId then
                     // read the label of the ghost node from the custom data field of the ghost button
-                    GhostLambda(msaglnode.UserData :?> int)
+                    match msaglnode.UserData :?> GhostMoveParameters with
+                    | GhostMoveParameters.Var_Label k -> 
+                        GhostLambda(k)
+                    //| GhostMoveParameters.InputVar_Justifiers justifiers ->
+                    //    ()
                 else
                     // Generate a new traversal occurrence of the computation graph node that was clicked
                     InternalNode(gr_nodeindex)
@@ -842,17 +856,17 @@ type TraversalObject =
                 // [justifier]. We temporarily store this label in the ghost button of the MSAGL graph
                 // so that its value is readily available when the user clicks on the Ghost button to play the move.
                 let msaglGhostButton = x.ws.msaglviewer.Graph.FindNode(MsaglGraphGhostButtonId)
-                msaglGhostButton.UserData <- k
+                msaglGhostButton.UserData <- GhostMoveParameters.Var_Label k
                 msaglGhostButton.Attr.Label <- sprintf "Ghost %d" k
 
-                let ghost_copycat_node_index = int_of_string MsaglGraphGhostButtonId                            
+                let ghost_copycat_node_index = MsaglGraphGhostButtonIndex
                 Map.ofList [ghost_copycat_node_index, [justifier]]
 
         // Rule (InputVar): O can play any P-move whose parent occur in the O-view
         // Pre-condition: the last node occurrence in the traversal is a (possibly ghost) variable node
         // that is hereditarily justified by the initial root node.
         let rule_inputvar () =
-            // get the list of occurrence from the O-view
+            // Calculate the O-view of the traversal as a list of occurrences
             let oview_occs = Traversal.seq_occs_in_Xview
                                 x.ws.compgraph
                                 Opponent
@@ -862,36 +876,50 @@ type TraversalObject =
                                 x.pstrcontrol.Sequence
                                 (l-1)
 
-            // filter the list to keep only occurrences of Opponent nodes
-            let parents_occs = List.filter (fun o -> (x.ws.compgraph.gennode_player (pstr_occ_getnode (x.pstrcontrol.Occurrence(o)))) = Proponent) oview_occs
+            // Keep only occurrences of Opponent nodes in the O-view (i.e. lambda nodes)
+            let parents_occs = oview_occs |> List.filter (fun o -> (x.ws.compgraph.gennode_player (pstr_occ_getnode (x.pstrcontrol.Occurrence(o)))) = Proponent)
 
-            // map a traversal occurrence index to the corresponding node index in the graph
-            let get_grnodeindex_from_occ occ =
+            // map a traversal occurrence of a Proponent node to its set of children in the computation graph.
+            // If the occurrence is a ghost variable then returns a singleton list with the Graph ghost lambda node Id.
+            let get_children_nodes_of_proponent_occ occ =
                 match pstr_occ_getnode (x.pstrcontrol.Occurrence(occ)) with
-                | Custom -> failwith "Bad traversal! Custom nodes are not supported!" 
-                | ValueLeaf(_,_) -> failwith "Bad traversal! The O-view cannot contain value leaf since the traversal ends with a variable node"
-                | GhostVariable _ | GhostLambda _ -> failwith "Bad traversal! The O-view only contains node hereditarily justified by the root since the last node in the traversal is. Hence there cannot be any ghost node in the O-view!"
-                | InternalNode(i) -> i
+                | Custom ->
+                    failwith "Bad traversal! Custom nodes are not supported!" 
+                | ValueLeaf(_,_)
+                | GhostLambda _ ->
+                    failwith "This function is only defined for Proponent nodes (variable or @ nodes)"                
+                | GhostVariable k -> 
+                    [ MsaglGraphGhostButtonIndex ]
+                | InternalNode(i) ->
+                    x.ws.compgraph.edges.(i)
 
-            // given an occurrence occ of a graph node,
-            // map all its children in the graph to itself
+            // given an occurrence occ of a Proponent node, map all its children 
+            // in the graph to itself (i.e. their justifier)
             let map_children_to_occ m occ =
-                List.fold_right (fun j s ->
-                                    Map.add j (occ::(match Map.tryFind j s with Some v -> v | None -> [])) s)
-                            x.ws.compgraph.edges.(get_grnodeindex_from_occ occ)
-                            m
+                List.fold_right
+                    (fun j s -> Map.add j (occ::(match Map.tryFind j s with Some v -> v | None -> [])) s)
+                    (get_children_nodes_of_proponent_occ occ)
+                    m
 
-            // finally compute a Map which associate for each node of the tree
-            // whose parent occurs in the O-view, the set of occurrences
+            // The list of valid O-moves is returned as a map from valid O-moves to the list of all valid justifiers in the traversal.
+            // It is given by the Map that associates each node of the tree
+            // whose parent occurs in the O-view to the set of occurrences
             // of its parent in the O-view.
-            let children_to_parentoccs = List.fold_left map_children_to_occ
-                                                        Map.empty
-                                                        parents_occs
+            let valid_omoves = List.fold_left map_children_to_occ Map.empty parents_occs
 
-
-            // children_to_parentoccs is precisely the list of valid O-moves:
-            // a map from valid O-moves to the list of all valid justifiers in the traversal!
-            children_to_parentoccs
+            match Map.tryFind MsaglGraphGhostButtonIndex valid_omoves with
+            | None -> () // No ghost variable in the O-view
+            | Some justifiers -> // Ghost variables in the O-view
+                let msaglGhostButton = x.ws.msaglviewer.Graph.FindNode(MsaglGraphGhostButtonId)
+                msaglGhostButton.UserData <- InputVar_Justifiers justifiers
+                msaglGhostButton.Attr.Label <- sprintf "GhostInput"
+            
+            valid_omoves
+                
+        
+        // Determine if a traversal occurrence [occurrence_index] is hereditarily justified by the root
+        let is_hereditarily_justified_by_root_occurrence occurrence_index =
+            Traversal.is_hereditarily_justified pstr_occ_getlink x.pstrcontrol.Sequence occurrence_index 0
 
         // Rule (Root)
         x.valid_omoves <-
@@ -906,9 +934,8 @@ type TraversalObject =
                 | GhostLambda l -> failwith "O has no valid move since it's P's turn!"
                 | ValueLeaf(i,v) -> Map.empty // TODO: ValueLeaf: play value using the copycat rule (Value) or the (InputValue) rule
                 
-                // TODO
-                //| GhostVariable variable_bindingindex when heredirearily justified by initial move ->
-                //  rule_inputvar ()
+                | GhostVariable variable_bindingindex when is_hereditarily_justified_by_root_occurrence (l-1) ->
+                    rule_inputvar ()
 
                 | GhostVariable variable_bindingindex ->
                     rule_var variable_bindingindex

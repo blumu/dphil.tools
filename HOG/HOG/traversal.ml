@@ -178,9 +178,21 @@ let heredproj getlink updatelink seq root =
                                          | j -> Some(updatelink seq.(root+i) (j-newindex.(i-(getlink seq.(root+i))))))
                         newindex
 
-
-
-
+(** Determine if an occurrence in a traversal is hereditarily justified by another occurrence *)
+let is_hereditarily_justified getlink seq source_occurrence reference_occurrence = 
+  let rec follow_link_from occ = 
+    if occ = reference_occurrence then
+        true
+    else
+        match getlink seq.(occ) with
+        (* no link therefore not in the projection *)
+        | 0 -> false
+        (* link goes beyond the reference occurrence *)
+        | l when occ - l < reference_occurrence -> false
+        (* justifier not in the projection therefore it is not either *)
+        | l -> follow_link_from (occ - l)
+  in
+  follow_link_from source_occurrence
 
 (** Subterm projection with respect to some reference root node 
 
