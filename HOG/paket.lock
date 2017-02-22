@@ -13,3 +13,4 @@ NUGET
       FsLexYacc.Runtime (>= 7.0.3 < 7.1)
     FsLexYacc.Runtime (7.0.3)
       FSharp.Core (>= 3.1.2.5)
+    Microsoft.Automatic.Graph.Layout (1.0)

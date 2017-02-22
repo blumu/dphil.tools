@@ -23,7 +23,7 @@
     <DefineConstants>
     </DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <StartArguments>C:\Users\wiblum\OneDrive\research\oxford.dphil\tools.git\HOG\examples\varity_two.ult</StartArguments>
+    <StartArguments>..\..\examples\varity_two.ult</StartArguments>
   </PropertyGroup>
   <PropertyGroup>
     <ReferencePath>C:\Program Files\Microsoft\Microsoft Automatic Graph Layout\bin ; ..\bin\Debug</ReferencePath>
@@ -116,36 +116,20 @@
     <Compile Include="view_ULT.fs" />
     <Compile Include="view_STLT.fs" />
     <Compile Include="mainform.fs" />
-    <Content Include="omakefile" />
     <None Include="paket.references" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
       <Private>True</Private>
     </Reference>
-    <Reference Include="GUI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <Name>GUI</Name>
-      <AssemblyName>GUI.dll</AssemblyName>
-      <HintPath>..\bin\Debug\GUI.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Microsoft.Msagl">
+      <HintPath>..\msagl\Microsoft.Msagl.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.Msagl, Version=1.2.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
-      <Name>Microsoft.Msagl</Name>
-      <AssemblyName>Microsoft.Msagl.dll</AssemblyName>
-      <HintPath>..\bin\Release\Microsoft.Msagl.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Microsoft.Msagl.Drawing">
+      <HintPath>..\msagl\Microsoft.Msagl.Drawing.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.Msagl.Drawing, Version=1.2.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
-      <Name>Microsoft.Msagl.Drawing</Name>
-      <AssemblyName>Microsoft.Msagl.Drawing.dll</AssemblyName>
-      <HintPath>..\bin\Release\Microsoft.Msagl.Drawing.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Msagl.GraphViewerGDI, Version=1.2.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
-      <Name>Microsoft.Msagl.GraphViewerGDI</Name>
-      <AssemblyName>Microsoft.Msagl.GraphViewerGDI.dll</AssemblyName>
-      <HintPath>..\bin\Release\Microsoft.Msagl.GraphViewerGDI.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Microsoft.Msagl.GraphViewerGDI">
+      <HintPath>..\msagl\Microsoft.Msagl.GraphViewerGDI.dll</HintPath>
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="System" />
@@ -157,6 +141,11 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\GUI\GUI.csproj">
+      <Name>GUI</Name>
+      <Project>{f5874e23-ceeb-4e88-8ab9-dff0d09ffe46}</Project>
+      <Private>True</Private>
+    </ProjectReference>
     <ProjectReference Include="..\PstringControl\PstringControl.fsproj">
       <Name>PstringControl</Name>
       <Project>{3bb402e1-9f25-42a1-b092-ce56b1824dbe}</Project>
@@ -207,5 +196,8 @@
       </ItemGroup>
     </When>
   </Choose>
-  <Import Project="..\packages\FsLexYacc\build\FsLexYacc.targets" Label="Paket" />
+  <Choose>
+    <When Condition="$(TargetFrameworkIdentifier) == '.NETFramework' And ($(TargetFrameworkVersion) == 'v4.0' Or $(TargetFrameworkVersion) == 'v4.5' Or $(TargetFrameworkVersion) == 'v4.5.1' Or $(TargetFrameworkVersion) == 'v4.5.2' Or $(TargetFrameworkVersion) == 'v4.5.3' Or $(TargetFrameworkVersion) == 'v4.6' Or $(TargetFrameworkVersion) == 'v4.6.1' Or $(TargetFrameworkVersion) == 'v4.6.2' Or $(TargetFrameworkVersion) == 'v4.6.3')" />
+  </Choose>
+  <Import Project="..\packages\FsLexYacc\build\FsLexYacc.targets" Condition="Exists('..\packages\FsLexYacc\build\FsLexYacc.targets')" Label="Paket" />
 </Project>

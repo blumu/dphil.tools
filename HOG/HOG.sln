@@ -1,16 +1,16 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.25928.0
+VisualStudioVersion = 15.0.26206.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{0A7BEB29-F50C-4CD5-9017-D4DF72DD4F9A}"
 	ProjectSection(SolutionItems) = preProject
+		build.fsx = build.fsx
 		Changelog.txt = Changelog.txt
-		OMakefile = OMakefile
-		OMakeroot = OMakeroot
 		paket.dependencies = paket.dependencies
 		paket.lock = paket.lock
 		README.md = README.md
+		Settings.FSharpLint = Settings.FSharpLint
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GUI", "GUI\GUI.csproj", "{F5874E23-CEEB-4E88-8AB9-DFF0D09FFE46}"

@@ -726,10 +726,10 @@ type TraversalObject =
                 if msaglnode.Attr.Id = MsaglGraphGhostButtonId then
                     // read the label of the ghost node from the custom data field of the ghost button
                     match msaglnode.UserData :?> GhostMoveParameters with
-                    | GhostMoveParameters.Var_Label k -> 
+                    | Var_Label k -> 
                         GhostLambda(k)
-                    //| GhostMoveParameters.InputVar_Justifiers justifiers ->
-                    //    ()
+                    | InputVar_Justifiers justifiers ->
+                        failwith "TODO"
                 else
                     // Generate a new traversal occurrence of the computation graph node that was clicked
                     InternalNode(gr_nodeindex)
