@@ -628,13 +628,13 @@ type TraversalObject =
 
     // a *static* function used to initialize the traversal
     static member init (x:TraversalObject) =
-      // it is assumed that pstr is an odd-length sequence (finishing with an O-move)
-      x.pstrcontrol.Editable <- false
-      x.recompute_valid_omoves()
+        // it is assumed that pstr is an odd-length sequence (finishing with an O-move)
+        x.pstrcontrol.Editable <- false
+        x.recompute_valid_omoves()
 
-      // Set up handler for clicks on the sequence nodes.
-      // This is where the Opponent gets to chose the justifier of a lambda node when more than one possible justifiers exist in the O-view.
-      x.pstrcontrol.nodeClick.AddHandler(new Handler<PstringControl * NodeClickEventArgs>(fun _ (_,e) ->
+        // Set up handler for clicks on the sequence nodes.
+        // This is where the Opponent gets to chose the justifier of a lambda node when more than one possible justifiers exist in the O-view.
+        x.pstrcontrol.nodeClick.AddHandler(new Handler<PstringControl * NodeClickEventArgs>(fun _ (_,e) ->
         if not <| List.isEmpty x.wait_for_ojustifier then
             if List.mem e.Node x.wait_for_ojustifier then
                 // update the link
@@ -645,7 +645,7 @@ type TraversalObject =
                 x.play_for_p()
             else
                 MessageBox.Show("This justifier is not valid for the selected move!","This is not a valid justifier!", MessageBoxButtons.OK, MessageBoxIcon.Exclamation) |> ignore
-          ))
+            ))
 
     // Constructor
     new (ws,pstr:pstring) as x = 
@@ -1367,21 +1367,25 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
         // add an event handler to the a given pstring control in order to detect selection
         // of the control by the user
         ctrl.MouseDown.Add(fun _ -> change_selection_object new_obj );
-        ctrl.KeyDown.Add( fun e -> match e.KeyCode with
-                                              Keys.Up -> let i = match !selection with
-                                                                          None -> -1
-                                                                        | Some(selobj) -> form.seqflowPanel.Controls.GetChildIndex(selobj.Control)
-                                                         // if there is a predecessor then select it
-                                                         if i-1 >=0 then
-                                                             change_selection_object (object_from_controlindex (i-1))
-                                            | Keys.Down -> let i = match !selection with
-                                                                          None -> -1
-                                                                        | Some(selobj) -> form.seqflowPanel.Controls.GetChildIndex(selobj.Control)
-                                                           // if there is a successor then select it
-                                                           if i+1 < form.seqflowPanel.Controls.Count then
-                                                             change_selection_object (object_from_controlindex (i+1))
-                                            | _ -> ()
-                               );
+        let getSelectedSequenceIndex () =
+            match !selection with
+            | None -> -1
+            | Some selobj -> form.seqflowPanel.Controls.GetChildIndex(selobj.Control)
+
+        ctrl.KeyDown.Add( fun e ->  match e.KeyCode with
+                                    | Keys.Up ->
+                                        let i = getSelectedSequenceIndex ()
+                                        // if there is a predecessor then select it
+                                        if i >= 1 then
+                                            change_selection_object (object_from_controlindex (i-1))
+                                    | Keys.Down ->
+                                        let i = getSelectedSequenceIndex ()
+                                        // if there is a successor then select it
+                                        if i < form.seqflowPanel.Controls.Count-1 then
+                                            change_selection_object (object_from_controlindex (i+1))
+                                    | Keys.Delete ->
+                                        form.btDelete.PerformClick()
+                                    | _ -> ());
         // we need to add the control of that object to the seqflowPanel control
         form.seqflowPanel.Controls.Add ctrl
         new_obj
@@ -1404,7 +1408,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     form.seqflowPanel.Enter.Add(fun _ -> apply_to_selection (fun cursel -> cursel.Control.Invalidate() ) )
     form.seqflowPanel.Leave.Add(fun _ -> apply_to_selection (fun cursel -> cursel.Control.Invalidate() ) )
     form.seqflowPanel.SizeChanged.Add(fun _ -> apply_to_selection (fun cursel -> cursel.Selection() ) )
-
+    
     ////// experimental:
     //form.seqflowPanel.AutoScroll <- false
     //form.seqflowPanel.HScroll
@@ -1502,6 +1506,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
                 Some(selobj), Some(nd) -> selobj.OnCompGraphNodeMouseDown e nd
               | _ -> ()
         );
+
 
 
     //////////
