@@ -61,6 +61,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="InputVar-PickChild.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="InputVar-PickChild.Designer.cs">
+      <DependentUpon>InputVar-PickChild.cs</DependentUpon>
+    </Compile>
     <Compile Include="Lambdaterm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -93,6 +99,9 @@
       <DependentUpon>Traversal.cs</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="InputVar-PickChild.resx">
+      <DependentUpon>InputVar-PickChild.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Lambdaterm.resx">
       <SubType>Designer</SubType>
       <DependentUpon>Lambdaterm.cs</DependentUpon>

@@ -721,25 +721,43 @@ type TraversalObject =
 
         | Some [j] -> // only one justifier, the Opponent has no choice
     
-            let generalizedNode =
-                // Did the user click on the ghost node place-holder button?
-                if msaglnode.Attr.Id = MsaglGraphGhostButtonId then
-                    // read the label of the ghost node from the custom data field of the ghost button
-                    match msaglnode.UserData :?> GhostMoveParameters with
-                    | Var_Label k -> 
-                        GhostLambda(k)
-                    | InputVar_Justifiers justifiers ->
-                        failwith "TODO"
-                else
-                    // Generate a new traversal occurrence of the computation graph node that was clicked
-                    InternalNode(gr_nodeindex)
+            // Did the user click on the "ghost node" place-holder button?
+            if msaglnode.Attr.Id = MsaglGraphGhostButtonId then
+                match msaglnode.UserData :?> GhostMoveParameters with
+                | Var_Label k -> 
+                    // retrive the label of the ghost node from the custom data field of the ghost button
+                    let newocc = occ_from_gennode x.ws.compgraph (GhostLambda(k)) ((l-1)-j)
+                    x.pstrcontrol.replace_last_node newocc
+                    x.wait_for_ojustifier <- []
+                    x.play_for_p()
 
-            let newocc = occ_from_gennode x.ws.compgraph generalizedNode ((l-1)-j)
-            x.pstrcontrol.replace_last_node newocc
-            x.wait_for_ojustifier <- []
-            x.play_for_p()
+                | InputVar_Justifiers justifiers ->
+                    // Prompt the user for the ghost node link label (which is the index of 
+                    // the child lambda nodes of the justifer node)
+                    let pickChild = new GUI.InputVar_PickChild()
+                    //pickChild.Parent <- x.Control.Parent
+                    pickChild.StartPosition <- FormStartPosition.CenterParent
+                    match pickChild.ShowDialog() with
+                    | DialogResult.Cancel ->
+                        ()
+                    | _ ->
+                        let k = System.Int32.Parse(pickChild.textChildNodeIndex.Text)
 
-        | Some valid_justifiers -> // more than one choice: wait for the Opponent to choose one before playing for P
+                        let newocc = occ_from_gennode x.ws.compgraph (GhostLambda(k)) ((l-1)-j)
+                        x.pstrcontrol.replace_last_node newocc
+                        x.wait_for_ojustifier <- []
+                        x.play_for_p()
+            else
+                // Generate a new traversal occurrence for the computation graph node that was clicked
+                let generalizedNode = InternalNode(gr_nodeindex)
+                let newocc = occ_from_gennode x.ws.compgraph generalizedNode ((l-1)-j)
+                x.pstrcontrol.replace_last_node newocc
+                x.wait_for_ojustifier <- []
+                x.play_for_p()
+
+
+        | Some valid_justifiers -> 
+            // more than one choice: wait for the Opponent to choose one before playing for P
             let newocc = occ_from_gennode x.ws.compgraph (InternalNode(gr_nodeindex)) 0
             x.pstrcontrol.replace_last_node newocc
             x.wait_for_ojustifier <- valid_justifiers
