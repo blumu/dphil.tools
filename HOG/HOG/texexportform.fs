@@ -139,21 +139,21 @@ let LoadExportToLatexWindow mdiparent preamble body postamble  =
 
 
 let LoadExportGraphToLatexWindow mdiparent (lnfrules:Lnf.lnfrule list) =
-    let latex_preamb = "% Generated automatically by HOG
+    let latex_preamb = @"% Generated automatically by HOG
 % -*- TeX -*- -*- Soft -*-
-\\documentclass{article}
-\\usepackage{pst-tree}
+\documentclass{article}
+\usepackage{pst-tree}
 
-\\begin{document}
-\\begin{center}
-\\psset{levelsep=5ex,linewidth=0.5pt,nodesep=1pt,arcangle=-20,arrowsize=2pt 1}
-\\setlength\fboxsep{2pt}
+\begin{document}
+\begin{center}
+\psset{levelsep=5ex,linewidth=0.5pt,nodesep=1pt,arcangle=-20,arrowsize=2pt 1}
+\setlength\fboxsep{2pt}
 
-$\\rput[t](0,0){"
+$\rput[t](0,0){"
 
-    let latex_post = "}$
-\\end{center}
-\\end{document}
+    let latex_post = @"}$
+\end{center}
+\end{document}
 "
     LoadExportToLatexWindow mdiparent latex_preamb (lnfrules_to_latexcompgraph lnfrules) latex_post
 
@@ -176,22 +176,25 @@ let traversal_to_latex travnode_to_latex (trav:Pstring.pstring) =
                                                                                            ("("^(name_node src)^"-"^(name_node dst)^")"^latex_label^"\ "^acc), (IntSet.add dst named_nodes_set)
                                    ) ("",IntSet.empty) (Array.rev trav))
         )
-    "\\Pstr[0.7cm]{"^body^"}"
+    @"\Pstr[0.7cm]{"^body^"}"
 ;;
 
 let LoadExportPstringToLatexWindow mdiparent travocc_to_latex (trav:Pstring.pstring) =
-    let latex_preamb = "% Generated automatically by HOG
+    let latex_preamb = @"% Generated automatically by HOG
 % -*- TeX -*- -*- Soft -*-
-\\documentclass{article}
-\\usepackage{pstring}
+\documentclass{article}
+\usepackage{pstring}
+\newcommand{\ghostlmd}{{\lambda\!\!\lambda}}
+\newcommand{\ghostvar}{\theta}
 
-\\begin{document}
+
+\begin{document}
 
 "
 
-    let latex_post = "
+    let latex_post = @"
 
-\\end{document}
+\end{document}
 "
     LoadExportToLatexWindow mdiparent latex_preamb ("$"^(traversal_to_latex travocc_to_latex trav)^"$") latex_post
 ;;

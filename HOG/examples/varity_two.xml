@@ -1,6 +1,6 @@
 <worksheet>
   <compgraph>
-    <source type="untypedlambdaterm" file="C:\Users\wiblum\OneDrive\research\oxford.dphil\tools.git\HOG\examples\varity_two.ult" />
+    <source type="untypedlambdaterm" file="..\examples\varity_two.ult" />
   </compgraph>
   <traversal>
     <occ>
@@ -389,7 +389,7 @@
       <graphnode type="custom" />
     </occ>
   </traversal>
-  <editablepstring>
+  <traversal>
     <occ>
       <color>CornflowerBlue</color>
       <label>λ [0]</label>
@@ -399,26 +399,759 @@
     </occ>
     <occ>
       <color>Coral</color>
-      <label>3</label>
-      <link>1</link>
+      <label>@ [1]</label>
+      <link>0</link>
       <shape>ShapeRectangle</shape>
-      <graphnode type="ghostVariable" label="3" />
+      <graphnode type="node" index="1" />
     </occ>
-  </editablepstring>
-  <editablepstring>
     <occ>
       <color>CornflowerBlue</color>
-      <label>λ [0]</label>
-      <link>0</link>
+      <label>λt [2]</label>
+      <link>1</link>
       <shape>ShapeOval</shape>
-      <graphnode type="node" index="0" />
+      <graphnode type="node" index="2" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>t [3]</label>
+      <link>1</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="3" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λs2 z2 [20]</label>
+      <link>3</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="20" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>s2 [21]</label>
+      <link>1</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="21" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λn a x [4]</label>
+      <link>3</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="4" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>n [5]</label>
+      <link>1</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="5" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [22]</label>
+      <link>3</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="22" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>s2 [23]</label>
+      <link>5</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="23" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λn a x [4]</label>
+      <link>7</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="4" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>n [5]</label>
+      <link>1</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="5" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [24]</label>
+      <link>3</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="24" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>z2 [25]</label>
+      <link>9</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="25" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λa [16]</label>
+      <link>11</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="16" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>a [17]</label>
+      <link>1</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="17" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>1</label>
+      <link>3</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>1</label>
+      <link>5</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="1" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λs z [6]</label>
+      <link>7</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="6" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>a [7]</label>
+      <link>9</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="7" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>2</label>
+      <link>11</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="2" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>1</label>
+      <link>13</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="1" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λs z [6]</label>
+      <link>15</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="6" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>a [7]</label>
+      <link>17</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="7" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>2</label>
+      <link>19</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="2" />
     </occ>
     <occ>
       <color>Coral</color>
       <label>3</label>
-      <link>1</link>
+      <link>21</link>
       <shape>ShapeRectangle</shape>
       <graphnode type="ghostVariable" label="3" />
     </occ>
-  </editablepstring>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λz0 [18]</label>
+      <link>23</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="18" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>z0 [19]</label>
+      <link>1</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="19" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>1</label>
+      <link>3</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>1</label>
+      <link>5</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="1" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [8]</label>
+      <link>7</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="8" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>s [9]</label>
+      <link>9</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="9" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>1</label>
+      <link>11</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>1</label>
+      <link>13</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="1" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>λ [8]</label>
+      <link>15</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="node" index="8" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>s [9]</label>
+      <link>17</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="node" index="9" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>1</label>
+      <link>19</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>1</label>
+      <link>21</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="1" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>1</label>
+      <link>23</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="1" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>2</label>
+      <link>25</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="2" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>2</label>
+      <link>27</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="2" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>2</label>
+      <link>29</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="2" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>2</label>
+      <link>31</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="2" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>4</label>
+      <link>33</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="4" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>4</label>
+      <link>35</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="4" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3</label>
+      <link>37</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="3" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>3</label>
+      <link>39</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="3" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>5</label>
+      <link>41</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="5" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>5</label>
+      <link>43</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="5" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>6</label>
+      <link>45</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="6" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>6</label>
+      <link>47</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="6" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>4</label>
+      <link>49</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="4" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>4</label>
+      <link>51</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="4" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3</label>
+      <link>53</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="3" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>2</label>
+      <link>1</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="2" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>2</label>
+      <link>3</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="2" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>2</label>
+      <link>5</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="2" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>2</label>
+      <link>7</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="2" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>2</label>
+      <link>9</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="2" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>2</label>
+      <link>11</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="2" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>2</label>
+      <link>13</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="2" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>2</label>
+      <link>15</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="2" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>2</label>
+      <link>17</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="2" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>2</label>
+      <link>19</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="2" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>2</label>
+      <link>21</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="2" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>2</label>
+      <link>23</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="2" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>2</label>
+      <link>25</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="2" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>2</label>
+      <link>27</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="2" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>2</label>
+      <link>29</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="2" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>2</label>
+      <link>31</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="2" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>2</label>
+      <link>33</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="2" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>2</label>
+      <link>35</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="2" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>2</label>
+      <link>37</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="2" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>2</label>
+      <link>39</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="2" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>2</label>
+      <link>41</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="2" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>2</label>
+      <link>43</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="2" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>2</label>
+      <link>45</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="2" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>2</label>
+      <link>47</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="2" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>2</label>
+      <link>49</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="2" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>2</label>
+      <link>51</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="2" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>2</label>
+      <link>53</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="2" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3</label>
+      <link>55</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="3" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>3</label>
+      <link>57</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="3" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3</label>
+      <link>59</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="3" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>3</label>
+      <link>61</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="3" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3</label>
+      <link>63</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="3" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>3</label>
+      <link>65</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="3" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3</label>
+      <link>67</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="3" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>3</label>
+      <link>69</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="3" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3</label>
+      <link>71</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="3" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>3</label>
+      <link>73</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="3" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>3</label>
+      <link>75</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="3" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>3</label>
+      <link>77</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="3" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>4</label>
+      <link>79</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="4" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>4</label>
+      <link>81</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="4" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>4</label>
+      <link>83</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="4" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>4</label>
+      <link>85</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="4" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>6</label>
+      <link>87</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="6" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>6</label>
+      <link>89</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="6" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>5</label>
+      <link>91</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="5" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>5</label>
+      <link>93</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="5" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>7</label>
+      <link>95</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="7" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>7</label>
+      <link>97</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="7" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>8</label>
+      <link>99</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="8" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>8</label>
+      <link>101</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="8" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>6</label>
+      <link>103</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="6" />
+    </occ>
+    <occ>
+      <color>CornflowerBlue</color>
+      <label>6</label>
+      <link>105</link>
+      <shape>ShapeOval</shape>
+      <graphnode type="ghostLambda" label="6" />
+    </occ>
+    <occ>
+      <color>Coral</color>
+      <label>5</label>
+      <link>107</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="ghostVariable" label="5" />
+    </occ>
+    <occ>
+      <color>White</color>
+      <label>...</label>
+      <link>0</link>
+      <shape>ShapeRectangle</shape>
+      <graphnode type="custom" />
+    </occ>
+  </traversal>
 </worksheet>

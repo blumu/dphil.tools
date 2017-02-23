@@ -236,22 +236,22 @@ type computation_graph = class
 
     (** Convert a generalized node to latex. **)
     member x.gennode_to_latex = function
-     | Custom -> "?"
-     | GhostLambda i -> "{\hat{\lambda_{"^(string_of_int i)^"}}}"
-     | GhostVariable i -> "{\hat{"^(string_of_int i)^"}}"
-     | InternalNode(gr_inode) -> graphnodelabel_to_latex x.nodes.(gr_inode)
-     | ValueLeaf(gr_inode,value) -> "{"^(string_of_value value)^"}_{"^(graph_node_label x.nodes.(gr_inode))^"}"
+    | Custom -> "?"
+    | GhostLambda i -> "{\ghostlmd^{"^(string_of_int i)^"}}"
+    | GhostVariable i -> "{\ghostvar^{"^(string_of_int i)^"}}"
+    | InternalNode(gr_inode) -> graphnodelabel_to_latex x.nodes.(gr_inode)
+    | ValueLeaf(gr_inode,value) -> "{"^(string_of_value value)^"}_{"^(graph_node_label x.nodes.(gr_inode))^"}"
 
 
     (** [gennode_player gennode] Tells who plays a given generalized graph node.
         @param gennode the generalized graph node
          **)
     member x.gennode_player = function
-        | Custom -> Opponent
-        | GhostLambda _ -> Opponent
-        | GhostVariable _ -> Proponent
-        | InternalNode(gr_i) -> graphnode_player x.nodes.(gr_i)
-        | ValueLeaf(gr_i,_) -> player_permute (graphnode_player x.nodes.(gr_i))
+    | Custom -> Opponent
+    | GhostLambda _ -> Opponent
+    | GhostVariable _ -> Proponent
+    | InternalNode(gr_i) -> graphnode_player x.nodes.(gr_i)
+    | ValueLeaf(gr_i,_) -> player_permute (graphnode_player x.nodes.(gr_i))
 
     (** [graph_node_label_with_id index] returns the label of the [index]th node.
          The index of the node is added as a suffix to the label. **)

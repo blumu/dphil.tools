@@ -11,5 +11,5 @@ Lam x x1 s z. x s (x1 s z)
 *)
 
 (lambda t.t (lambda n a x . n (lambda s z . a s (x s z))) (lambda a. a) (lambda z0 . z0))
-(lambda s2 z2 . s2 (s2 z2)) // Two church numerals
+(lambda s_2 z_2 . s_2 (s_2 z_2)) // Two church numerals
 
