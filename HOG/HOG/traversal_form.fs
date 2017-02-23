@@ -1134,7 +1134,8 @@ let save_worksheet (filename:string) (ws:WorksheetParam)  =
     let xmlSource = xmldoc.CreateElement("source")
     xmlSource.SetAttribute("type",match Parsing.get_file_extension ws.graphsource_filename with
                                   | "rs" -> "recursionscheme"
-                                  | "lmd" -> "lambdaterm"
+                                  | "stlt" -> "lambdaterm"
+                                  | "ult" -> "untypedlambdaterm"
                                   | _ -> "unknown");
     xmlSource.SetAttribute("file",ws.graphsource_filename);
     xmlCompgraph.AppendChild(xmlSource) |> ignore
@@ -1516,10 +1517,18 @@ let open_worksheet mdiparent (ws_filename:string) =
     try
         let lnfrules =
             match xmlTyp.InnerText with
-            "lambdaterm" ->
+            |"untypedlambdaterm" ->
+                match Parsing.parse_file Ulc_parser.term Ulc_lexer.token filename with
+                  None -> raise (FileError("The ULC term file associated to this worksheet could not be opened!"));
+                | Some(ulcTerm) ->
+                    // convert the term to LNF
+                    let term = Ulc.ulcexpression_to_ulcterm [] ulcTerm
+                    [Ulc.ulcterm_to_lnfrule term]
+
+            |"lambdaterm" ->
                 // parse the lambda term
                 match Parsing.parse_file Ml_parser.term_in_context Ml_lexer.token filename with
-                  None -> raise (FileError("The lambda term file associated to this worksheet could not be opened!"));
+                  None -> raise (FileError("The STLC term file associated to this worksheet could not be opened!"));
                 | Some(lmdterm) ->
                     // convert the term to LNF
                     [Coreml.annotatedterm_to_lnfrule (Coreml.annotate_termincontext lmdterm)]
