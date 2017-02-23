@@ -393,8 +393,8 @@ type PstringControl =
 
     member private this.ScrollShift = if this.hScroll.Visible then this.hScroll.Value else 0
 
-    member private this.NodeFromClientPosition (pos:Point) =
-        Array.findIndex (function (a:Rectangle) -> a.Contains(pos+Size(this.ScrollShift,0))) this.bboxes
+    member private this.tryGetNodeFromClientPosition (pos:Point) =
+        Array.tryFindIndex (function (a:Rectangle) -> a.Contains(pos+Size(this.ScrollShift,0))) this.bboxes
 
     member private this.ClientPositionFromNode inode =
         let rc = this.bboxes.[inode] in
@@ -496,24 +496,23 @@ type PstringControl =
                     this.recompute_bbox()
                     this.Invalidate()
 
-        this.MouseDown.Add ( fun e ->
+        this.MouseDown.Add ( fun e ->                    
                     this.CancelLabelEdit()
-                    if e.Button = MouseButtons.Left then
-                        this.selected_node <- this.NodeFromClientPosition e.Location;
+                    match this.tryGetNodeFromClientPosition e.Location with
+                    | Some clickedNodeIndex when e.Button = MouseButtons.Left ->
+                        this.selected_node <- clickedNodeIndex
                         this.ScrollToMakeNodeVisible this.selected_node
                         // Trigger the node_click event
                         this.nodeClickEvent.Trigger(this, NodeClickEventArgs(this.selected_node))
                         this.Invalidate();
 
-                    else if e.Button = MouseButtons.Right
-                        && this.editable
-                        && this.selected_node >= 0 && this.selected_node < Array.length this.sequence then
-                        begin
-                            let sel = this.NodeFromClientPosition e.Location
-                            if sel < this.selected_node then
+                    | Some clickedNodeIndex when e.Button = MouseButtons.Right
+                            && this.editable
+                            && this.selected_node >= 0 && this.selected_node < Array.length this.sequence ->
+                            if clickedNodeIndex < this.selected_node then
                                 begin
                                     let node = this.sequence.[this.selected_node]
-                                    this.sequence.[this.selected_node] <- {link=this.selected_node-sel;
+                                    this.sequence.[this.selected_node] <- {link=this.selected_node-clickedNodeIndex;
                                                                             tag=node.tag;
                                                                             label=node.label;
                                                                             shape=node.shape;
@@ -521,7 +520,8 @@ type PstringControl =
                                 end
                             this.recompute_bbox()
                             this.Invalidate()
-                        end
+                    | _ -> ()
+
                     );
 
         this.MouseDoubleClick.Add(fun e -> if this.editable then this.EditLabel() );
