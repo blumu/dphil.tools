@@ -24,7 +24,13 @@ type GhostMoveParameters =
 
     /// Play with the (Var) traversal rule
     | Var_Label of int // The label for both the lambda node to be played and its link label.
-
+    
+/// Defines a node that can be selected by the user to play an opponent move
+type SelectedOpponentNode =
+    /// The ghost lambda placeholder node was selected
+    | GhostLambdaNode of GhostMoveParameters
+    /// A lambda node from the computation graph was selected
+    | LambdaNode of gen_node
 
 /////////////////////// Some usefull functions
 
@@ -229,6 +235,15 @@ let compgraph_to_graphview node_2_color node_2_shape (gr:computation_graph) =
     msaglgraph
 ;;
 
+(** Prompt the user for the link label to be used in the (InputVar^eta) rule
+ The link label corresponds to the lambda-node child index of the justifer P-node. *)
+let prompt_user_for_linklabel() =
+    let pickChild = new GUI.InputVar_PickChild(StartPosition = FormStartPosition.CenterParent)
+    match pickChild.ShowDialog() with
+    | DialogResult.Cancel ->
+        None
+    | _ ->
+        Some <| System.Int32.Parse(pickChild.textChildNodeIndex.Text)
 
 (** Loads a window showing a computation graph and permitting the user to export it to latex. **)
 let ShowCompGraphWindow mdiparent filename compgraph (lnfrules:lnfrule list) =
@@ -617,29 +632,30 @@ type TraversalObject =
       x.pstrcontrol.Editable <- false
       x.recompute_valid_omoves()
 
-      // add a handler for click on the nodes of the sequence
+      // Set up handler for clicks on the sequence nodes.
+      // This is where the Opponent gets to chose the justifier of a lambda node when more than one possible justifiers exist in the O-view.
       x.pstrcontrol.nodeClick.AddHandler(new Handler<PstringControl * NodeClickEventArgs>(fun _ (_,e) ->
-        if x.wait_for_ojustifier <> [] then
+        if not <| List.isEmpty x.wait_for_ojustifier then
             if List.mem e.Node x.wait_for_ojustifier then
-               // update the link
-               x.pstrcontrol.updatejustifier (x.pstrcontrol.Length-1) e.Node
-               x.wait_for_ojustifier <- []
-               x.highlight_potential_justifiers()
-               // play for the computer
-               x.play_for_p()
+                // update the link
+                x.pstrcontrol.updatejustifier (x.pstrcontrol.Length-1) e.Node
+                x.wait_for_ojustifier <- []
+                x.highlight_potential_justifiers()
+                // play for the Proponent
+                x.play_for_p()
             else
-              ignore( MessageBox.Show("This justifier is not valid for the selected move!","This is not a valid justifier!", MessageBoxButtons.OK, MessageBoxIcon.Exclamation))
-
+                MessageBox.Show("This justifier is not valid for the selected move!","This is not a valid justifier!", MessageBoxButtons.OK, MessageBoxIcon.Exclamation) |> ignore
           ))
 
-
     // Constructor
-    new (ws,pstr:pstring) as x = {inherit PstringObject(ws,pstr)
-                                  valid_omoves=Map.empty
-                                  wait_for_ojustifier=[]
-                                 }
-                                 then
-                                    TraversalObject.init x
+    new (ws,pstr:pstring) as x = 
+        {
+            inherit PstringObject(ws,pstr)
+            valid_omoves=Map.empty
+            wait_for_ojustifier=[]
+        }
+        then
+            TraversalObject.init x
 
     override x.Clone() =
         let l = Array.length x.pstrcontrol.Sequence
@@ -700,70 +716,112 @@ type TraversalObject =
         x.RestoreCompGraphViewer()
         base.Deselection()
 
-    (* a graph-node has been clicked while this object was selected *)
-    override x.OnCompGraphNodeMouseDown e msaglnode =
+    member x.play_for_o node justifier =
+        // create a new occurrence for the corresponding graph node
+        let newOccurrence = occ_from_gennode x.ws.compgraph node justifier
+        x.pstrcontrol.replace_last_node newOccurrence // add the occurrence at the end of the sequence
+        x.wait_for_ojustifier <- []
+    
+    /// Process the user-selected node and play the corresponding O-move
+    member x.process_opponent_selectednode selectedNode =
         let l = x.pstrcontrol.Length
 
-        // valid O-move?
-        let gr_nodeindex = int_of_string msaglnode.Attr.Id
-        let valid_justifiers = Map.tryFind gr_nodeindex x.valid_omoves in
+        match selectedNode with
+        // User clicked on a regular lambda node.
+        | SelectedOpponentNode.LambdaNode node ->
+            // This move is permitted by rule (Var) or (InputVar).
 
-        match valid_justifiers with
-        | None -> // Invalid move: traversal is complete: no valid move wiht valid justifier
-            ()
+            let valid_justifiers =
+                match node with
+                | InternalNode graphNodeIndex -> Map.tryFind graphNodeIndex x.valid_omoves
+                | _ -> failwithf "BUG: expecting an internal graph lambda node but getting: %A!" node
 
-        | Some [] -> // valid initial move with no justifier
-            // create a new occurrence for the corresponding graph node
-            let newocc = occ_from_gennode x.ws.compgraph (InternalNode(gr_nodeindex)) 0
-            x.pstrcontrol.replace_last_node newocc // add the occurrence at the end of the sequence
-            x.wait_for_ojustifier <- []
-            x.play_for_p() // play for the Propoment
+            /// Is this a valid move? And what are the possible justifiers for the selected lambda node?
+            match valid_justifiers with
+            // The selected node cannot be played: it's either a variable, an @-node, or a disabled lambda node.
+            | None ->
+                ()
 
-        | Some [j] -> // only one justifier, the Opponent has no choice
-    
-            // Did the user click on the "ghost node" place-holder button?
-            if msaglnode.Attr.Id = MsaglGraphGhostButtonId then
-                match msaglnode.UserData :?> GhostMoveParameters with
-                | Var_Label k -> 
-                    // retrive the label of the ghost node from the custom data field of the ghost button
-                    let newocc = occ_from_gennode x.ws.compgraph (GhostLambda(k)) ((l-1)-j)
-                    x.pstrcontrol.replace_last_node newocc
-                    x.wait_for_ojustifier <- []
-                    x.play_for_p()
+            // The selected node corresponds to an initial move with no justifier
+            | Some [] -> 
+                x.play_for_o node 0
+                x.play_for_p() // play for the Propoment
 
-                | InputVar_Justifiers justifiers ->
-                    // Prompt the user for the ghost node link label (which is the index of 
-                    // the child lambda nodes of the justifer node)
-                    let pickChild = new GUI.InputVar_PickChild()
-                    //pickChild.Parent <- x.Control.Parent
-                    pickChild.StartPosition <- FormStartPosition.CenterParent
-                    match pickChild.ShowDialog() with
-                    | DialogResult.Cancel ->
-                        ()
-                    | _ ->
-                        let k = System.Int32.Parse(pickChild.textChildNodeIndex.Text)
-
-                        let newocc = occ_from_gennode x.ws.compgraph (GhostLambda(k)) ((l-1)-j)
-                        x.pstrcontrol.replace_last_node newocc
-                        x.wait_for_ojustifier <- []
-                        x.play_for_p()
-            else
+            // The selected node has only one possible justifier: the Opponent move is already fully determined.
+            | Some [j] ->
                 // Generate a new traversal occurrence for the computation graph node that was clicked
-                let generalizedNode = InternalNode(gr_nodeindex)
-                let newocc = occ_from_gennode x.ws.compgraph generalizedNode ((l-1)-j)
-                x.pstrcontrol.replace_last_node newocc
-                x.wait_for_ojustifier <- []
+                x.play_for_o node ((l-1)-j)
                 x.play_for_p()
 
+            // More than one choice: wait for the Opponent to choose one before playing for P.
+            | Some valid_justifiers ->
+                // node is picked but justifier still needs to be chosen by the user
+                x.play_for_o node 0
+                x.wait_for_ojustifier <- valid_justifiers
+                x.highlight_potential_justifiers()
+                x.RefreshLabelInfo()
 
-        | Some valid_justifiers -> 
-            // more than one choice: wait for the Opponent to choose one before playing for P
-            let newocc = occ_from_gennode x.ws.compgraph (InternalNode(gr_nodeindex)) 0
-            x.pstrcontrol.replace_last_node newocc
-            x.wait_for_ojustifier <- valid_justifiers
-            x.highlight_potential_justifiers()
-            x.RefreshLabelInfo()
+        // user clicked on the "ghost lambda-node"
+        | SelectedOpponentNode.GhostLambdaNode ghostLambdaNode -> 
+            // This move is permitted by rule (Var^eta) or (InputVar^eta).
 
+            // Is this a valid move, and if yes, what are the possible justifiers for the ghost lambda node at this point?
+            match Map.tryFind MsaglGraphGhostButtonIndex x.valid_omoves with
+            | None -> // The ghost lambda node cannot be played at this point
+                ()
+
+            | Some valid_justifiers ->
+                match ghostLambdaNode with
+                // Rule (Var^eta): the last node is a variable node h.j. by an @-node
+                | Var_Label k ->
+                    match valid_justifiers with
+                    | [j] -> // The ghost lambda-node has only one possible justifier
+                        // retrieve the label of the ghost node from the custom data field of the ghost button
+                        x.play_for_o (GhostLambda(k)) ((l-1)-j)
+                        x.play_for_p()
+                    | _ ->
+                        failwith "Bug! (Var^eta) rule: the O-move justifier is supposed to be uniquely determined! The set of justifiers for the ghost lambda node has not been correctly calculated!"
+
+                // Rule (InputVar^eta): the last node is an input variable node (h.j. by the root)
+                | InputVar_Justifiers [] ->
+                    failwith "Ghost lambda-nodes necessarily have at least one justifier!"
+                
+                // Rule (InputVar^eta): the last node is an input variable node (h.j. by the root), the justifier is uniquely determined
+                | InputVar_Justifiers [j] ->
+                    match prompt_user_for_linklabel () with
+                    | None -> ()
+                    | Some k ->
+                        x.play_for_o (GhostLambda(k)) ((l-1)-j)
+                        x.play_for_p()
+
+                // Rule (InputVar^eta): the last node is an input variable node (h.j. by the root),
+                // with more than one choice of justifier: we have to wait for the Opponent to choose the justifier before before playing P's move.
+                | InputVar_Justifiers justifiers ->
+                    match ghostLambdaNode with
+                    | Var_Label k ->
+                        failwith "Bug! (Var) rule: the O-move justifier should be uniquely determined!"
+                    | InputVar_Justifiers justifiers ->
+                        // Ask the user to specify the link label:
+                        match prompt_user_for_linklabel () with
+                        | None -> ()
+                        | Some k ->
+                            // node is picked, link label is specified, but justifier still needs to be chosen by the user!
+                            x.play_for_o (GhostLambda(k)) 0
+                            x.wait_for_ojustifier <- valid_justifiers
+                            x.highlight_potential_justifiers()
+                            x.RefreshLabelInfo()
+
+
+    (* a graph-node has been clicked while the traversal control was selected *)
+    override x.OnCompGraphNodeMouseDown e msaglnode =
+
+        let selectedNode =
+            if msaglnode.Attr.Id = MsaglGraphGhostButtonId then
+                SelectedOpponentNode.GhostLambdaNode (msaglnode.UserData :?> GhostMoveParameters)
+            else
+                SelectedOpponentNode.LambdaNode (InternalNode (int_of_string msaglnode.Attr.Id))
+
+        x.process_opponent_selectednode selectedNode
         x.Refocus()
 
     (* Add an occurrence of a gennode to the end of the traversal *)
@@ -775,7 +833,7 @@ type TraversalObject =
         let msaglgraph = x.ws.msaglviewer.Graph
 
         let compgraph_node =
-            function 
+            function
             | -1 -> NCntAbs("Lam", [])
             | i -> x.ws.compgraph.nodes.(i)
 
