@@ -1418,7 +1418,13 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     // Traversal buttons
     form.btNewGame.Click.Add(fun _ -> change_selection_object (AddObject ((new TraversalObject(wsparam,[||])):>WorksheetObject)) );
     //map_button_to_transform_inplace form.btPlay (fun (trav:TraversalObject) -> trav.play_for_p())
-    map_button_to_transform form.btUndo (fun (trav:TraversalObject) -> trav.undo())
+    map_button_to_transform_inplace form.btUndo (fun (trav:TraversalObject) -> 
+                                                        let newTrav = trav.undo()
+                                                        let i = form.seqflowPanel.Controls.GetChildIndex(trav.Control)
+                                                        form.seqflowPanel.Controls.Remove(trav.Control)
+                                                        form.seqflowPanel.Controls.Add(newTrav.Control)
+                                                        form.seqflowPanel.Controls.SetChildIndex(newTrav.Control,i)
+                                                        change_selection_object newTrav)
 
     // Sequence buttons
     map_button_to_transform form.btDuplicate (fun (pstrobj:WorksheetObject) -> pstrobj.Clone())
