@@ -167,7 +167,7 @@ let msaglgraphnode_set_attributes_styles node_2_color node_2_shape (gr:computati
     **)
 let msaglgraphnode_set_attributes node_2_color node_2_shape (gr:computation_graph) i (node:Microsoft.Msagl.Drawing.Node) =
     node.Attr.Id <- string_of_int i
-    node.Attr.Label <- gr.node_label_with_idsuffix i
+    node.LabelText <- gr.node_label_with_idsuffix i
     msaglgraphnode_set_attributes_styles node_2_color node_2_shape gr gr.nodes.(i) node
     match gr.nodes.(i) with
       | NCntTm(tm) -> node.Attr.LabelMargin <- 10;
@@ -211,7 +211,7 @@ let compgraph_to_graphview node_2_color node_2_shape (gr:computation_graph) =
     ghostNode.Attr.Id <- MsaglGraphGhostButtonId
     ghostNode.Attr.Shape <- pstringshape_2_msaglshape Shapes.ShapeRectangle
     ghostNode.Attr.FillColor <- sysdrawingcolor_2_msaglcolor (Color.Azure)
-    ghostNode.Attr.Label <- "Ghost"
+    ghostNode.LabelText <- "Ghost"
 
 
     (* add the edges to the graph *)
@@ -221,11 +221,11 @@ let compgraph_to_graphview node_2_color node_2_shape (gr:computation_graph) =
             let target_id = string_of_int target in
             let edge = msaglgraph.AddEdge(source_id,target_id) in
             (match gr.nodes.(source) with
-                NCntApp -> edge.Attr.Label <- string_of_int i;
+                NCntApp -> edge.LabelText <- string_of_int i;
                                (* Highlight the first edge if it is an @-node (going to the operator) *)
                                if i = 0 then edge.Attr.Color <- Microsoft.Msagl.Drawing.Color.Green;
                | NCntAbs(_)  -> ();
-               | _ -> edge.Attr.Label <- string_of_int (i+1);
+               | _ -> edge.LabelText <- string_of_int (i+1);
             )
 
         in
@@ -305,7 +305,6 @@ let ShowCompGraphWindow mdiparent filename compgraph (lnfrules:lnfrule list) =
     viewer.Size <- new System.Drawing.Size(674, 505);
     viewer.TabIndex <- 3;
     viewer.ZoomF <- 1.0;
-    viewer.ZoomFraction <- 0.5;
     viewer.ZoomWindowThreshold <- 0.05;
 
     //associate the viewer with the form
@@ -933,7 +932,7 @@ type TraversalObject =
                 // so that its value is readily available when the user clicks on the Ghost button to play the move.
                 let msaglGhostButton = x.ws.msaglviewer.Graph.FindNode(MsaglGraphGhostButtonId)
                 msaglGhostButton.UserData <- GhostMoveParameters.Var_Label k
-                msaglGhostButton.Attr.Label <- sprintf "Ghost %d" k
+                msaglGhostButton.LabelText <- sprintf "Ghost %d" k
 
                 let ghost_copycat_node_index = MsaglGraphGhostButtonIndex
                 Map.ofList [ghost_copycat_node_index, [justifier]]
@@ -988,7 +987,7 @@ type TraversalObject =
             | Some justifiers -> // Ghost variables in the O-view
                 let msaglGhostButton = x.ws.msaglviewer.Graph.FindNode(MsaglGraphGhostButtonId)
                 msaglGhostButton.UserData <- InputVar_Justifiers justifiers
-                msaglGhostButton.Attr.Label <- sprintf "GhostInput"
+                msaglGhostButton.LabelText <- sprintf "GhostInput"
             
             valid_omoves
                 
@@ -1495,22 +1494,19 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     form.gViewer.Size <- new System.Drawing.Size(674, 505);
     form.gViewer.TabIndex <- 3;
     form.gViewer.ZoomF <- 1.0;
-    form.gViewer.ZoomFraction <- 0.5;
     form.gViewer.ZoomWindowThreshold <- 0.10;
 
-    let (msaglgraph_last_hovered_node: Microsoft.Msagl.Drawing.Node option ref) = ref None
-    form.gViewer.SelectionChanged.Add(fun _ -> if isNull form.gViewer.SelectedObject then
-                                                 msaglgraph_last_hovered_node := None
-                                               else if (form.gViewer.SelectedObject :? Microsoft.Msagl.Drawing.Node) then
-                                                 msaglgraph_last_hovered_node := Some(form.gViewer.SelectedObject :?> Microsoft.Msagl.Drawing.Node)
-                                               else
-                                                 msaglgraph_last_hovered_node := None
-                                          );
+    form.gViewer.MouseDown.Add
+        (fun e ->
+            let graph_selected_node =
+                if not (isNull form.gViewer.SelectedObject) && form.gViewer.SelectedObject :? Microsoft.Msagl.Drawing.Node then
+                    Some <| (form.gViewer.SelectedObject :?> Microsoft.Msagl.Drawing.Node)
+                else
+                    None
 
-    form.gViewer.MouseDown.Add(fun e ->
-            match !selection, !msaglgraph_last_hovered_node  with
-                Some(selobj), Some(nd) -> selobj.OnCompGraphNodeMouseDown e nd
-              | _ -> ()
+            match !selection, graph_selected_node with
+            | Some selobj, Some nd -> selobj.OnCompGraphNodeMouseDown e nd
+            | _ -> ()
         );
 
 

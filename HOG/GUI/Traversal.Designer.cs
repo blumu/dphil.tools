@@ -162,7 +162,6 @@ namespace GUI
             this.gViewer.Size = new System.Drawing.Size(328, 389);
             this.gViewer.TabIndex = 0;
             this.gViewer.ZoomF = 1;
-            this.gViewer.ZoomFraction = 0.5;
             this.gViewer.ZoomWindowThreshold = 0.05;
             // 
             // btSubtermProj

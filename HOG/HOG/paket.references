@@ -3,3 +3,6 @@ FSharp.Compatibility.OCaml.LexYacc
 FSharp.Compatibility.OCaml.System
 FsLexYacc.Runtime
 FsLexYacc
+Microsoft.Msagl
+Microsoft.Msagl.Drawing
+Microsoft.Msagl.GraphViewerGDI

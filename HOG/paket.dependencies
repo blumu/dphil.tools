@@ -7,4 +7,6 @@ nuget FSharp.Compatibility.OCaml.LexYacc
 nuget FSharp.Compatibility.OCaml.System
 nuget FsLexYacc
 nuget FsLexYacc.Runtime
-nuget Microsoft.Automatic.Graph.Layout
+nuget Microsoft.Msagl
+nuget Microsoft.Msagl.Drawing
+nuget Microsoft.Msagl.GraphViewerGDI
