@@ -1163,12 +1163,11 @@ type TraversalObject =
 
 
 
-// execute a function on the current selection if it is of a given type
-// the parameter (_:'a->unit) is a trick used to pass the type 'a as a parameter to the function
-let do_onsomeobject_oftype (u:'a->unit) (f:'a->unit) =
-     function
-        | Some(c:WorksheetObject) when (c:?'a) -> f (c:?>'a)
-        | _ -> ()
+// execute a function on the current selection if it is of a given type 'a
+let do_onsomeobject_oftype (f:'a->unit) =
+    function
+    | Some(c:WorksheetObject) when (c:? 'a) -> f (c:?> 'a)
+    | _ -> ()
 
 
 // Return the object corresponding to the ith control of a seqflowPanel
@@ -1226,7 +1225,6 @@ let import_worksheet (filename:string) (ws:WorksheetParam) addObjectFunc =
     done;
 ;;
 
-
 (**** Traversal calculator window ***)
 
 (** Loads the traversal calculator window for a given computation graph.
@@ -1281,10 +1279,9 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     let apply_to_selection f =
         do_onsome f !selection
 
-    // execute a function on the current selection if it is of a given type
-    // the parameter (_:'a->unit) is a trick used to pass the type 'a as a parameter to the function
-    let apply_to_selection_ifoftype subtype (f:'a->unit) =
-        do_onsomeobject_oftype subtype f !selection
+    // execute a function on the current selection if it is of a given type 'a
+    let apply_to_selection_ifoftype op =
+        do_onsomeobject_oftype op !selection
 
     // unselect the currently selected object
     let unselect_object() =
@@ -1311,6 +1308,15 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
         apply_to_selection (fun curobj -> curobj.Deselection() ) // if an object is already selected then deselect it
         select_object wsobj
 
+    (** Apply all possible traversal rules on the selected traversal. Create as many new traversals as needed
+        to explore all the possible branches of the traversal game (i.e. play all possible O-moves) **)
+    let expand_selected_traversal () =
+        apply_to_selection_ifoftype
+            (fun (x:TraversalObject) -> 
+                    //TODO: apply traversal rules ad infinitum
+                    ())
+
+
     // Add an object to the worksheet
     let AddObject (new_obj:WorksheetObject) =
         let ctrl = new_obj.Control
@@ -1321,20 +1327,19 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
         // add an event handler to the a given pstring control in order to detect selection
         // of the control by the user
         ctrl.MouseDown.Add(fun _ -> change_selection_object new_obj );
-        ctrl.KeyDown.Add( fun e -> match e.KeyCode with
-                                              Keys.Up -> let i = match !selection with
-                                                                          None -> -1
-                                                                        | Some(selobj) -> form.seqflowPanel.Controls.GetChildIndex(selobj.Control)
-                                                         // if there is a predecessor then select it
-                                                         if i-1 >=0 then
-                                                             change_selection_object (object_from_controlindex wsparam (i-1))
-                                            | Keys.Down -> let i = match !selection with
-                                                                          None -> -1
-                                                                        | Some(selobj) -> form.seqflowPanel.Controls.GetChildIndex(selobj.Control)
-                                                           // if there is a successor then select it
-                                                           if i+1 < form.seqflowPanel.Controls.Count then
-                                                             change_selection_object (object_from_controlindex wsparam (i+1))
-                                            | _ -> ()
+        ctrl.KeyDown.Add(fun e -> 
+                                    let i = 
+                                        match !selection with
+                                        | None -> -1
+                                        | Some(selobj) -> form.seqflowPanel.Controls.GetChildIndex(selobj.Control)
+                                    match e.KeyCode with
+                                    | Keys.Up when i-1 >=0  ->
+                                        // if there is a predecessor then select it
+                                        change_selection_object (object_from_controlindex wsparam (i-1))
+                                    | Keys.Down when i+1 < form.seqflowPanel.Controls.Count -> 
+                                        // if there is a successor then select it
+                                        change_selection_object (object_from_controlindex wsparam (i+1))
+                                    | _ -> ()
                                );
         // we need to add the control of that object to the seqflowPanel control
         form.seqflowPanel.Controls.Add ctrl
@@ -1343,15 +1348,12 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     (* map a button click event to an object transformation *)
     let map_button_to_transform (bt:System.Windows.Forms.Button) (transform:'a->WorksheetObject) =
         bt.Click.Add(fun _ -> apply_to_selection_ifoftype
-                                    (fun (_:'a) -> ()) // trick used to pass the type 'a as a parameter
                                     (fun cursel -> change_selection_object (AddObject (transform cursel))))
 
 
     (* map a button click event to an in-place transformation *)
     let map_button_to_transform_inplace (bt:System.Windows.Forms.Button) (inplacetransform:'a->unit) =
-        bt.Click.Add(fun _ -> apply_to_selection_ifoftype
-                                    (fun (_:'a) -> ())
-                                    (fun cursel -> inplacetransform cursel))
+        bt.Click.Add(fun _ -> apply_to_selection_ifoftype inplacetransform)
 
     // Return the object corresponding to the ith control of the seqflowPanel
     let object_from_controlindex (i:int) = form.seqflowPanel.Controls.Item(i).Tag:?>WorksheetObject
@@ -1365,26 +1367,23 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
         ctrl.BackColor <- form.seqflowPanel.BackColor
         // add an event handler to the a given pstring control in order to detect selection
         // of the control by the user
-        ctrl.MouseDown.Add(fun _ -> change_selection_object new_obj );
-        let getSelectedSequenceIndex () =
-            match !selection with
-            | None -> -1
-            | Some selobj -> form.seqflowPanel.Controls.GetChildIndex(selobj.Control)
-
-        ctrl.KeyDown.Add( fun e ->  match e.KeyCode with
-                                    | Keys.Up ->
-                                        let i = getSelectedSequenceIndex ()
-                                        // if there is a predecessor then select it
-                                        if i >= 1 then
-                                            change_selection_object (object_from_controlindex (i-1))
-                                    | Keys.Down ->
-                                        let i = getSelectedSequenceIndex ()
-                                        // if there is a successor then select it
-                                        if i < form.seqflowPanel.Controls.Count-1 then
-                                            change_selection_object (object_from_controlindex (i+1))
-                                    | Keys.Delete ->
-                                        form.btDelete.PerformClick()
-                                    | _ -> ());
+        ctrl.MouseDown.Add(fun _ -> change_selection_object new_obj)
+        ctrl.KeyDown.Add(fun e ->
+                            let selectedSequenceIndex =
+                                match !selection with
+                                | None -> -1
+                                | Some selobj -> form.seqflowPanel.Controls.GetChildIndex(selobj.Control)
+        
+                            match e.KeyCode with
+                            | Keys.Up when selectedSequenceIndex-1 >= 0 ->
+                                // if there is a predecessor then select it
+                                change_selection_object (object_from_controlindex (selectedSequenceIndex-1))
+                            | Keys.Down when selectedSequenceIndex+1 < form.seqflowPanel.Controls.Count ->
+                                // if there is a successor then select it
+                                change_selection_object (object_from_controlindex (selectedSequenceIndex+1))
+                            | Keys.Delete ->
+                                form.btDelete.PerformClick()
+                            | _ -> ())
         // we need to add the control of that object to the seqflowPanel control
         form.seqflowPanel.Controls.Add ctrl
         new_obj
@@ -1404,9 +1403,9 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
                                                      refocus_object()
                                               )
 
-    form.seqflowPanel.Enter.Add(fun _ -> apply_to_selection (fun cursel -> cursel.Control.Invalidate() ) )
-    form.seqflowPanel.Leave.Add(fun _ -> apply_to_selection (fun cursel -> cursel.Control.Invalidate() ) )
-    form.seqflowPanel.SizeChanged.Add(fun _ -> apply_to_selection (fun cursel -> cursel.Selection() ) )
+    form.seqflowPanel.Enter.Add(fun _ -> apply_to_selection (fun cursel -> cursel.Control.Invalidate()))
+    form.seqflowPanel.Leave.Add(fun _ -> apply_to_selection (fun cursel -> cursel.Control.Invalidate()))
+    form.seqflowPanel.SizeChanged.Add(fun _ -> apply_to_selection (fun cursel -> cursel.Selection()))
     
     ////// experimental:
     //form.seqflowPanel.AutoScroll <- false
@@ -1415,7 +1414,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
 
 
     // Traversal buttons
-    form.btNewGame.Click.Add(fun _ -> change_selection_object (AddObject ((new TraversalObject(wsparam,[||])):>WorksheetObject)) );
+    form.btNewGame.Click.Add(fun _ -> change_selection_object (AddObject ((TraversalObject(wsparam,[||])):>WorksheetObject)))
     //map_button_to_transform_inplace form.btPlay (fun (trav:TraversalObject) -> trav.play_for_p())
     map_button_to_transform_inplace form.btUndo (fun (trav:TraversalObject) -> 
                                                         let newTrav = trav.undo()
@@ -1424,6 +1423,8 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
                                                         form.seqflowPanel.Controls.Add(newTrav.Control)
                                                         form.seqflowPanel.Controls.SetChildIndex(newTrav.Control,i)
                                                         change_selection_object newTrav)
+
+    form.btBetaReduce.Click.Add(fun _ -> expand_selected_traversal ())
 
     // Sequence buttons
     map_button_to_transform form.btDuplicate (fun (pstrobj:WorksheetObject) -> pstrobj.Clone())
