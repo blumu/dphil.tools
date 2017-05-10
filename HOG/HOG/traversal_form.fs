@@ -1,5 +1,5 @@
 ﻿(** Description: Traversal view.
-    This module contains the view used to represent and manipulate traversals, as well as the logic 
+    This module contains the view used to represent and manipulate traversals, as well as the logic
     to let the user "play the traversal game" on a given copmutation graph.
 
     Author: William Blum
@@ -15,22 +15,23 @@ open Lnf
 open Compgraph
 open GUI
 open Pstring
+open Traversal
 
-/// Defines possible ghost lambda moves that can be played by 
+/// Defines possible ghost lambda moves that can be played by
 /// the user when clicking on the Ghost button in the computation graph
-type GhostMoveParameters =            
+type GhostMoveParameters =
     /// Play with the (InputVar) traversal rule
     | InputVar_Justifiers of int list // Possible Proponent node justifiers in the O-view. The link label (child index) is to be chosen interactively by the user.
 
     /// Play with the (Var) traversal rule
     | Var_Label of int // The label for both the lambda node to be played and its link label.
-    
+
 /// Defines a node that can be selected by the user to play an opponent move
 type SelectedOpponentNode =
     /// The ghost lambda placeholder node was selected
     | GhostLambdaNode of GhostMoveParameters
     /// A lambda node from the computation graph was selected
-    | LambdaNode of gen_node
+    | LambdaNode of TraversalNode.gen_node
 
 /////////////////////// Some usefull functions
 
@@ -63,14 +64,14 @@ let pstringshape_2_msaglshape =
 
 (** Create a pstring occurrence from a gennode **)
 let occ_from_gennode (compgraph:computation_graph) gennode lnk =
-    let player = compgraph.gennode_player gennode
+    let player = TraversalNode.toPlayer compgraph gennode
     let label =
         match gennode with
-        | GhostLambda i -> string_of_int i
-        | GhostVariable i -> string_of_int i
-        | Custom -> "?"
-        | ValueLeaf(nodeindex,v) -> (string_of_int nodeindex)^"_{"^(compgraph.node_label_with_idsuffix nodeindex)^"}"
-        | InternalNode(nodeindex) -> compgraph.node_label_with_idsuffix nodeindex
+        | TraversalNode.GhostLambda i -> string_of_int i
+        | TraversalNode.GhostVariable i -> string_of_int i
+        | TraversalNode.Custom -> "?"
+        | TraversalNode.ValueLeaf(nodeindex,v) -> (string_of_int nodeindex)^"_{"^(compgraph.node_label_with_idsuffix nodeindex)^"}"
+        | TraversalNode.StructuralNode(nodeindex) -> compgraph.node_label_with_idsuffix nodeindex
     { label = label;
       tag = box gennode; // Use the tag field to store the generalized graph node
       link = lnk;
@@ -84,7 +85,7 @@ let pstr_occ_getnode (nd:pstring_occ) =
     if isNull nd.tag then
         failwith "This is not a valid justified sequence. Some node-occurrence does not belong to the computation graph/tree."
     else
-        (unbox nd.tag:gen_node)
+        (unbox nd.tag:TraversalNode.gen_node)
 
 
 /////////////////////// Sequence transformations
@@ -198,14 +199,14 @@ let compgraph_to_graphview node_2_color node_2_shape (gr:computation_graph) =
     let msaglgraph = new Microsoft.Msagl.Drawing.Graph("graph") in
 
     (* add the nodes to the graph *)
-    gr.nodes |> Array.iteri 
+    gr.nodes |> Array.iteri
         (fun k _ -> msaglgraph.AddNode (string_of_int k)
                     |> msaglgraphnode_set_attributes
                         grnode_2_color
                         grnode_2_shape
                         gr
                         k)
-    
+
     (* Add one extra "ghost" node to be used to play ghost moves in a traversal game. *)
     let ghostNode = msaglgraph.AddNode MsaglGraphGhostButtonId
     ghostNode.Attr.Id <- MsaglGraphGhostButtonId
@@ -257,7 +258,7 @@ let ShowCompGraphWindow mdiparent filename compgraph (lnfrules:lnfrule list) =
     form.MdiParent <- mdiparent;
     form.Text <- "Computation graph of "^filename;
     form.Size <- Size(700,800);
-    
+
     buttonLatex.Location <- new System.Drawing.Point(1, 1)
     buttonLatex.Name <- "button1"
     buttonLatex.Size <- new System.Drawing.Size(267, 23)
@@ -320,7 +321,7 @@ let ShowCompGraphWindow mdiparent filename compgraph (lnfrules:lnfrule list) =
 ;;
 
 /// Worksheet parameters that are serialized to XML
-type WorksheetParam = 
+type WorksheetParam =
     {
         graphsource_filename:string;
         compgraph:computation_graph;
@@ -436,12 +437,12 @@ type PstringObject =
         in
             { tag= box (
                         match xmlTreenode.Attributes.GetNamedItem("type").Value with
-                            "node" -> InternalNode(int_of_string (xmlTreenode.Attributes.GetNamedItem("index").Value))
-                          | "value" -> ValueLeaf(int_of_string (xmlTreenode.Attributes.GetNamedItem("index").Value),
+                            "node" -> TraversalNode.StructuralNode(int_of_string (xmlTreenode.Attributes.GetNamedItem("index").Value))
+                          | "value" -> TraversalNode.ValueLeaf(int_of_string (xmlTreenode.Attributes.GetNamedItem("index").Value),
                                                  int_of_string (xmlTreenode.Attributes.GetNamedItem("value").Value))
-                          | "ghostVariable" -> GhostVariable(int_of_string (xmlTreenode.Attributes.GetNamedItem("label").Value))
-                          | "ghostLambda" -> GhostLambda(int_of_string (xmlTreenode.Attributes.GetNamedItem("label").Value))
-                          | "custom" -> Custom;
+                          | "ghostVariable" -> TraversalNode.GhostVariable(int_of_string (xmlTreenode.Attributes.GetNamedItem("label").Value))
+                          | "ghostLambda" ->TraversalNode.GhostLambda(int_of_string (xmlTreenode.Attributes.GetNamedItem("label").Value))
+                          | "custom" -> TraversalNode.Custom;
                           | _ -> failwith "Incorrect occurrence type attribute.");
               color=Color.FromName(xmlColor.InnerText);
               label=xmlLabel.InnerText;
@@ -479,19 +480,19 @@ type PstringObject =
         if isNull occ.tag then
           xmlTreenode.SetAttribute("type","custom");
         else
-          match (occ.tag :?> gen_node) with
-          | GhostLambda l -> 
+          match (occ.tag :?> TraversalNode.gen_node) with
+          | TraversalNode.GhostLambda l ->
                 xmlTreenode.SetAttribute("type","ghostLambda");
                 xmlTreenode.SetAttribute("label",(string_of_int l));
-          | GhostVariable l ->
+          | TraversalNode.GhostVariable l ->
                 xmlTreenode.SetAttribute("type","ghostVariable");
                 xmlTreenode.SetAttribute("label",(string_of_int l));
-          | Custom ->
+          | TraversalNode.Custom ->
                 xmlTreenode.SetAttribute("type","custom");
-          | InternalNode(i) ->
+          | TraversalNode.StructuralNode(i) ->
                 xmlTreenode.SetAttribute("type","node");
                 xmlTreenode.SetAttribute("index",(string_of_int i));
-          | ValueLeaf(i,v) ->
+          | TraversalNode.ValueLeaf(i,v) ->
                 xmlTreenode.SetAttribute("type","value");
                 xmlTreenode.SetAttribute("index",(string_of_int i));
                 xmlTreenode.SetAttribute("value",(string_of_int v));
@@ -536,12 +537,12 @@ type EditablePstringObject =
         // add the selected graph node at the end of the sequence
         let gr_nodeindex = int_of_string msaglnode.Attr.Id
 
-        // add an internal node to the traversal
+        // add a structural node to the traversal
         if e.Button = MouseButtons.Left then
-            x.pstrcontrol.add_node (occ_from_gennode x.ws.compgraph (InternalNode(gr_nodeindex)) 0 )
+            x.pstrcontrol.add_node (occ_from_gennode x.ws.compgraph (TraversalNode.StructuralNode(gr_nodeindex)) 0 )
         // add a value-leaf node to the traversal
         else
-            x.pstrcontrol.add_node (occ_from_gennode x.ws.compgraph (ValueLeaf(gr_nodeindex,1)) 0 )
+            x.pstrcontrol.add_node (occ_from_gennode x.ws.compgraph (TraversalNode.ValueLeaf(gr_nodeindex,1)) 0 )
 
         x.Refocus()
 
@@ -601,7 +602,7 @@ type TraversalObject =
                                       tag = o.tag;
                                       link = o.link;
                                       shape= o.shape;
-                                      color=player_to_color (x.ws.compgraph.gennode_player (pstr_occ_getnode o))
+                                      color=player_to_color (TraversalNode.toPlayer x.ws.compgraph (pstr_occ_getnode o))
                                     } )
           else
               // yes: we then put first all the occurrences into shade
@@ -647,7 +648,7 @@ type TraversalObject =
             ))
 
     // Constructor
-    new (ws,pstr:pstring) as x = 
+    new (ws,pstr:pstring) as x =
         {
             inherit PstringObject(ws,pstr)
             valid_omoves=Map.empty
@@ -684,7 +685,7 @@ type TraversalObject =
                                           assert_xmlname "traversal" xmlPstr;
                                           base.LoadSequenceFromXmlNode xmlPstr
                                           let occ = x.pstrcontrol.Occurrence(x.pstrcontrol.Length-1)
-                                          if occ.tag = null || pstr_occ_getnode occ = Custom  then
+                                          if occ.tag = null || pstr_occ_getnode occ = TraversalNode.Custom  then
                                             x.pstrcontrol.remove_last_occ() // delete the trailing dummy node
                                           TraversalObject.init x
 
@@ -720,7 +721,7 @@ type TraversalObject =
         let newOccurrence = occ_from_gennode x.ws.compgraph node justifier
         x.pstrcontrol.replace_last_node newOccurrence // add the occurrence at the end of the sequence
         x.wait_for_ojustifier <- []
-    
+
     /// Process the user-selected node and play the corresponding O-move
     member x.process_opponent_selectednode selectedNode =
         let l = x.pstrcontrol.Length
@@ -732,7 +733,7 @@ type TraversalObject =
 
             let valid_justifiers =
                 match node with
-                | InternalNode graphNodeIndex -> Map.tryFind graphNodeIndex x.valid_omoves
+                | TraversalNode.StructuralNode graphNodeIndex -> Map.tryFind graphNodeIndex x.valid_omoves
                 | _ -> failwithf "BUG: expecting an internal graph lambda node but getting: %A!" node
 
             /// Is this a valid move? And what are the possible justifiers for the selected lambda node?
@@ -742,7 +743,7 @@ type TraversalObject =
                 ()
 
             // The selected node corresponds to an initial move with no justifier
-            | Some [] -> 
+            | Some [] ->
                 x.play_for_o node 0
                 x.play_for_p() // play for the Propoment
 
@@ -761,7 +762,7 @@ type TraversalObject =
                 x.RefreshLabelInfo()
 
         // user clicked on the "ghost lambda-node"
-        | SelectedOpponentNode.GhostLambdaNode ghostLambdaNode -> 
+        | SelectedOpponentNode.GhostLambdaNode ghostLambdaNode ->
             // This move is permitted by rule (Var^eta) or (InputVar^eta).
 
             // Is this a valid move, and if yes, what are the possible justifiers for the ghost lambda node at this point?
@@ -776,7 +777,7 @@ type TraversalObject =
                     match valid_justifiers with
                     | [j] -> // The ghost lambda-node has only one possible justifier
                         // retrieve the label of the ghost node from the custom data field of the ghost button
-                        x.play_for_o (GhostLambda(k)) ((l-1)-j)
+                        x.play_for_o (TraversalNode.GhostLambda(k)) ((l-1)-j)
                         x.play_for_p()
                     | _ ->
                         failwith "Bug! (Var^eta) rule: the O-move justifier is supposed to be uniquely determined! The set of justifiers for the ghost lambda node has not been correctly calculated!"
@@ -784,13 +785,13 @@ type TraversalObject =
                 // Rule (InputVar^eta): the last node is an input variable node (h.j. by the root)
                 | InputVar_Justifiers [] ->
                     failwith "Ghost lambda-nodes necessarily have at least one justifier!"
-                
+
                 // Rule (InputVar^eta): the last node is an input variable node (h.j. by the root), the justifier is uniquely determined
                 | InputVar_Justifiers [j] ->
                     match prompt_user_for_linklabel () with
                     | None -> ()
                     | Some k ->
-                        x.play_for_o (GhostLambda(k)) ((l-1)-j)
+                        x.play_for_o (TraversalNode.GhostLambda(k)) ((l-1)-j)
                         x.play_for_p()
 
                 // Rule (InputVar^eta): the last node is an input variable node (h.j. by the root),
@@ -805,7 +806,7 @@ type TraversalObject =
                         | None -> ()
                         | Some k ->
                             // node is picked, link label is specified, but justifier still needs to be chosen by the user!
-                            x.play_for_o (GhostLambda(k)) 0
+                            x.play_for_o (TraversalNode.GhostLambda(k)) 0
                             x.wait_for_ojustifier <- valid_justifiers
                             x.highlight_potential_justifiers()
                             x.RefreshLabelInfo()
@@ -814,13 +815,14 @@ type TraversalObject =
     (* a graph-node has been clicked while the traversal control was selected *)
     override x.OnCompGraphNodeMouseDown e msaglnode =
 
-        let selectedNode =
+        //
+        let selectedTraversalNode =
             if msaglnode.Attr.Id = MsaglGraphGhostButtonId then
                 SelectedOpponentNode.GhostLambdaNode (msaglnode.UserData :?> GhostMoveParameters)
             else
-                SelectedOpponentNode.LambdaNode (InternalNode (int_of_string msaglnode.Attr.Id))
+                SelectedOpponentNode.LambdaNode (TraversalNode.StructuralNode (int_of_string msaglnode.Attr.Id))
 
-        x.process_opponent_selectednode selectedNode
+        x.process_opponent_selectednode selectedTraversalNode
         x.Refocus()
 
     (* Add an occurrence of a gennode to the end of the traversal *)
@@ -863,27 +865,27 @@ type TraversalObject =
     (* get the arity of a traversal occurrence *)
     member x.occurrence_arity occ =
         match pstr_occ_getnode (x.pstrcontrol.Occurrence(occ)) with
-        | Custom -> failwith "Bad traversal! Custom nodes are not supported!"
-        | ValueLeaf(_,_) ->  0
-        | GhostVariable _ -> 0
-        | GhostLambda _ -> 0
-        | InternalNode(i) -> x.ws.compgraph.arity i
+        | TraversalNode.Custom -> failwith "Bad traversal! Custom nodes are not supported!"
+        | TraversalNode.ValueLeaf(_,_) ->  0
+        | TraversalNode.GhostVariable _ -> 0
+        | TraversalNode.GhostLambda _ -> 0
+        | TraversalNode.StructuralNode(i) -> x.ws.compgraph.arity i
 
     (* Get the n^th child a traversal occurrence
        If the n^th child does not exist then return a ghost node (etiher lambda or variable) *)
     member x.occurrence_child occ n =
-        // the arity of the node tells us how many chidren it has         
+        // the arity of the node tells us how many chidren it has
         let justifier_arity = x.occurrence_arity occ
 
         match pstr_occ_getnode (x.pstrcontrol.Occurrence(occ)) with
-        | Custom -> failwith "Bad traversal! Custom nodes are not supported!"
-        | ValueLeaf(_,_) ->  failwith "A leaf node does not have children!"
-        | GhostVariable _ -> GhostLambda n 
-        | GhostLambda _ -> GhostVariable n
-        | InternalNode i when n <= justifier_arity -> InternalNode (x.ws.compgraph.nth_child i n)
-        | InternalNode i when graphnode_player x.ws.compgraph.nodes.(i) = Opponent -> GhostVariable n
-        | InternalNode _ -> GhostLambda n
-        
+        | TraversalNode.Custom -> failwith "Bad traversal! Custom nodes are not supported!"
+        | TraversalNode.ValueLeaf(_,_) ->  failwith "A leaf node does not have children!"
+        | TraversalNode.GhostVariable _ -> TraversalNode.GhostLambda n
+        | TraversalNode.GhostLambda _ -> TraversalNode.GhostVariable n
+        | TraversalNode.StructuralNode i when n <= justifier_arity -> TraversalNode.StructuralNode (x.ws.compgraph.nth_child i n)
+        | TraversalNode.StructuralNode i when graphnode_player x.ws.compgraph.nodes.(i) = Opponent -> TraversalNode.GhostVariable n
+        | TraversalNode.StructuralNode _ -> TraversalNode.GhostLambda n
+
     (* Calculate the list of valid O-moves at this point. Returns a Map whose keys are the possible nodes to play and
     values are the list of possible justification pointers for each possible node to play. *)
     member private x.recompute_valid_omoves() =
@@ -902,24 +904,24 @@ type TraversalObject =
             // that will justify the next O-move.
             // By the definition of the (Var) rule it is the immediate predecessor of the justifier of the variable node:
             let justifier = var_justifier - 1
-                                             
+
             match x.occurrence_child justifier variable_bindingindex with
-            | Custom | ValueLeaf(_,_) | GhostVariable _ ->
+            | TraversalNode.Custom | TraversalNode.ValueLeaf(_,_) | TraversalNode.GhostVariable _ ->
                 failwith "Not possible. The next move can only be a lambda node!"
-                                
+
             // the justifier's child exist in the computation graph
-            | InternalNode i ->  
+            | TraversalNode.StructuralNode i ->
                 Map.ofList [i, [justifier]]
 
             // if the last node is a ghost variable node justified by the root then no further move is allowed
-            | GhostLambda k when var_justifier = 0 ->
+            | TraversalNode.GhostLambda k when var_justifier = 0 ->
                 Map.empty
 
             // the justifier does not have enough children..
-            | GhostLambda k -> 
+            | TraversalNode.GhostLambda k ->
                 // __On-the-fly eta-expansion__
-                // Conceptually we eta-expand the sub-term rooted at [justifier] 
-                // sufficiently enough so that the the justifier node has at least 
+                // Conceptually we eta-expand the sub-term rooted at [justifier]
+                // sufficiently enough so that the the justifier node has at least
                 // variable_bindingindex children (ghost) lambda nodes.
                 // This trick allows us to proceed using the (Var) rules on ghost nodes
                 // as if there were genuine nodes.
@@ -952,23 +954,23 @@ type TraversalObject =
                                 (l-1)
 
             // Keep only occurrences of Opponent nodes in the O-view (i.e. lambda nodes)
-            let parents_occs = oview_occs |> List.filter (fun o -> (x.ws.compgraph.gennode_player (pstr_occ_getnode (x.pstrcontrol.Occurrence(o)))) = Proponent)
+            let parents_occs = oview_occs |> List.filter (fun o -> (TraversalNode.toPlayer x.ws.compgraph (pstr_occ_getnode (x.pstrcontrol.Occurrence(o)))) = Proponent)
 
             // map a traversal occurrence of a Proponent node to its set of children in the computation graph.
             // If the occurrence is a ghost variable then returns a singleton list with the Graph ghost lambda node Id.
             let get_children_nodes_of_proponent_occ occ =
                 match pstr_occ_getnode (x.pstrcontrol.Occurrence(occ)) with
-                | Custom ->
-                    failwith "Bad traversal! Custom nodes are not supported!" 
-                | ValueLeaf(_,_)
-                | GhostLambda _ ->
-                    failwith "This function is only defined for Proponent nodes (variable or @ nodes)"                
-                | GhostVariable k -> 
+                | TraversalNode.Custom ->
+                    failwith "Bad traversal! Custom nodes are not supported!"
+                | TraversalNode.ValueLeaf(_,_)
+                | TraversalNode.GhostLambda _ ->
+                    failwith "This function is only defined for Proponent nodes (variable or @ nodes)"
+                | TraversalNode.GhostVariable k ->
                     [ MsaglGraphGhostButtonIndex ]
-                | InternalNode(i) ->
+                | TraversalNode.StructuralNode(i) ->
                     x.ws.compgraph.edges.(i)
 
-            // given an occurrence occ of a Proponent node, map all its children 
+            // given an occurrence occ of a Proponent node, map all its children
             // in the graph to itself (i.e. their justifier)
             let map_children_to_occ m occ =
                 List.fold_right
@@ -988,10 +990,10 @@ type TraversalObject =
                 let msaglGhostButton = x.ws.msaglviewer.Graph.FindNode(MsaglGraphGhostButtonId)
                 msaglGhostButton.UserData <- InputVar_Justifiers justifiers
                 msaglGhostButton.LabelText <- sprintf "GhostInput"
-            
+
             valid_omoves
-                
-        
+
+
         // Determine if a traversal occurrence [occurrence_index] is hereditarily justified by the root
         let is_hereditarily_justified_by_root_occurrence occurrence_index =
             Traversal.is_hereditarily_justified pstr_occ_getlink x.pstrcontrol.Sequence occurrence_index 0
@@ -1005,17 +1007,17 @@ type TraversalObject =
                 // What is the node type of the last occurrence?
                 let last = x.pstrcontrol.Occurrence(l-1)
                 match pstr_occ_getnode last with
-                | Custom -> failwith "Bad traversal! There is an occurence of a node that does not belong to the computation graph!"
-                | GhostLambda l -> failwith "O has no valid move since it's P's turn!"
-                | ValueLeaf(i,v) -> Map.empty // TODO: ValueLeaf: play value using the copycat rule (Value) or the (InputValue) rule
-                
-                | GhostVariable variable_bindingindex when is_hereditarily_justified_by_root_occurrence (l-1) ->
+                | TraversalNode.Custom -> failwith "Bad traversal! There is an occurence of a node that does not belong to the computation graph!"
+                | TraversalNode.GhostLambda l -> failwith "O has no valid move since it's P's turn!"
+                | TraversalNode.ValueLeaf(i,v) -> Map.empty // TODO: ValueLeaf: play value using the copycat rule (Value) or the (InputValue) rule
+
+                | TraversalNode.GhostVariable variable_bindingindex when is_hereditarily_justified_by_root_occurrence (l-1) ->
                     rule_inputvar ()
 
-                | GhostVariable variable_bindingindex ->
+                | TraversalNode.GhostVariable variable_bindingindex ->
                     rule_var variable_bindingindex
 
-                | InternalNode(i) ->
+                | TraversalNode.StructuralNode(i) ->
                     match x.ws.compgraph.nodes.(i) with
                     | NCntAbs(_,_) ->
                         failwith "O has no valid move since it's P's turn!"
@@ -1029,7 +1031,7 @@ type TraversalObject =
                     // Rule (InputVar): O can play any P-move whose parent occur in the O-view
                     | NCntVar(_) | NCntTm(_) when x.ws.compgraph.he_by_root.(i) ->
                         rule_inputvar ()
-                    
+
                     // Rule (Var): variable node hereditarily justified by an @ node
                     | NCntVar(_) | NCntTm(_) ->
                         // The variable name index is given by the link label
@@ -1050,27 +1052,27 @@ type TraversalObject =
         let last = x.pstrcontrol.Occurrence(l-1)
         // What is the type of the last occurrence?
         match pstr_occ_getnode last with
-        | Custom ->
+        | TraversalNode.Custom ->
             failwith "Bad traversal! There is an occurence of a node that does not belong to the computation graph!"
 
         // it is a value leaf
         // TODO: play using the copycat rule (Value)
-        | ValueLeaf(i,v) -> ()
+        | TraversalNode.ValueLeaf(i,v) -> ()
 
-        | GhostVariable _ ->
+        | TraversalNode.GhostVariable _ ->
             failwith "It is your turn. You are playing the Opponent!"
-        
-        | GhostLambda i ->
+
+        | TraversalNode.GhostLambda i ->
             // compute the link
             let ghostlambda_justifier = l-1 - last.link
             // The justifier of the next P-move is ip(jp(t))
             let justifier = ghostlambda_justifier - 1
             let link = l-justifier // = last.link + 2
             let alpha = (x.occurrence_arity justifier) + i - (x.occurrence_arity ghostlambda_justifier)
-            x.add_gennode (GhostVariable(alpha)) link
+            x.add_gennode (TraversalNode.GhostVariable(alpha)) link
 
         // it is an internal-node
-        | InternalNode(i) ->
+        | TraversalNode.StructuralNode(i) ->
             match x.ws.compgraph.nodes.(i) with
             | NCntApp | NCntVar(_) | NCntTm(_)
                 -> failwith "It is your turn. You are playing the Opponent!"
@@ -1098,9 +1100,9 @@ type TraversalObject =
                                         pstr_occ_updatelink     // update link function
                                         x.pstrcontrol.Sequence
                                         (l-1)
-                                        (InternalNode(enabler)))
+                                        (TraversalNode.StructuralNode(enabler)))
 
-                x.add_gennode (InternalNode(firstchild)) link
+                x.add_gennode (TraversalNode.StructuralNode(firstchild)) link
 
         x.recompute_valid_omoves()
         x.HighlightAllowedMovesOnCompGraph()
@@ -1114,7 +1116,7 @@ type TraversalObject =
     member private x.adjust_to_valid_occurrence i =
         let j = max 0 (min (x.pstrcontrol.Length-1) i)
         let occ = x.pstrcontrol.Occurrence(j)
-        if isNull occ.tag || pstr_occ_getnode occ = Custom  then j-1
+        if isNull occ.tag || pstr_occ_getnode occ = TraversalNode.Custom  then j-1
         else j
 
     (** undo all the moves played after the selected node **)
@@ -1127,10 +1129,10 @@ type TraversalObject =
                 else
                     // if the selection is on the dummy trailing node then we only undo the last O-move
                     let occ = x.pstrcontrol.Occurrence(s)
-                    if isNull occ.tag || pstr_occ_getnode occ = Custom then
+                    if isNull occ.tag || pstr_occ_getnode occ = TraversalNode.Custom then
                         s-3 // we remove the last three nodes: the dummy node + last P-move + last O-move
                     // othwerise undo up to the last Proponent move
-                    else if x.ws.compgraph.gennode_player (pstr_occ_getnode (x.pstrcontrol.Occurrence(s))) = Opponent then
+                    else if TraversalNode.toPlayer x.ws.compgraph (pstr_occ_getnode (x.pstrcontrol.Occurrence(s))) = Opponent then
                         s-1
                     else
                         s
@@ -1312,9 +1314,18 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
         to explore all the possible branches of the traversal game (i.e. play all possible O-moves) **)
     let expand_selected_traversal () =
         apply_to_selection_ifoftype
-            (fun (x:TraversalObject) -> 
-                    //TODO: apply traversal rules ad infinitum
-                    ())
+            (fun (selectedTraversal:TraversalObject) ->
+                    /// play all possible O-moves
+                    let validMoves = selectedTraversal.valid_omoves
+                    for o in validMoves do
+                        let move, justifiers = o.Key, o.Value
+                        for justifier in justifiers do
+                            let y = selectedTraversal.Clone() :?> TraversalObject
+
+                            //compgraph.nodes.(move)
+                            //y.play_for_o move justifier
+                            ()
+                    )
 
 
     // Add an object to the worksheet
@@ -1327,8 +1338,8 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
         // add an event handler to the a given pstring control in order to detect selection
         // of the control by the user
         ctrl.MouseDown.Add(fun _ -> change_selection_object new_obj );
-        ctrl.KeyDown.Add(fun e -> 
-                                    let i = 
+        ctrl.KeyDown.Add(fun e ->
+                                    let i =
                                         match !selection with
                                         | None -> -1
                                         | Some(selobj) -> form.seqflowPanel.Controls.GetChildIndex(selobj.Control)
@@ -1336,7 +1347,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
                                     | Keys.Up when i-1 >=0  ->
                                         // if there is a predecessor then select it
                                         change_selection_object (object_from_controlindex wsparam (i-1))
-                                    | Keys.Down when i+1 < form.seqflowPanel.Controls.Count -> 
+                                    | Keys.Down when i+1 < form.seqflowPanel.Controls.Count ->
                                         // if there is a successor then select it
                                         change_selection_object (object_from_controlindex wsparam (i+1))
                                     | _ -> ()
@@ -1373,7 +1384,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
                                 match !selection with
                                 | None -> -1
                                 | Some selobj -> form.seqflowPanel.Controls.GetChildIndex(selobj.Control)
-        
+
                             match e.KeyCode with
                             | Keys.Up when selectedSequenceIndex-1 >= 0 ->
                                 // if there is a predecessor then select it
@@ -1406,7 +1417,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     form.seqflowPanel.Enter.Add(fun _ -> apply_to_selection (fun cursel -> cursel.Control.Invalidate()))
     form.seqflowPanel.Leave.Add(fun _ -> apply_to_selection (fun cursel -> cursel.Control.Invalidate()))
     form.seqflowPanel.SizeChanged.Add(fun _ -> apply_to_selection (fun cursel -> cursel.Selection()))
-    
+
     ////// experimental:
     //form.seqflowPanel.AutoScroll <- false
     //form.seqflowPanel.HScroll
@@ -1416,7 +1427,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     // Traversal buttons
     form.btNewGame.Click.Add(fun _ -> change_selection_object (AddObject ((TraversalObject(wsparam,[||])):>WorksheetObject)))
     //map_button_to_transform_inplace form.btPlay (fun (trav:TraversalObject) -> trav.play_for_p())
-    map_button_to_transform_inplace form.btUndo (fun (trav:TraversalObject) -> 
+    map_button_to_transform_inplace form.btUndo (fun (trav:TraversalObject) ->
                                                         let newTrav = trav.undo()
                                                         let i = form.seqflowPanel.Controls.GetChildIndex(trav.Control)
                                                         form.seqflowPanel.Controls.Remove(trav.Control)
@@ -1518,7 +1529,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
         if isNull pstrnode.tag then
           pstrnode.label
         else
-          compgraph.gennode_to_latex ((unbox pstrnode.tag) : gen_node)
+          TraversalNode.toLatex compgraph ((unbox pstrnode.tag) : TraversalNode.gen_node)
 
     form.btExportGraph.Click.Add(fun _ -> Texexportform.LoadExportGraphToLatexWindow mdiparent lnfrules)
 

@@ -9,7 +9,7 @@ open Common
 open Type
 open Lnf
 
-(************** Game structures **************)
+(************** Game concepts **************)
 
 (** Type for the player **)
 type Player = Opponent | Proponent
@@ -17,54 +17,7 @@ type Player = Opponent | Proponent
 (** Permutes player O and P **)
 let player_permute = function Proponent -> Opponent | Opponent -> Proponent
 
-
-(***** Data-structure to store the computation graph *****)
-
-(* for inclusion in a .mli file if it is created in the future.
-
-(*IF-OCAML*)
-module NodeEdgeMap :
-  sig
-    type key = int
-    type +'a t
-    val empty : 'a t
-    val is_empty : 'a t -> bool
-    val add : key -> 'a -> 'a t -> 'a t
-    val find : key -> 'a t -> 'a
-    val remove : key -> 'a t -> 'a t
-    val mem : key -> 'a t -> bool
-    val iter : (key -> 'a -> unit) -> 'a t -> unit
-    val map : ('a -> 'b) -> 'a t -> 'b t
-    val mapi : (key -> 'a -> 'b) -> 'a t -> 'b t
-    val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
-    val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int
-    val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
-  end
-
-(** The set of edges is represented by a map from node to an array of target nodes id *)
-type cg_edges = (int array) NodeEdgeMap.t;;
-
-(*ENDIF-OCAML*)
-(*F#
-val NodeEdgeMap : Map.Provider<int,int array>
-
-(** The set of edges is represented by a map from node to an array of target nodes id *)
-type cg_edges = Tagged.Map<int,int array,System.Collections.Generic.IComparer<int>>;;
-F#*)
-
-
-(** The type of a computation graph *)
-type computation_graph = cg_nodes * cg_edges;;
-
-val graph_childnode : cg_edges -> int -> int -> int
-val graph_n_children : cg_edges -> int -> int
-val graph_node_type : (ident*typ) list -> nodecontent -> typ
-*)
-
-
-
 (****** Computation graphs *****)
-
 
 (** Content of the node of the graph **)
 type nodecontent =
@@ -77,48 +30,8 @@ type nodecontent =
 (** The set of nodes is represented by an array of node contents **)
 type cg_nodes = nodecontent array;;
 
-
 (** The set of edges is represented by a map from node to an array of target nodes id **)
-(*
-    (*IF-OCAML*)
-    module NodeEdgeMap = Map.Make(struct type t = int let compare = Pervasives.compare end)
-    type cg_edges = (int array) NodeEdgeMap.t;;
-    (*ENDIF-OCAML*)
-    (*F#
-    let NodeEdgeMap = Map.Make((Pervasives.compare : int -> int -> int))
-    type cg_edges = Tagged.Map<int,int array,System.Collections.Generic.IComparer<int>>;;
-    F#*)
-*)
-
 type cg_edges = int list array;;
-
-
-
-(*** Generalized graph-nodes.
-    Those are either:
-    - internal nodes of the computation graph representing nodes of the AST of the represented structure (term or recursion scheme)
-    -  value leaves that are children of internal nodes (needed for languages with interpreted constants like PCF)
-) ***)
-
-(** Type of the value leaves. For simplicity we just encode them as integers **)
-type leaf_value = int
-
-(** Convert a value-leaf into a string **)
-let string_of_value = string_of_int
-
-(** Type of a generalized graph node i.e. a node of the full computation graph with value-leaves attached to each node **)
-type gen_node =
-    (* a custom node that is not in the computation graph *)
-    | Custom
-    (* a custom ghost lambda node (i.e. not in the original computation graph) labelled by an integer *)
-    | GhostLambda of int
-    (* a custom ghost variable node (i.e. not in the original computation graph) labelled by an integer *)
-    | GhostVariable of int
-    (* the index of a node of the computation graph *)
-    | InternalNode of int
-    (* a value leaf given by the index of the parent node in the computation graph and the value *)
-    | ValueLeaf of int * leaf_value
-
 
 (** [graph_addedge edges src tar] adds an edge going from [src] to [tar] in the graph [gr].
     @param edges is the reference to a Map from node id to array of edges
@@ -180,9 +93,15 @@ let graphnodelabel_to_latex = function
 ;;
 
 
-(** The type of a computation graph **)
+(** The computation graph implemented as as an array of nodes, edges 
+    and an `enabler` relationship between nodes **)
 type computation_graph = class
+    
+    (** Array of nodes in the computation graph **)
     val nodes : cg_nodes
+
+    (** Array of parent-child edges in the computation graph. 
+        Each element in the array correspond to a node and contains the list of indices of its children. **)
     val edges : cg_edges
 
     (*******
@@ -234,25 +153,6 @@ type computation_graph = class
                      he_by_root=Array.create (Array.length nnodes) false }
                    then x.compute_nodesinfo()
 
-    (** Convert a generalized node to latex. **)
-    member x.gennode_to_latex = function
-    | Custom -> "?"
-    | GhostLambda i -> "{\ghostlmd^{"^(string_of_int i)^"}}"
-    | GhostVariable i -> "{\ghostvar^{"^(string_of_int i)^"}}"
-    | InternalNode(gr_inode) -> graphnodelabel_to_latex x.nodes.(gr_inode)
-    | ValueLeaf(gr_inode,value) -> "{"^(string_of_value value)^"}_{"^(graph_node_label x.nodes.(gr_inode))^"}"
-
-
-    (** [gennode_player gennode] Tells who plays a given generalized graph node.
-        @param gennode the generalized graph node
-         **)
-    member x.gennode_player = function
-    | Custom -> Opponent
-    | GhostLambda _ -> Opponent
-    | GhostVariable _ -> Proponent
-    | InternalNode(gr_i) -> graphnode_player x.nodes.(gr_i)
-    | ValueLeaf(gr_i,_) -> player_permute (graphnode_player x.nodes.(gr_i))
-
     (** [graph_node_label_with_id index] returns the label of the [index]th node.
          The index of the node is added as a suffix to the label. **)
     member x.node_label_with_idsuffix index =
@@ -265,18 +165,6 @@ type computation_graph = class
           | NCntVar(x) -> nodeid
           | NCntAbs("",vars) -> nodeid
           | NCntAbs(nt,vars) -> nt^":"^nodeid)^"]"
-
-    (** [is_app_or_constant gennd]
-        @return true iff [gennd] is the gennode is a @-node, a constant node or a leaf of a @/constant node
-    **)
-    member x.gennode_is_app_or_constant = function
-        | Custom
-        | GhostLambda _
-        | GhostVariable _ -> false
-        | InternalNode(gr_i) | ValueLeaf(gr_i,_) ->
-            match x.nodes.(gr_i) with
-                NCntAbs(_,_)  | NCntVar(_) -> false
-              | NCntApp | NCntTm(_) -> true
 
     (** [children_count grnodeindex] returns the number of child nodes of a graph node identified by 
     its index [grnodeindex] **)
@@ -385,8 +273,6 @@ type computation_graph = class
 (** [create_empy_graph()] creates an empty graph **)
 let create_empty_graph() = new computation_graph([||],[||])
 
-
-
 (** [lnfrules_to_graph lnfrules] converts rules in lnf into a computation graph.
     @param lnfrules the rules of the recursion scheme in LNF
     @return the compuation graph (nodes,edges)
@@ -479,8 +365,6 @@ let lnfrules_to_graph lnfrules =
 let rs_lnfrules_to_graph rs_lnfrules =
     lnfrules_to_graph rs_lnfrules
 ;;
-
-
 
 (** [lnf_to_graph lnf] converts a lnf into a computation graph.
     @param lnf a lnf term
