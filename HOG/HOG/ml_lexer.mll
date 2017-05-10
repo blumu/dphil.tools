@@ -3,16 +3,11 @@
 	Author:		William Blum
 **)
 {
-(*F#
 module Ml_lexer
-F#*)
 
 open Ml_parser;;
 open FSharp.Compatibility.OCaml;;
 open Lexing;;
-(*IF-OCAML*)
-open List;;
-(*ENDIF-OCAML*)
 open Hashtbl;;
 
 (* A little hash table to recognize keywords *)
@@ -39,19 +34,7 @@ let lookup s =
   | None -> IDENT s
   | Some v -> v;;
 
-(*IF-OCAML*)
-let incr_linenum lexbuf =
-  let pos = lexbuf.Lexing.lex_curr_p in
-    lexbuf.Lexing.lex_curr_p <- {
-      pos with
-        Lexing.pos_lnum = pos.Lexing.pos_lnum + 1;
-        Lexing.pos_bol = pos.Lexing.pos_cnum;
-    }
-;;
-(*ENDIF-OCAML*)
-(*F#
 let incr_linenum (lexbuf : lexbuf) = lexbuf.EndPos <- lexbuf.EndPos.NextLine
-F#*)
 
 }
 

@@ -4,10 +4,8 @@
 **/
 
 %{
-(*F#
 open FSharp.Compatibility.OCaml;;
 open FSharp.Compatibility.OCaml.List;;
-F#*)
 
 open Type;;
 %}

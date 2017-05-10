@@ -5,18 +5,12 @@
 **)
 
 {
-(*F#
 module Hog_lexer
 
 open FSharp.Compatibility.OCaml;;
 open FSharp.Compatibility.OCaml.Lexing;;
-F#*)
 open Hog_parser;;
 
-(*IF-OCAML*)
-open Lexing;;
-open List;;
-(*ENDIF-OCAML*)
 open Hashtbl;;
 
 (* hash table for the keywords.
@@ -44,19 +38,7 @@ let lookup s =
   | None -> ATOM s
   | Some v -> v;;
 
-(*IF-OCAML*)
-let incr_linenum lexbuf =
-  let pos = lexbuf.Lexing.lex_curr_p in
-    lexbuf.Lexing.lex_curr_p <- {
-      pos with
-        Lexing.pos_lnum = pos.Lexing.pos_lnum + 1;
-        Lexing.pos_bol = pos.Lexing.pos_cnum;
-    }
-;;
-(*ENDIF-OCAML*)
-(*F#
 let incr_linenum (lexbuf : lexbuf) = lexbuf.EndPos <- lexbuf.EndPos.NextLine
-F#*)
 
 }
 
