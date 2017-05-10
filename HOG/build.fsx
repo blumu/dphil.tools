@@ -43,21 +43,13 @@ Target "ZipAll" (fun _ ->
     printf "Zipping sources and binaries"
 )
 
+"Build"
+  ==> "ZipBinaries"
+
 "ZipSources"
-  ==> "Build"
+  ==> "ZipAll"
 
 "ZipBinaries"
-  ==> "Build"
-
-"ZipAll"
-  ==> "ZipSources"
-  ==> "ZipBinaries"
-
-"ZipAll"
-  ==> "ZipSources"
-
-"ZipAll"
-  ==> "ZipBinaries"
-
+  ==> "ZipAll"
 
 RunTargetOrDefault "Build"
