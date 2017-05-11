@@ -574,6 +574,14 @@ type EditablePstringObject =
     member x.edit_occ_label() = x.pstrcontrol.EditLabel()
   end
 
+/// Given a node object from the MSAGL.Drawing control, returns
+/// the corresponding traversal node to be added to the current traversal
+let msglnode_to_selectedtraversalnode (msaglnode:Microsoft.Msagl.Drawing.Node) =
+    if msaglnode.Attr.Id = MsaglGraphGhostButtonId then
+        SelectedOpponentNode.GhostLambdaNode (msaglnode.UserData :?> GhostMoveParameters)
+    else
+        SelectedOpponentNode.LambdaNode (TraversalNode.StructuralNode (int_of_string msaglnode.Attr.Id))
+
 (** Traversal object: type used for sequence constructed with the traversal rules **)
 type TraversalObject =
   class
@@ -814,14 +822,7 @@ type TraversalObject =
 
     (* a graph-node has been clicked while the traversal control was selected *)
     override x.OnCompGraphNodeMouseDown e msaglnode =
-
-        //
-        let selectedTraversalNode =
-            if msaglnode.Attr.Id = MsaglGraphGhostButtonId then
-                SelectedOpponentNode.GhostLambdaNode (msaglnode.UserData :?> GhostMoveParameters)
-            else
-                SelectedOpponentNode.LambdaNode (TraversalNode.StructuralNode (int_of_string msaglnode.Attr.Id))
-
+        let selectedTraversalNode = msglnode_to_selectedtraversalnode msaglnode
         x.process_opponent_selectednode selectedTraversalNode
         x.Refocus()
 
@@ -1315,16 +1316,22 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     let expand_selected_traversal () =
         apply_to_selection_ifoftype
             (fun (selectedTraversal:TraversalObject) ->
-                    /// play all possible O-moves
+                    // play all possible structural O-moves
                     let validMoves = selectedTraversal.valid_omoves
                     for o in validMoves do
-                        let move, justifiers = o.Key, o.Value
-                        for justifier in justifiers do
-                            let y = selectedTraversal.Clone() :?> TraversalObject
+                        let moveNodeIndex, moveJustifiers = o.Key, o.Value
+                        for justifier in moveJustifiers do
+                            let clonedTraversal = selectedTraversal.Clone() :?> TraversalObject
+                            let traversalNode =
+                                // it's a ghost O-move
+                                if moveNodeIndex = MsaglGraphGhostButtonIndex then
+                                    SelectedOpponentNode.LambdaNode <| TraversalNode.GhostLambda (msaglnode.UserData :?> GhostMoveParameters)
+                                else
+                                    SelectedOpponentNode.GhostLambdaNode <| TraversalNode.StructuralNode moveNodeIndex
 
-                            //compgraph.nodes.(move)
-                            //y.play_for_o move justifier
-                            ()
+                            clonedTraversal.process_opponent_selectednode
+                            //clonedTraversal.play_for_o traversalNode justifier
+
                     )
 
 
