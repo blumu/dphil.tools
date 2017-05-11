@@ -20,18 +20,19 @@ open Traversal
 /// Defines possible ghost lambda moves that can be played by
 /// the user when clicking on the Ghost button in the computation graph
 type GhostMoveParameters =
-    /// Play with the (InputVar) traversal rule
-    | InputVar_Justifiers of int list // Possible Proponent node justifiers in the O-view. The link label (child index) is to be chosen interactively by the user.
+    /// Ghost move played with the (InputVar) traversal rule
+    | InputVar_Justifiers of int list // List of possible Proponent node justifiers in the O-view. The link label (child index) is to be chosen within that list by the user.
 
-    /// Play with the (Var) traversal rule
-    | Var_Label of int // The label for both the lambda node to be played and its link label.
+    /// Ghost move played with the (Var) traversal rule
+    | Var_Label of int // The label used for both the lambda node to be played, and the node's link label.
 
 /// Defines a node that can be selected by the user to play an opponent move
 type SelectedOpponentNode =
     /// The ghost lambda placeholder node was selected
     | GhostLambdaNode of GhostMoveParameters
     /// A lambda node from the computation graph was selected
-    | LambdaNode of TraversalNode.gen_node
+    /// The parameter specified the index of the node in the computation graph
+    | LambdaNode of int
 
 /////////////////////// Some usefull functions
 
@@ -574,14 +575,6 @@ type EditablePstringObject =
     member x.edit_occ_label() = x.pstrcontrol.EditLabel()
   end
 
-/// Given a node object from the MSAGL.Drawing control, returns
-/// the corresponding traversal node to be added to the current traversal
-let msglnode_to_selectedtraversalnode (msaglnode:Microsoft.Msagl.Drawing.Node) =
-    if msaglnode.Attr.Id = MsaglGraphGhostButtonId then
-        SelectedOpponentNode.GhostLambdaNode (msaglnode.UserData :?> GhostMoveParameters)
-    else
-        SelectedOpponentNode.LambdaNode (TraversalNode.StructuralNode (int_of_string msaglnode.Attr.Id))
-
 (** Traversal object: type used for sequence constructed with the traversal rules **)
 type TraversalObject =
   class
@@ -719,17 +712,24 @@ type TraversalObject =
         base.Selection()
         base.flush_flowcontainer_to_right()
 
-
     override x.Deselection()=
         x.RestoreCompGraphViewer()
         base.Deselection()
+
+    /// Given a computation graph node Id, returns the corresponding selected oppponent node
+    member x.get_selected_opponent_node_from_nodeindex nodeId =
+        if nodeId = MsaglGraphGhostButtonId then
+            let msaglGhostButton = x.ws.msaglviewer.Graph.FindNode(MsaglGraphGhostButtonId)
+            SelectedOpponentNode.GhostLambdaNode (msaglGhostButton.UserData :?> GhostMoveParameters)
+        else
+            SelectedOpponentNode.LambdaNode (int_of_string nodeId)
 
     member x.play_for_o node justifier =
         // create a new occurrence for the corresponding graph node
         let newOccurrence = occ_from_gennode x.ws.compgraph node justifier
         x.pstrcontrol.replace_last_node newOccurrence // add the occurrence at the end of the sequence
         x.wait_for_ojustifier <- []
-    
+   
     /// Play the specified opponent move (defined by a node and associated justifier) followed by the proponent's response
     /// If there is only one possible justifier for the O-move, the justifier paramter may be ommitted (None),
     /// an exception will be thrown otherwise.
@@ -743,7 +743,7 @@ type TraversalObject =
             x.play_for_o node j
             x.play_for_p() // play for the Propoment
 
-        | Some (node, [j]), Some k when j = k ->
+        | Some (node, valid_justifiers), Some j when List.contains j valid_justifiers ->
             x.play_for_o node j
             x.play_for_p() // play for the Propoment
         
@@ -754,10 +754,6 @@ type TraversalObject =
             x.highlight_potential_justifiers()
             x.RefreshLabelInfo()
 
-        | Some (node, valid_justifiers), Some j when List.contains j valid_justifiers ->
-            x.play_for_o node j
-            x.play_for_p() // play for the Propoment
-
         | _ -> 
             failwithf "Invalid provided justifier: %A. Valid movesvalidMoves are: %A" selectedJustifier validMoves
 
@@ -766,14 +762,12 @@ type TraversalObject =
         let l = x.pstrcontrol.Length
 
         match selectedNode with
-        // User clicked on a regular lambda node.
-        | SelectedOpponentNode.LambdaNode node ->
-            // This move is permitted by rule (Var) or (InputVar).
-
-            let valid_justifiers =
-                match node with
-                | TraversalNode.StructuralNode graphNodeIndex -> Map.tryFind graphNodeIndex x.valid_omoves
-                | _ -> failwithf "BUG: expecting an internal graph lambda node but getting: %A!" node
+        // User wants to play next move with a regular lambda node
+        // This move is permitted by rule (Var) or (InputVar).
+        | SelectedOpponentNode.LambdaNode graphNodeIndex ->
+            let node = TraversalNode.StructuralNode graphNodeIndex
+            
+            let valid_justifiers = Map.tryFind graphNodeIndex x.valid_omoves
 
             /// Is this a valid move? And what are the possible justifiers for the selected lambda node?
             match valid_justifiers with
@@ -834,7 +828,7 @@ type TraversalObject =
 
     (* a graph-node has been clicked while the traversal control was selected *)
     override x.OnCompGraphNodeMouseDown e msaglnode =
-        let selectedTraversalNode = msglnode_to_selectedtraversalnode msaglnode
+        let selectedTraversalNode = x.get_selected_opponent_node_from_nodeindex msaglnode.Attr.Id
         let justifier = None
         x.play_opponent_move_and_respond selectedTraversalNode justifier
         x.Refocus()
@@ -1289,8 +1283,6 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
         form.btStar.Enabled <- bSel
         form.btExt.Enabled <- bSel
 
-
-
     // execute a function on the currently selected worksheet object if there is one
     let apply_to_selection f =
         do_onsome f !selection
@@ -1323,30 +1315,6 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     let change_selection_object (wsobj:WorksheetObject) =
         apply_to_selection (fun curobj -> curobj.Deselection() ) // if an object is already selected then deselect it
         select_object wsobj
-
-    (** Apply all possible traversal rules on the selected traversal. Create as many new traversals as needed
-        to explore all the possible branches of the traversal game (i.e. play all possible O-moves) **)
-    let expand_selected_traversal () =
-        apply_to_selection_ifoftype
-            (fun (selectedTraversal:TraversalObject) ->
-                    // play all possible structural O-moves
-                    let validMoves = selectedTraversal.valid_omoves
-                    for o in validMoves do
-                        let moveNodeIndex, moveJustifiers = o.Key, o.Value
-                        for justifier in moveJustifiers do
-                            let clonedTraversal = selectedTraversal.Clone() :?> TraversalObject
-                            let traversalNode =
-                                // it's a ghost O-move
-                                if moveNodeIndex = MsaglGraphGhostButtonIndex then
-                                    SelectedOpponentNode.LambdaNode <| TraversalNode.GhostLambda (msaglnode.UserData :?> GhostMoveParameters)
-                                else
-                                    SelectedOpponentNode.GhostLambdaNode <| TraversalNode.StructuralNode moveNodeIndex
-
-                            clonedTraversal.process_opponent_selectednode (Some justifier)
-                            //clonedTraversal.play_for_o traversalNode justifier
-
-                    )
-
 
     // Add an object to the worksheet
     let AddObject (new_obj:WorksheetObject) =
@@ -1419,6 +1387,27 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
         form.seqflowPanel.Controls.Add ctrl
         new_obj
 
+    (** Apply all possible traversal rules on the selected traversal. Create as many new traversals as needed
+        to explore all the possible branches of the traversal game (i.e. play all possible O-moves) **)
+    let play_all_possible_omoves () =
+        apply_to_selection_ifoftype
+            (fun (selectedTraversal:TraversalObject) ->
+                    for omove in selectedTraversal.valid_omoves do
+                        let moveNodeId = string_of_int omove.Key
+                        
+                        moveNodeId
+                        |> selectedTraversal.get_selected_opponent_node_from_nodeindex
+                        |> selectedTraversal.get_valid_opponent_justifiers_for_selectednode
+                        |> Option.iter(
+                            fun (node, valid_justifiers) ->
+                                for justifier in valid_justifiers do
+                                    let clonedTraversal = selectedTraversal.Clone() :?> TraversalObject
+                                    change_selection_object (AddObject clonedTraversal)
+
+                                    clonedTraversal.play_for_o node justifier
+                                    clonedTraversal.play_for_p() // play for the Propoment
+                            )
+                    )
 
     // Give the focus back to the currently selected line
     let refocus_object() =
@@ -1455,7 +1444,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
                                                         form.seqflowPanel.Controls.SetChildIndex(newTrav.Control,i)
                                                         change_selection_object newTrav)
 
-    form.btBetaReduce.Click.Add(fun _ -> expand_selected_traversal ())
+    form.btBetaReduce.Click.Add(fun _ -> play_all_possible_omoves ())
 
     // Sequence buttons
     map_button_to_transform form.btDuplicate (fun (pstrobj:WorksheetObject) -> pstrobj.Clone())
