@@ -77,12 +77,15 @@ module TraversalNode = struct
 
 end
 
-(** Type of a traversal node **)
-//type trav_node = gen_node * int
-
 (** Traversal **)
-//type traversal = trav_node array
-
+(* TODO: consider using the following type to pass traversal around as argument to the function below.
+type traversal =
+    {
+        get_gennode : int -> TraversalNode.gen_node;
+        get_link : int -> int;
+        update_link : int -> unit
+    }
+*)
 
 (****** Sequence transformations ******)
 

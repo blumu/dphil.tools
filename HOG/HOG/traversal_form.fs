@@ -729,9 +729,40 @@ type TraversalObject =
         let newOccurrence = occ_from_gennode x.ws.compgraph node justifier
         x.pstrcontrol.replace_last_node newOccurrence // add the occurrence at the end of the sequence
         x.wait_for_ojustifier <- []
+    
+    /// Play the specified opponent move (defined by a node and associated justifier) followed by the proponent's response
+    /// If there is only one possible justifier for the O-move, the justifier paramter may be ommitted (None),
+    /// an exception will be thrown otherwise.
+    member x.play_opponent_move_and_respond selectedNode selectedJustifier =
+        let validMoves = x.get_valid_opponent_justifiers_for_selectednode selectedNode
+        match validMoves, selectedJustifier with
+        | None, None ->
+            ()
+
+        | Some (node, [j]), None ->
+            x.play_for_o node j
+            x.play_for_p() // play for the Propoment
+
+        | Some (node, [j]), Some k when j = k ->
+            x.play_for_o node j
+            x.play_for_p() // play for the Propoment
+        
+        | Some (node, valid_justifiers), None ->
+            // The node is picked but the justifier still needs to be chosen by the user.
+            x.play_for_o node 0
+            x.wait_for_ojustifier <- valid_justifiers
+            x.highlight_potential_justifiers()
+            x.RefreshLabelInfo()
+
+        | Some (node, valid_justifiers), Some j when List.contains j valid_justifiers ->
+            x.play_for_o node j
+            x.play_for_p() // play for the Propoment
+
+        | _ -> 
+            failwithf "Invalid provided justifier: %A. Valid movesvalidMoves are: %A" selectedJustifier validMoves
 
     /// Process the user-selected node and play the corresponding O-move
-    member x.process_opponent_selectednode selectedNode =
+    member x.get_valid_opponent_justifiers_for_selectednode selectedNode =
         let l = x.pstrcontrol.Length
 
         match selectedNode with
@@ -747,36 +778,27 @@ type TraversalObject =
             /// Is this a valid move? And what are the possible justifiers for the selected lambda node?
             match valid_justifiers with
             // The selected node cannot be played: it's either a variable, an @-node, or a disabled lambda node.
-            | None ->
-                ()
+            | None -> None
 
             // The selected node corresponds to an initial move with no justifier
-            | Some [] ->
-                x.play_for_o node 0
-                x.play_for_p() // play for the Propoment
+            | Some [] -> Some (node, [0])
 
             // The selected node has only one possible justifier: the Opponent move is already fully determined.
-            | Some [j] ->
-                // Generate a new traversal occurrence for the computation graph node that was clicked
-                x.play_for_o node ((l-1)-j)
-                x.play_for_p()
+            | Some [j] -> Some (node, [(l-1)-j])
 
             // More than one choice: wait for the Opponent to choose one before playing for P.
-            | Some valid_justifiers ->
-                // node is picked but justifier still needs to be chosen by the user
-                x.play_for_o node 0
-                x.wait_for_ojustifier <- valid_justifiers
-                x.highlight_potential_justifiers()
-                x.RefreshLabelInfo()
+            // => node is picked but justifier still needs to be chosen by the user
+            | Some valid_justifiers -> Some (node, valid_justifiers)
 
         // user clicked on the "ghost lambda-node"
         | SelectedOpponentNode.GhostLambdaNode ghostLambdaNode ->
             // This move is permitted by rule (Var^eta) or (InputVar^eta).
 
             // Is this a valid move, and if yes, what are the possible justifiers for the ghost lambda node at this point?
-            match Map.tryFind MsaglGraphGhostButtonIndex x.valid_omoves with
-            | None -> // The ghost lambda node cannot be played at this point
-                ()
+            let ghostNodeValidJustifiers = Map.tryFind MsaglGraphGhostButtonIndex x.valid_omoves
+            match ghostNodeValidJustifiers with
+            | None-> // The ghost lambda node cannot be played at this point
+                None
 
             | Some valid_justifiers ->
                 match ghostLambdaNode with
@@ -785,8 +807,7 @@ type TraversalObject =
                     match valid_justifiers with
                     | [j] -> // The ghost lambda-node has only one possible justifier
                         // retrieve the label of the ghost node from the custom data field of the ghost button
-                        x.play_for_o (TraversalNode.GhostLambda(k)) ((l-1)-j)
-                        x.play_for_p()
+                        Some (TraversalNode.GhostLambda(k), [(l-1)-j])
                     | _ ->
                         failwith "Bug! (Var^eta) rule: the O-move justifier is supposed to be uniquely determined! The set of justifiers for the ghost lambda node has not been correctly calculated!"
 
@@ -796,11 +817,8 @@ type TraversalObject =
 
                 // Rule (InputVar^eta): the last node is an input variable node (h.j. by the root), the justifier is uniquely determined
                 | InputVar_Justifiers [j] ->
-                    match prompt_user_for_linklabel () with
-                    | None -> ()
-                    | Some k ->
-                        x.play_for_o (TraversalNode.GhostLambda(k)) ((l-1)-j)
-                        x.play_for_p()
+                    prompt_user_for_linklabel ()
+                    |> Option.map (fun k -> TraversalNode.GhostLambda(k), [(l-1)-j])
 
                 // Rule (InputVar^eta): the last node is an input variable node (h.j. by the root),
                 // with more than one choice of justifier: we have to wait for the Opponent to choose the justifier before before playing P's move.
@@ -810,20 +828,15 @@ type TraversalObject =
                         failwith "Bug! (Var) rule: the O-move justifier should be uniquely determined!"
                     | InputVar_Justifiers justifiers ->
                         // Ask the user to specify the link label:
-                        match prompt_user_for_linklabel () with
-                        | None -> ()
-                        | Some k ->
-                            // node is picked, link label is specified, but justifier still needs to be chosen by the user!
-                            x.play_for_o (TraversalNode.GhostLambda(k)) 0
-                            x.wait_for_ojustifier <- valid_justifiers
-                            x.highlight_potential_justifiers()
-                            x.RefreshLabelInfo()
+                        prompt_user_for_linklabel ()
+                        |> Option.map (fun k -> TraversalNode.GhostLambda(k), valid_justifiers)
 
 
     (* a graph-node has been clicked while the traversal control was selected *)
     override x.OnCompGraphNodeMouseDown e msaglnode =
         let selectedTraversalNode = msglnode_to_selectedtraversalnode msaglnode
-        x.process_opponent_selectednode selectedTraversalNode
+        let justifier = None
+        x.play_opponent_move_and_respond selectedTraversalNode justifier
         x.Refocus()
 
     (* Add an occurrence of a gennode to the end of the traversal *)
@@ -1329,7 +1342,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
                                 else
                                     SelectedOpponentNode.GhostLambdaNode <| TraversalNode.StructuralNode moveNodeIndex
 
-                            clonedTraversal.process_opponent_selectednode
+                            clonedTraversal.process_opponent_selectednode (Some justifier)
                             //clonedTraversal.play_for_o traversalNode justifier
 
                     )
