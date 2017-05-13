@@ -17,22 +17,29 @@ open GUI
 open Pstring
 open Traversal
 
-/// Defines possible ghost lambda moves that can be played by
-/// the user when clicking on the Ghost button in the computation graph
-type GhostMoveParameters =
-    /// Ghost move played with the (InputVar) traversal rule
-    | InputVar_Justifiers of int list // List of possible Proponent node justifiers in the O-view. The link label (child index) is to be chosen within that list by the user.
+/// The index of a node occurrence in a traversal
+type occurrence_index = int
+    
+/// List of indices of possible justifiers in the traversal: i.e. occurrences of the O-move's enablers. 
+type justifier_choices = occurrence_index list
 
-    /// Ghost move played with the (Var) traversal rule
-    | Var_Label of int // The label used for both the lambda node to be played, and the node's link label.
+/// The identifier of a node in the computation graph control
+type graphnode_id = int
 
-/// Defines a node that can be selected by the user to play an opponent move
-type SelectedOpponentNode =
-    /// The ghost lambda placeholder node was selected
-    | GhostLambdaNode of GhostMoveParameters
-    /// A lambda node from the computation graph was selected
-    /// The parameter specified the index of the node in the computation graph
-    | LambdaNode of int
+/// Ghost node label
+type ghost_label = int
+
+/// Define a valid move that can be played by the Opponent at a given point in a traversal
+type valid_omove =
+    /// A structural lambda node from the computation graph
+    /// with a list of choices for the justifier.
+    | StructuralLambda of justifier_choices
+    /// A ghost lambda that is internal (i.e. hereditarily justified by an @-node) with a uniquely defined justifier
+    | GhostInternalLambda of ghost_label * occurrence_index
+    /// A input (i.e. hereditarily justified by the root) ghost lambda with a list of choices for the justifier.
+    /// The Opponent (i.e. the user) has to pick a justifier within that list and also has to provide a node label.
+    | GhostInputLambda of justifier_choices
+;;
 
 /////////////////////// Some usefull functions
 
@@ -64,7 +71,7 @@ let pstringshape_2_msaglshape =
              | Pstring.Shapes.ShapeOval -> Microsoft.Msagl.Drawing.Shape.Circle // Microsoft.Msagl.Drawing.Shape.Diamond
 
 (** Create a pstring occurrence from a gennode **)
-let occ_from_gennode (compgraph:computation_graph) gennode lnk =
+let occ_from_gennode (compgraph:computation_graph) gennode (lnk:LinkLength) =
     let player = TraversalNode.toPlayer compgraph gennode
     let label =
         match gennode with
@@ -580,15 +587,15 @@ type TraversalObject =
   class
     inherit PstringObject
 
+
     // [valid_omoves] is a map describing the valid o-moves:
-    //   - the list of map keys gives the set of valid o-moves (graph node indices)
-    //   - each key i is mapped to the list of occurrences of its enabler in the traversal that are valid justifiers
-    //     for the corresponding O-move.
-    val mutable valid_omoves : Map<int,int list>
+    //   - Keys are the graph indices of nodes representing valid O-moves
+    //   - Each key is mapped to the list of possible O-moves and associated possible choices of justfier in the traversal.
+    val mutable valid_omoves : Map<graphnode_id, valid_omove>
 
     // [wait_for_ojustifier] is a list which is not empty iff O has selected a move but has not chosen his justifier yet.
     // It contains the list of valid justifier for the given move.
-    val mutable wait_for_ojustifier : int list
+    val mutable wait_for_ojustifier : occurrence_index list
 
     // highlight the occurrence in the sequence that are valid justifiers for the O-move
     // that has been selected by the user.
@@ -606,7 +613,7 @@ type TraversalObject =
                                       color=player_to_color (TraversalNode.toPlayer x.ws.compgraph (pstr_occ_getnode o))
                                     } )
           else
-              // yes: we then put first all the occurrences into shade
+              // yes: we first shade all the occurrences
               let seq = Array.init n (fun i -> let o = x.pstrcontrol.Occurrence(i) in
                                                 { label= o.label;
                                                   tag = o.tag;
@@ -615,7 +622,7 @@ type TraversalObject =
                                                   color= Color.LightGray
                                                 } )
 
-              // ... and then highlight the justifiers
+              // ... and then highlight the valid justifiers
               List.iter (fun i -> let o = x.pstrcontrol.Occurrence(i)
                                   seq.(i) <-
                                         { label= o.label;
@@ -716,121 +723,92 @@ type TraversalObject =
         x.RestoreCompGraphViewer()
         base.Deselection()
 
-    /// Given a computation graph node Id, returns the corresponding selected oppponent node
-    member x.get_selected_opponent_node_from_nodeindex nodeId =
-        if nodeId = MsaglGraphGhostButtonId then
-            let msaglGhostButton = x.ws.msaglviewer.Graph.FindNode(MsaglGraphGhostButtonId)
-            SelectedOpponentNode.GhostLambdaNode (msaglGhostButton.UserData :?> GhostMoveParameters)
-        else
-            SelectedOpponentNode.LambdaNode (int_of_string nodeId)
+    member x.play_for_o node (justifier:occurrence_index option) =
+        let linkLength : LinkLength =
+            match justifier with
+            | None -> 0
+            | Some justifier_index ->
+                let lastmove_index = x.pstrcontrol.Length - 1
+                lastmove_index-justifier_index
 
-    member x.play_for_o node justifier =
         // create a new occurrence for the corresponding graph node
-        let newOccurrence = occ_from_gennode x.ws.compgraph node justifier
+        let newOccurrence = occ_from_gennode x.ws.compgraph node linkLength
         x.pstrcontrol.replace_last_node newOccurrence // add the occurrence at the end of the sequence
         x.wait_for_ojustifier <- []
    
     /// Play the specified opponent move (defined by a node and associated justifier) followed by the proponent's response
-    /// If there is only one possible justifier for the O-move, the justifier paramter may be ommitted (None),
-    /// an exception will be thrown otherwise.
-    member x.play_opponent_move_and_respond selectedNode selectedJustifier =
-        let validMoves = x.get_valid_opponent_justifiers_for_selectednode selectedNode
-        match validMoves, selectedJustifier with
+    /// If there is only one possible justifier for the O-move, the justifier parameter may be ommitted (None),
+    /// If the justifier is not specified and there is more than one valid justifier for the move, then
+    /// the function returns with no move played: the O-move is delayed until the user selects a valid justifier.
+    /// If the justifier is not valid an exception is thrown.
+    member x.play_opponent_move_and_respond graph_nodeid (selected_justifier:occurrence_index option) =
+
+        let validMoves = x.get_omoves_from_selected_graph_node graph_nodeid
+
+        // Is this a valid move and justifier?
+        match validMoves, selected_justifier with
+
+        // The selected node cannot be played: it's either a variable, an @-node, or a disabled lambda node.
         | None, None ->
             ()
 
+        // The selected node has only one possible justifier: the Opponent move is fully determined.
         | Some (node, [j]), None ->
-            x.play_for_o node j
+            x.play_for_o node (Some j)
+            x.play_for_p() // play for the Propoment
+
+        // The selected node corresponds to an initial move with no justifier
+        | Some (node, []), None ->
+            x.play_for_o node None
             x.play_for_p() // play for the Propoment
 
         | Some (node, valid_justifiers), Some j when List.contains j valid_justifiers ->
-            x.play_for_o node j
+            x.play_for_o node (Some j)
             x.play_for_p() // play for the Propoment
         
+        // More than one choice: wait for the Opponent to choose one before playing for P.
+        // => node is picked but justifier still needs to be chosen by the user
         | Some (node, valid_justifiers), None ->
-            // The node is picked but the justifier still needs to be chosen by the user.
-            x.play_for_o node 0
+            // A node is selected but the justifier still needs to be chosen by the user.
+            x.play_for_o node None
             x.wait_for_ojustifier <- valid_justifiers
             x.highlight_potential_justifiers()
             x.RefreshLabelInfo()
 
         | _ -> 
-            failwithf "Invalid provided justifier: %A. Valid movesvalidMoves are: %A" selectedJustifier validMoves
+            failwithf "Invalid provided justifier: %A. Valid movesvalidMoves are: %A" selected_justifier validMoves
 
-    /// Process the user-selected node and play the corresponding O-move
-    member x.get_valid_opponent_justifiers_for_selectednode selectedNode =
-        let l = x.pstrcontrol.Length
+    /// Get from the graph node that was selected by the user, the corresponding O-move and associated list of possible justifiers
+    member x.get_omoves_from_selected_graph_node graphnode_index =
+        // Is this a valid move?
+        match Map.tryFind graphnode_index x.valid_omoves with
+        | None ->
+            // The node has no possible valid justifier: it cannot be played at this point
+            None
 
-        match selectedNode with
-        // User wants to play next move with a regular lambda node
-        // This move is permitted by rule (Var) or (InputVar).
-        | SelectedOpponentNode.LambdaNode graphNodeIndex ->
-            let node = TraversalNode.StructuralNode graphNodeIndex
-            
-            let valid_justifiers = Map.tryFind graphNodeIndex x.valid_omoves
+        | Some (valid_omove.StructuralLambda valid_justifiers) ->
+            // User played a structural lambda node
+            // This move is permitted by rule (Var) or (InputVar).
+            Some (TraversalNode.StructuralNode graphnode_index, valid_justifiers)
 
-            /// Is this a valid move? And what are the possible justifiers for the selected lambda node?
-            match valid_justifiers with
-            // The selected node cannot be played: it's either a variable, an @-node, or a disabled lambda node.
-            | None -> None
+        | Some (valid_omove.GhostInternalLambda (label, justifier)) ->
+            // User played a ghost lambda-node with a uniquely determined justifier
+            Some (TraversalNode.GhostLambda label, [justifier])
 
-            // The selected node corresponds to an initial move with no justifier
-            | Some [] -> Some (node, [0])
+        | Some (valid_omove.GhostInputLambda []) ->
+            failwith "Bug! The set of justifiers for the ghost lambda node has not been correctly calculated!"
 
-            // The selected node has only one possible justifier: the Opponent move is already fully determined.
-            | Some [j] -> Some (node, [(l-1)-j])
-
-            // More than one choice: wait for the Opponent to choose one before playing for P.
-            // => node is picked but justifier still needs to be chosen by the user
-            | Some valid_justifiers -> Some (node, valid_justifiers)
-
-        // user clicked on the "ghost lambda-node"
-        | SelectedOpponentNode.GhostLambdaNode ghostLambdaNode ->
-            // This move is permitted by rule (Var^eta) or (InputVar^eta).
-
-            // Is this a valid move, and if yes, what are the possible justifiers for the ghost lambda node at this point?
-            let ghostNodeValidJustifiers = Map.tryFind MsaglGraphGhostButtonIndex x.valid_omoves
-            match ghostNodeValidJustifiers with
-            | None-> // The ghost lambda node cannot be played at this point
-                None
-
-            | Some valid_justifiers ->
-                match ghostLambdaNode with
-                // Rule (Var^eta): the last node is a variable node h.j. by an @-node
-                | Var_Label k ->
-                    match valid_justifiers with
-                    | [j] -> // The ghost lambda-node has only one possible justifier
-                        // retrieve the label of the ghost node from the custom data field of the ghost button
-                        Some (TraversalNode.GhostLambda(k), [(l-1)-j])
-                    | _ ->
-                        failwith "Bug! (Var^eta) rule: the O-move justifier is supposed to be uniquely determined! The set of justifiers for the ghost lambda node has not been correctly calculated!"
-
-                // Rule (InputVar^eta): the last node is an input variable node (h.j. by the root)
-                | InputVar_Justifiers [] ->
-                    failwith "Ghost lambda-nodes necessarily have at least one justifier!"
-
-                // Rule (InputVar^eta): the last node is an input variable node (h.j. by the root), the justifier is uniquely determined
-                | InputVar_Justifiers [j] ->
-                    prompt_user_for_linklabel ()
-                    |> Option.map (fun k -> TraversalNode.GhostLambda(k), [(l-1)-j])
-
-                // Rule (InputVar^eta): the last node is an input variable node (h.j. by the root),
-                // with more than one choice of justifier: we have to wait for the Opponent to choose the justifier before before playing P's move.
-                | InputVar_Justifiers justifiers ->
-                    match ghostLambdaNode with
-                    | Var_Label k ->
-                        failwith "Bug! (Var) rule: the O-move justifier should be uniquely determined!"
-                    | InputVar_Justifiers justifiers ->
-                        // Ask the user to specify the link label:
-                        prompt_user_for_linklabel ()
-                        |> Option.map (fun k -> TraversalNode.GhostLambda(k), valid_justifiers)
-
+        | Some (valid_omove.GhostInputLambda valid_justifiers) ->
+            // User played a ghost lambda-node with multiple possible justifiers:
+            // prompt the user to specify the link label.
+            prompt_user_for_linklabel ()
+            |> Option.map (fun k -> TraversalNode.GhostLambda(k), valid_justifiers)
 
     (* a graph-node has been clicked while the traversal control was selected *)
     override x.OnCompGraphNodeMouseDown e msaglnode =
-        let selectedTraversalNode = x.get_selected_opponent_node_from_nodeindex msaglnode.Attr.Id
+        let node_id : graphnode_id = int_of_string msaglnode.Attr.Id
         let justifier = None
-        x.play_opponent_move_and_respond selectedTraversalNode justifier
+        x.play_opponent_move_and_respond node_id justifier
         x.Refocus()
 
     (* Add an occurrence of a gennode to the end of the traversal *)
@@ -871,7 +849,7 @@ type TraversalObject =
         x.RefreshCompGraphViewer (fun _ -> grnode_2_color)
 
     (* get the arity of a traversal occurrence *)
-    member x.occurrence_arity occ =
+    member x.occurrence_arity (occ:occurrence_index) =
         match pstr_occ_getnode (x.pstrcontrol.Occurrence(occ)) with
         | TraversalNode.Custom -> failwith "Bad traversal! Custom nodes are not supported!"
         | TraversalNode.ValueLeaf(_,_) ->  0
@@ -894,7 +872,7 @@ type TraversalObject =
         | TraversalNode.StructuralNode i when graphnode_player x.ws.compgraph.nodes.(i) = Opponent -> TraversalNode.GhostVariable n
         | TraversalNode.StructuralNode _ -> TraversalNode.GhostLambda n
 
-    (* Calculate the list of valid O-moves at this point. Returns a Map whose keys are the possible nodes to play and
+    (* Calculate the list of valid O-moves at this point. Returns a Map whose keys are the possible nodes to play, and
     values are the list of possible justification pointers for each possible node to play. *)
     member private x.recompute_valid_omoves() =
         let l = x.pstrcontrol.Length
@@ -919,13 +897,13 @@ type TraversalObject =
 
             // the justifier's child exist in the computation graph
             | TraversalNode.StructuralNode i ->
-                Map.ofList [i, [justifier]]
+                Map.empty |> Map.add i (valid_omove.StructuralLambda [justifier])
 
             // if the last node is a ghost variable node justified by the root then no further move is allowed
             | TraversalNode.GhostLambda k when var_justifier = 0 ->
                 Map.empty
 
-            // the justifier does not have enough children..
+            // the justifier does not have enough children: we need to eta-exapand
             | TraversalNode.GhostLambda k ->
                 // __On-the-fly eta-expansion__
                 // Conceptually we eta-expand the sub-term rooted at [justifier]
@@ -941,11 +919,9 @@ type TraversalObject =
                 // [justifier]. We temporarily store this label in the ghost button of the MSAGL graph
                 // so that its value is readily available when the user clicks on the Ghost button to play the move.
                 let msaglGhostButton = x.ws.msaglviewer.Graph.FindNode(MsaglGraphGhostButtonId)
-                msaglGhostButton.UserData <- GhostMoveParameters.Var_Label k
                 msaglGhostButton.LabelText <- sprintf "Ghost %d" k
 
-                let ghost_copycat_node_index = MsaglGraphGhostButtonIndex
-                Map.ofList [ghost_copycat_node_index, [justifier]]
+                Map.empty |> Map.add MsaglGraphGhostButtonIndex (valid_omove.GhostInternalLambda(k, justifier))
 
         // Rule (InputVar): O can play any P-move whose parent occur in the O-view
         // Pre-condition: the last node occurrence in the traversal is a (possibly ghost) variable node
@@ -962,45 +938,52 @@ type TraversalObject =
                                 (l-1)
 
             // Keep only occurrences of Opponent nodes in the O-view (i.e. lambda nodes)
-            let parents_occs = oview_occs |> List.filter (fun o -> (TraversalNode.toPlayer x.ws.compgraph (pstr_occ_getnode (x.pstrcontrol.Occurrence(o)))) = Proponent)
+            let parents_in_oview = oview_occs |> List.filter (fun o -> (TraversalNode.toPlayer x.ws.compgraph (pstr_occ_getnode (x.pstrcontrol.Occurrence(o)))) = Proponent)
 
             // map a traversal occurrence of a Proponent node to its set of children in the computation graph.
-            // If the occurrence is a ghost variable then returns a singleton list with the Graph ghost lambda node Id.
+            // If the occurrence is a ghost variable then returns a singleton list with the placeholder ghost lambda node.
             let get_children_nodes_of_proponent_occ occ =
                 match pstr_occ_getnode (x.pstrcontrol.Occurrence(occ)) with
                 | TraversalNode.Custom ->
                     failwith "Bad traversal! Custom nodes are not supported!"
+
                 | TraversalNode.ValueLeaf(_,_)
                 | TraversalNode.GhostLambda _ ->
                     failwith "This function is only defined for Proponent nodes (variable or @ nodes)"
-                | TraversalNode.GhostVariable k ->
-                    [ MsaglGraphGhostButtonIndex ]
+
                 | TraversalNode.StructuralNode(i) ->
                     x.ws.compgraph.edges.(i)
 
-            // given an occurrence occ of a Proponent node, map all its children
-            // in the graph to itself (i.e. their justifier)
+                | TraversalNode.GhostVariable k ->
+                    [ MsaglGraphGhostButtonIndex ]
+
+            // Given an occurrence `occ` of a Proponent node from the computation graph, returns a map
+            // whose keys are the children of the node in the computation graph, and where
+            // each child node maps to the node itself.
             let map_children_to_occ m occ =
                 List.fold_right
-                    (fun j s -> Map.add j (occ::(match Map.tryFind j s with Some v -> v | None -> [])) s)
+                    (fun j s -> Map.add j (occ::(Map.tryFind j s |> Option.defaultValue [])) s)
                     (get_children_nodes_of_proponent_occ occ)
                     m
 
-            // The list of valid O-moves is returned as a map from valid O-moves to the list of all valid justifiers in the traversal.
-            // It is given by the Map that associates each node of the tree
-            // whose parent occurs in the O-view to the set of occurrences
-            // of its parent in the O-view.
-            let valid_omoves = List.fold_left map_children_to_occ Map.empty parents_occs
+            // The list of valid O-moves is given by all the possible nodes in the tree that are
+            // children of P-nodes occurring in the O-view.
+            let valid_omoves_and_justifier_choices =
+                List.fold_left map_children_to_occ Map.empty parents_in_oview
 
-            match Map.tryFind MsaglGraphGhostButtonIndex valid_omoves with
-            | None -> () // No ghost variable in the O-view
-            | Some justifiers -> // Ghost variables in the O-view
-                let msaglGhostButton = x.ws.msaglviewer.Graph.FindNode(MsaglGraphGhostButtonId)
-                msaglGhostButton.UserData <- InputVar_Justifiers justifiers
-                msaglGhostButton.LabelText <- sprintf "GhostInput"
+            /// We have the list of valid modes encoded as a map from valid nodes to their associate choices of justifiers (Map<int, int list>) 
+            /// we now need to convert this into the desired return type Map<graphnode_id, valid_omove>
+            let valid_omoves =
+                valid_omoves_and_justifier_choices
+                |> Map.map (fun node justifier_choices ->
+                                if node = MsaglGraphGhostButtonIndex then
+                                    let msaglGhostButton = x.ws.msaglviewer.Graph.FindNode(MsaglGraphGhostButtonId)
+                                    msaglGhostButton.LabelText <- sprintf "GhostInput"
+                                    valid_omove.GhostInputLambda justifier_choices
+                                else
+                                    valid_omove.StructuralLambda justifier_choices)
 
             valid_omoves
-
 
         // Determine if a traversal occurrence [occurrence_index] is hereditarily justified by the root
         let is_hereditarily_justified_by_root_occurrence occurrence_index =
@@ -1010,7 +993,7 @@ type TraversalObject =
         x.valid_omoves <-
             if l = 0 then
                 // Rule (Root): only possible initial move is the root of the computation graph
-                Map.add 0 [] Map.empty
+                Map.empty |> Map.add 0 (valid_omove.StructuralLambda [])
             else
                 // What is the node type of the last occurrence?
                 let last = x.pstrcontrol.Occurrence(l-1)
@@ -1034,7 +1017,7 @@ type TraversalObject =
                     | NCntApp ->
                         // find the child node of the lambda node
                         let firstchild = List.hd x.ws.compgraph.edges.(i)
-                        Map.ofList [firstchild,[l-1]]
+                        Map.empty |> Map.add firstchild (valid_omove.StructuralLambda [l-1])
 
                     // Rule (InputVar): O can play any P-move whose parent occur in the O-view
                     | NCntVar(_) | NCntTm(_) when x.ws.compgraph.he_by_root.(i) ->
@@ -1046,7 +1029,8 @@ type TraversalObject =
                         rule_var x.ws.compgraph.parameterindex.(i)
 
         if not (Map.isEmpty x.valid_omoves) then
-          x.pstrcontrol.add_node (create_blank_occ()) // add a dummy node for the forthcoming initial O-move
+          // add a dummy node at the end of the traversal as a placeholder for the forthcoming initial O-move
+          x.pstrcontrol.add_node (create_blank_occ())
           x.flush_flowcontainer_to_right()
 
         x.RefreshLabelInfo()
@@ -1393,18 +1377,15 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
         apply_to_selection_ifoftype
             (fun (selectedTraversal:TraversalObject) ->
                     for omove in selectedTraversal.valid_omoves do
-                        let moveNodeId = string_of_int omove.Key
-                        
-                        moveNodeId
-                        |> selectedTraversal.get_selected_opponent_node_from_nodeindex
-                        |> selectedTraversal.get_valid_opponent_justifiers_for_selectednode
+                        omove.Key
+                        |> selectedTraversal.get_omoves_from_selected_graph_node
                         |> Option.iter(
                             fun (node, valid_justifiers) ->
                                 for justifier in valid_justifiers do
                                     let clonedTraversal = selectedTraversal.Clone() :?> TraversalObject
                                     change_selection_object (AddObject clonedTraversal)
 
-                                    clonedTraversal.play_for_o node justifier
+                                    clonedTraversal.play_for_o node (Some justifier)
                                     clonedTraversal.play_for_p() // play for the Propoment
                             )
                     )

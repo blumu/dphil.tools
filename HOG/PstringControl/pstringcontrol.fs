@@ -25,20 +25,22 @@ type AutoSizeType = Height | Width | Both
 let shape_to_string = function ShapeRectangle -> "ShapeRectangle" | ShapeOval -> "ShapeOval"
 let shape_of_string = function "ShapeRectangle" -> ShapeRectangle | "ShapeOval" -> ShapeOval | _ -> failwith "Unknown shape!"
 
+/// Length of a justifier link. Defined as the distance between a node and its justifier in a traversal
+type LinkLength = int
+
 // Type for nodes occurrences
 type pstring_occ = {
     /// Value associated with the occurrence
-    tag: obj;
+    tag : obj;
     /// Label attached to the occurrence
-    label: string;
-    /// Different between the index of the occurrence and the index of its justifing node in the justified sequence
-    link:int;
+    label : string;
+    /// Link length: the difference between the index of the occurrence and the index of its justifing node in the justified sequence
+    link : LinkLength;
     /// Shape used to represent the occurrence
-    shape:Shapes;
+    shape : Shapes;
     /// Color used to represent the occurrence
-    color:Color
+    color : Color
 }
-
 
 // getlink function for sequences of type Pstringcontrol.pstring
 let pstr_occ_getlink (nd:pstring_occ) = nd.link
