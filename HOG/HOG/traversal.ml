@@ -54,8 +54,45 @@ module TraversalNode = struct
         | GhostVariable _ -> false
         | StructuralNode(gr_i) | ValueLeaf(gr_i,_) ->
             match graph.nodes.(gr_i) with
-              | NCntAbs(_,_) | NCntVar(_) -> false
-              | NCntApp | NCntTm(_) -> true
+            | NCntAbs(_,_) | NCntVar(_) -> false
+            | NCntApp | NCntTm(_) -> true
+
+    (** [is_lambda gennd]
+        @return true iff [gennd] is a lambda node
+    **)
+    let is_lambda (graph:computation_graph) = function
+        | Custom
+        | GhostVariable _ 
+        | ValueLeaf(_,_) -> false
+        | GhostLambda _ -> true
+        | StructuralNode(gr_i)  ->
+            match graph.nodes.(gr_i) with
+            | NCntAbs(_,_) -> true
+            | NCntVar(_) | NCntApp | NCntTm(_) -> false
+
+    (** [is_variable gennd]
+        @return true iff [gennd] is a variable node
+    **)
+    let is_variable (graph:computation_graph) = function
+        | Custom
+        | ValueLeaf(_,_)
+        | GhostLambda _ -> false
+        | GhostVariable _ -> true
+        | StructuralNode(gr_i) ->
+            match graph.nodes.(gr_i) with
+            | NCntVar(_) -> true
+            | NCntAbs(_,_) | NCntApp | NCntTm(_) -> false
+
+    (** [arity gennd]
+        @return the arity of the generalize node [gennd]
+    **)
+    let arity (graph:computation_graph) = function
+        | Custom
+        | ValueLeaf(_,_)
+        | GhostLambda _
+        | GhostVariable _ -> 0
+        | StructuralNode(gr_i) ->
+            graph.arity gr_i
 
     (** Convert a generalized node to latex. **)
     let toLatex (graph:computation_graph) = function
@@ -409,3 +446,49 @@ let extension (gr:computation_graph) get_gennode getlink updatelink createdummy 
   done;
   ext
 ;;
+
+(** Implement OCaml's List.filter_map missing from F# *)
+let filter_map l = List.fold_right (fun h q -> match h with Some x -> x::q | None -> q) l [] ;;
+
+(** Calculate the arity threshold (see paper "On-the-fly eta-expansion for traversing and normalizing terms" [Blum 2017] 
+    This value defines the maxium number of children of a ghost lambda node that is necessary to be visited
+    through eta-expansion in order to fully normalize a term.
+    (Recall: Children nodes of lambda nodes are numbered from 1 onwards.)
+
+    arth(t) = max |l|-|n|
+              where (l,n) ranges over { l in N_lambda, N in N_var, and l and n occur consecutively in t after the justifier of the last occurrence in t }
+
+    @param gr is the computation graph
+    @param get_gennode function that maps occurrences of the sequence [seq] to their corresponding generalized node in the computation graph
+    @param get_link function that maps occurrences of the sequence [seq] to the length of their link
+    @param update_link function that given an occurrences of the sequence [seq] and a link length
+            returns the same node associated with the new link length
+**)
+let aritythreshold (gr:computation_graph) get_gennode getlink updatelink seq =
+    let n = Array.length seq in
+    let occ = n-1 in
+    let link = getlink seq.(occ) in
+    if link <=1 then 
+        0
+    else
+        let jp = occ - link in
+        let between_last_node_and_its_justifier =
+            filter_map
+                (List.mapi
+                    (fun l lnode ->
+                        let n = l + 1 in
+                        if l >= jp && n <= occ-1 then
+                            let nnode = seq.(n) in
+                            if TraversalNode.is_lambda gr (get_gennode lnode)
+                            && TraversalNode.is_variable gr (get_gennode nnode) then
+                                Some (get_gennode lnode, get_gennode nnode)
+                            else
+                                None
+                        else
+                            None)
+                    (Array.to_list seq)) in
+
+        let max_list = List.fold_left max 0 in
+        let diff (l,n) = (TraversalNode.arity gr l) - (TraversalNode.arity gr n) in
+
+        max_list (List.map diff between_last_node_and_its_justifier)

@@ -29,6 +29,12 @@ type graphnode_id = int
 /// Ghost node label
 type ghost_label = int
 
+/// The arity threshold defined in the On-the-fly eta-expansion paper [Blum 2017]
+/// This defines the maxium number of children of a ghost lambda node that needs be visited
+/// by eta-expansion.
+/// (Recall: Children nodes of lambda nodes are numbered from 1 onwards.)
+type aritythreshold = int
+
 /// Define a valid move that can be played by the Opponent at a given point in a traversal
 type valid_omove =
     /// A structural lambda node from the computation graph
@@ -36,9 +42,10 @@ type valid_omove =
     | StructuralLambda of justifier_choices
     /// A ghost lambda that is internal (i.e. hereditarily justified by an @-node) with a uniquely defined justifier
     | GhostInternalLambda of ghost_label * occurrence_index
-    /// A input (i.e. hereditarily justified by the root) ghost lambda with a list of choices for the justifier.
-    /// The Opponent (i.e. the user) has to pick a justifier within that list and also has to provide a node label.
-    | GhostInputLambda of justifier_choices
+    /// A input (i.e. hereditarily justified by the root) ghost lambda with 
+    /// - a list of choices for the justifier (the Opponent has to pick a justifier within that list)
+    /// - an arity threshold (the Opponent has to provide a node label <= than this value).
+    | GhostInputLambda of aritythreshold * justifier_choices
 ;;
 
 /////////////////////// Some usefull functions
@@ -153,6 +160,14 @@ let pstrseq_ext gr = Traversal.extension gr
                                pstr_occ_updatelink
                                Pstring.create_dummy_occ
 
+(** Calculate the arity threshold of the last node in the traversal **)
+let pstrseq_aritythreshold gr =
+    Traversal.aritythreshold
+        gr
+        pstr_occ_getnode
+        pstr_occ_getlink
+        pstr_occ_updatelink
+
 /////////////////////// MSAGL graph generation
 
 (** Set the style attributes for a node of the graph
@@ -246,8 +261,15 @@ let compgraph_to_graphview node_2_color node_2_shape (gr:computation_graph) =
 
 (** Prompt the user for the link label to be used in the (InputVar^eta) rule
  The link label corresponds to the lambda-node child index of the justifer P-node. *)
-let prompt_user_for_linklabel() =
+let prompt_user_for_linklabel arity_threshold =
     let pickChild = new GUI.InputVar_PickChild(StartPosition = FormStartPosition.CenterParent)
+
+    pickChild.labRange.Text <- sprintf "Range: [1, %d]" arity_threshold
+    pickChild.textChildNodeIndex.TextChanged.Add(fun _ ->
+        let s, v = System.Int32.TryParse(pickChild.textChildNodeIndex.Text)
+        pickChild.playButton.Enabled <- s && v >= 1 && v <= arity_threshold
+    )
+
     match pickChild.ShowDialog() with
     | DialogResult.Cancel ->
         None
@@ -795,13 +817,10 @@ type TraversalObject =
             // User played a ghost lambda-node with a uniquely determined justifier
             Some (TraversalNode.GhostLambda label, [justifier])
 
-        | Some (valid_omove.GhostInputLambda []) ->
-            failwith "Bug! The set of justifiers for the ghost lambda node has not been correctly calculated!"
-
-        | Some (valid_omove.GhostInputLambda valid_justifiers) ->
+        | Some (valid_omove.GhostInputLambda (arity_threshold, valid_justifiers)) ->
             // User played a ghost lambda-node with multiple possible justifiers:
             // prompt the user to specify the link label.
-            prompt_user_for_linklabel ()
+            prompt_user_for_linklabel arity_threshold
             |> Option.map (fun k -> TraversalNode.GhostLambda(k), valid_justifiers)
 
     (* a graph-node has been clicked while the traversal control was selected *)
@@ -940,6 +959,9 @@ type TraversalObject =
             // Keep only occurrences of Opponent nodes in the O-view (i.e. lambda nodes)
             let parents_in_oview = oview_occs |> List.filter (fun o -> (TraversalNode.toPlayer x.ws.compgraph (pstr_occ_getnode (x.pstrcontrol.Occurrence(o)))) = Proponent)
 
+            // Calculate the arity threshold
+            let threshold = pstrseq_aritythreshold x.ws.compgraph x.pstrcontrol.Sequence
+
             // map a traversal occurrence of a Proponent node to its set of children in the computation graph.
             // If the occurrence is a ghost variable then returns a singleton list with the placeholder ghost lambda node.
             let get_children_nodes_of_proponent_occ occ =
@@ -953,6 +975,9 @@ type TraversalObject =
 
                 | TraversalNode.StructuralNode(i) ->
                     x.ws.compgraph.edges.(i)
+
+                | TraversalNode.GhostVariable k when threshold <= 0 ->
+                    [ ]
 
                 | TraversalNode.GhostVariable k ->
                     [ MsaglGraphGhostButtonIndex ]
@@ -979,7 +1004,7 @@ type TraversalObject =
                                 if node = MsaglGraphGhostButtonIndex then
                                     let msaglGhostButton = x.ws.msaglviewer.Graph.FindNode(MsaglGraphGhostButtonId)
                                     msaglGhostButton.LabelText <- sprintf "GhostInput"
-                                    valid_omove.GhostInputLambda justifier_choices
+                                    valid_omove.GhostInputLambda(threshold, justifier_choices)
                                 else
                                     valid_omove.StructuralLambda justifier_choices)
 

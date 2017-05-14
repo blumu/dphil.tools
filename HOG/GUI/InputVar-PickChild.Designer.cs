@@ -31,7 +31,8 @@
             this.textChildNodeIndex = new System.Windows.Forms.TextBox();
             this.cancelButton = new System.Windows.Forms.Button();
             this.playButton = new System.Windows.Forms.Button();
-            this.label1 = new System.Windows.Forms.Label();
+            this.label = new System.Windows.Forms.Label();
+            this.labRange = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // textChildNodeIndex
@@ -62,16 +63,26 @@
             this.playButton.Text = "&Play O-move";
             this.playButton.UseVisualStyleBackColor = true;
             // 
+            // label
+            // 
+            this.label.AutoSize = true;
+            this.label.Location = new System.Drawing.Point(12, 19);
+            this.label.MaximumSize = new System.Drawing.Size(350, 0);
+            this.label.Name = "label";
+            this.label.Size = new System.Drawing.Size(342, 26);
+            this.label.TabIndex = 4;
+            this.label.Text = "Enter the index of the child lambda node for the selected P-node in the O-view.  " +
+    "(Child lambda-nodes are numbered from 1 onwards):";
+            // 
             // label1
             // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(12, 19);
-            this.label1.MaximumSize = new System.Drawing.Size(350, 0);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(342, 26);
-            this.label1.TabIndex = 4;
-            this.label1.Text = "Enter the index of the child lambda node for the selected P-node in the O-view.  " +
-    "(Child lambda-nodes are numbered from 1 onwards):";
+            this.labRange.AutoSize = true;
+            this.labRange.Location = new System.Drawing.Point(121, 65);
+            this.labRange.MaximumSize = new System.Drawing.Size(350, 0);
+            this.labRange.Name = "label1";
+            this.labRange.Size = new System.Drawing.Size(72, 13);
+            this.labRange.TabIndex = 8;
+            this.labRange.Text = "Range:  [1, ?]";
             // 
             // InputVar_PickChild
             // 
@@ -80,10 +91,11 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.cancelButton;
             this.ClientSize = new System.Drawing.Size(347, 119);
+            this.Controls.Add(this.labRange);
             this.Controls.Add(this.textChildNodeIndex);
             this.Controls.Add(this.cancelButton);
             this.Controls.Add(this.playButton);
-            this.Controls.Add(this.label1);
+            this.Controls.Add(this.label);
             this.Name = "InputVar_PickChild";
             this.Text = "(InputVar) rule: pick a child";
             this.ResumeLayout(false);
@@ -93,8 +105,9 @@
 
         #endregion
         private System.Windows.Forms.Button cancelButton;
-        private System.Windows.Forms.Button playButton;
-        private System.Windows.Forms.Label label1;
+        public System.Windows.Forms.Button playButton;
+        private System.Windows.Forms.Label label;
         public System.Windows.Forms.TextBox textChildNodeIndex;
+        public System.Windows.Forms.Label labRange;
     }
 }
