@@ -60,10 +60,12 @@ namespace GUI
             this.grpLatex = new System.Windows.Forms.GroupBox();
             this.btPlay = new System.Windows.Forms.Button();
             this.grpTrav = new System.Windows.Forms.GroupBox();
+            this.btBetaReduce = new System.Windows.Forms.Button();
             this.labGameInfo = new System.Windows.Forms.Label();
             this.btNewGame = new System.Windows.Forms.Button();
             this.btUndo = new System.Windows.Forms.Button();
-            this.btBetaReduce = new System.Windows.Forms.Button();
+            this.btPlayAllOMoves = new System.Windows.Forms.Button();
+            this.chkInplace = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -127,7 +129,7 @@ namespace GUI
             // splitContainer1.Panel2
             // 
             this.splitContainer1.Panel2.Controls.Add(this.gViewer);
-            this.splitContainer1.Size = new System.Drawing.Size(917, 393);
+            this.splitContainer1.Size = new System.Drawing.Size(1010, 393);
             this.splitContainer1.SplitterDistance = 580;
             this.splitContainer1.SplitterWidth = 5;
             this.splitContainer1.TabIndex = 13;
@@ -161,7 +163,7 @@ namespace GUI
             this.gViewer.NeedToCalculateLayout = true;
             this.gViewer.PanButtonPressed = false;
             this.gViewer.SaveButtonVisible = true;
-            this.gViewer.Size = new System.Drawing.Size(328, 389);
+            this.gViewer.Size = new System.Drawing.Size(200, 200);
             this.gViewer.TabIndex = 0;
             this.gViewer.ZoomF = 1;
             this.gViewer.ZoomWindowThreshold = 0.05;
@@ -253,6 +255,7 @@ namespace GUI
             // 
             // grpSeq
             // 
+            this.grpSeq.Controls.Add(this.chkInplace);
             this.grpSeq.Controls.Add(this.btExt);
             this.grpSeq.Controls.Add(this.btStar);
             this.grpSeq.Controls.Add(this.btPrefix);
@@ -263,9 +266,9 @@ namespace GUI
             this.grpSeq.Controls.Add(this.btHerProj);
             this.grpSeq.Controls.Add(this.btPview);
             this.grpSeq.Controls.Add(this.btOview);
-            this.grpSeq.Location = new System.Drawing.Point(211, 0);
+            this.grpSeq.Location = new System.Drawing.Point(211, 1);
             this.grpSeq.Name = "grpSeq";
-            this.grpSeq.Size = new System.Drawing.Size(370, 85);
+            this.grpSeq.Size = new System.Drawing.Size(445, 85);
             this.grpSeq.TabIndex = 2;
             this.grpSeq.TabStop = false;
             this.grpSeq.Text = "Sequence operations";
@@ -394,7 +397,7 @@ namespace GUI
             this.grpLatex.Controls.Add(this.btExportSeq);
             this.grpLatex.Controls.Add(this.btExportGraph);
             this.grpLatex.Controls.Add(this.btExportWS);
-            this.grpLatex.Location = new System.Drawing.Point(587, 1);
+            this.grpLatex.Location = new System.Drawing.Point(930, 3);
             this.grpLatex.Name = "grpLatex";
             this.grpLatex.Size = new System.Drawing.Size(164, 84);
             this.grpLatex.TabIndex = 3;
@@ -413,17 +416,27 @@ namespace GUI
             // 
             // grpTrav
             // 
+            this.grpTrav.Controls.Add(this.btPlayAllOMoves);
             this.grpTrav.Controls.Add(this.btBetaReduce);
             this.grpTrav.Controls.Add(this.labGameInfo);
             this.grpTrav.Controls.Add(this.btNewGame);
             this.grpTrav.Controls.Add(this.btUndo);
             this.grpTrav.Controls.Add(this.btPlay);
-            this.grpTrav.Location = new System.Drawing.Point(757, 1);
+            this.grpTrav.Location = new System.Drawing.Point(662, 3);
             this.grpTrav.Name = "grpTrav";
-            this.grpTrav.Size = new System.Drawing.Size(234, 84);
+            this.grpTrav.Size = new System.Drawing.Size(262, 84);
             this.grpTrav.TabIndex = 15;
             this.grpTrav.TabStop = false;
             this.grpTrav.Text = "Traversal game";
+            // 
+            // btBetaReduce
+            // 
+            this.btBetaReduce.Location = new System.Drawing.Point(154, 47);
+            this.btBetaReduce.Name = "btBetaReduce";
+            this.btBetaReduce.Size = new System.Drawing.Size(98, 28);
+            this.btBetaReduce.TabIndex = 16;
+            this.btBetaReduce.Text = "&Beta-reduce";
+            this.btBetaReduce.UseVisualStyleBackColor = true;
             // 
             // labGameInfo
             // 
@@ -431,7 +444,7 @@ namespace GUI
             this.labGameInfo.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
             this.labGameInfo.Location = new System.Drawing.Point(6, 51);
             this.labGameInfo.Name = "labGameInfo";
-            this.labGameInfo.Size = new System.Drawing.Size(222, 26);
+            this.labGameInfo.Size = new System.Drawing.Size(142, 26);
             this.labGameInfo.TabIndex = 15;
             this.labGameInfo.Text = "Press \'New\' to start a game";
             this.labGameInfo.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -454,15 +467,24 @@ namespace GUI
             this.btUndo.Text = "&Undo";
             this.btUndo.UseVisualStyleBackColor = true;
             // 
-            // btBetaReduce
+            // button1
             // 
-            this.btBetaReduce.Location = new System.Drawing.Point(152, 19);
-            this.btBetaReduce.Name = "btBetaReduce";
-            this.btBetaReduce.Size = new System.Drawing.Size(76, 28);
-            this.btBetaReduce.TabIndex = 16;
-            this.btBetaReduce.Text = "&Beta-reduce";
-            this.btBetaReduce.UseVisualStyleBackColor = true;
-            this.btBetaReduce.Visible = true;
+            this.btPlayAllOMoves.Location = new System.Drawing.Point(154, 17);
+            this.btPlayAllOMoves.Name = "button1";
+            this.btPlayAllOMoves.Size = new System.Drawing.Size(98, 28);
+            this.btPlayAllOMoves.TabIndex = 16;
+            this.btPlayAllOMoves.Text = "Play all &O-moves";
+            this.btPlayAllOMoves.UseVisualStyleBackColor = true;
+            // 
+            // chkInplace
+            // 
+            this.chkInplace.AutoSize = true;
+            this.chkInplace.Location = new System.Drawing.Point(373, 23);
+            this.chkInplace.Name = "chkInplace";
+            this.chkInplace.Size = new System.Drawing.Size(64, 17);
+            this.chkInplace.TabIndex = 17;
+            this.chkInplace.Text = "In pla&ce";
+            this.chkInplace.UseVisualStyleBackColor = true;
             // 
             // Traversal
             // 
@@ -527,6 +549,8 @@ namespace GUI
         public System.Windows.Forms.GroupBox grpLatex;
         public System.Windows.Forms.GroupBox grpTrav;
         public System.Windows.Forms.Button btBetaReduce;
+        public System.Windows.Forms.Button btPlayAllOMoves;
+        public System.Windows.Forms.CheckBox chkInplace;
     }
 }
 

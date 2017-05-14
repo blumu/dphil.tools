@@ -1276,6 +1276,8 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
         form.grpNode.Enabled <- not bTrav
         form.btUndo.Enabled <- bTrav
         form.btPlay.Enabled <- bTrav
+        form.btBetaReduce.Enabled <- bTrav
+        form.btPlayAllOMoves.Enabled <- bTrav
         form.labGameInfo.Enabled <- bTrav
 
         form.btDelete.Enabled <- bSel
@@ -1297,7 +1299,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
         do_onsome f !selection
 
     // execute a function on the current selection if it is of a given type 'a
-    let apply_to_selection_ifoftype op =
+    let apply_to_selection_ifoftype (op:'a->unit when 'a:>WorksheetObject)  =
         do_onsomeobject_oftype op !selection
 
     // unselect the currently selected object
@@ -1317,16 +1319,17 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
 
     // change the current selection
     let change_selection_object (wsobj:WorksheetObject) =
-        apply_to_selection (fun curobj -> curobj.Deselection() ) // if an object is already selected then deselect it
+        apply_to_selection (fun curobj -> curobj.Deselection()) // if an object is already selected then deselect it
         select_object wsobj
 
-    // change the current selection
-    let change_selection_object (wsobj:WorksheetObject) =
-        apply_to_selection (fun curobj -> curobj.Deselection() ) // if an object is already selected then deselect it
+    // deslect current object, select the specified object and return it
+    let change_selection (wsobj:#WorksheetObject) =
+        apply_to_selection (fun curobj -> curobj.Deselection()) // if an object is already selected then deselect it
         select_object wsobj
+        wsobj
 
     // Add an object to the worksheet
-    let AddObject (new_obj:WorksheetObject) =
+    let add_object_to_worksheet (new_obj:#WorksheetObject) =
         let ctrl = new_obj.Control
         ctrl.AutoSize <- true
         ctrl.TabStop <- false
@@ -1352,11 +1355,46 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
         // we need to add the control of that object to the seqflowPanel control
         form.seqflowPanel.Controls.Add ctrl
         new_obj
+    
+    (** Replace specified object in the worksheet with a new object **)
+    let replace_object (source:WorksheetObject) (replacement:#WorksheetObject) =
+        let i = form.seqflowPanel.Controls.GetChildIndex(source.Control)
+        form.seqflowPanel.Controls.Remove(source.Control)
+        form.seqflowPanel.Controls.SetChildIndex(replacement.Control, i)
+        replacement
+
+    (** Apply an sequence operation [transform] on a specified sequence.
+        If the "In place" setting is enabled then replace the sequence in-place in the worksheet,
+        otherwise add the result as a new sequence to the worksheet **)
+    let apply_transform_ptrseq (transform:'a -> 'b when 'b :> WorksheetObject) (selectedSequence:'a when 'a :> WorksheetObject) =
+        if form.chkInplace.Checked then
+            selectedSequence 
+            |> transform
+            |> add_object_to_worksheet
+            |> change_selection
+            |> replace_object selectedSequence
+        else 
+            selectedSequence.Clone() :?> 'a
+            |> transform
+            |> add_object_to_worksheet
+            |> change_selection
+
+    (** Apply an inp-place sequence operation [transform] on a specified sequence.
+        If the "In place" setting is enabled then replace the sequence in-place in the worksheet,
+        otherwise apply the transformation on a clone of the specified sequence and add the result as a new sequence to the worksheet **)
+    let apply_inplacetransform_ptrseq (inplace_transform:'a->unit) (selectedSequence:'a when 'a :> WorksheetObject) =
+        if form.chkInplace.Checked then
+            selectedSequence
+            |> inplace_transform
+        else 
+            selectedSequence.Clone() :?> 'a
+            |> add_object_to_worksheet
+            |> change_selection
+            |> inplace_transform
 
     (* map a button click event to an object transformation *)
-    let map_button_to_transform (bt:System.Windows.Forms.Button) (transform:'a->WorksheetObject) =
-        bt.Click.Add(fun _ -> apply_to_selection_ifoftype
-                                    (fun cursel -> change_selection_object (AddObject (transform cursel))))
+    let map_button_to_transform (bt:System.Windows.Forms.Button) (transform:'a->#WorksheetObject) =
+        bt.Click.Add(fun _ -> apply_to_selection_ifoftype (apply_transform_ptrseq transform >> ignore))
 
 
     (* map a button click event to an in-place transformation *)
@@ -1367,7 +1405,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     let object_from_controlindex (i:int) = form.seqflowPanel.Controls.Item(i).Tag:?>WorksheetObject
 
     // Add an object to the worksheet
-    let AddObject (new_obj:WorksheetObject) =
+    let add_object_to_worksheet (new_obj:WorksheetObject) =
         let ctrl = new_obj.Control
         ctrl.AutoSize <- true
         ctrl.TabStop <- false
@@ -1406,12 +1444,21 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
                         |> selectedTraversal.get_omoves_from_selected_graph_node
                         |> Option.iter(
                             fun (node, valid_justifiers) ->
-                                for justifier in valid_justifiers do
-                                    let clonedTraversal = selectedTraversal.Clone() :?> TraversalObject
-                                    change_selection_object (AddObject clonedTraversal)
+                                match valid_justifiers with
+                                | [] -> // Initial move
+                                    selectedTraversal
+                                    |> apply_inplacetransform_ptrseq
+                                        (fun (traversal:TraversalObject) ->
+                                            traversal.play_for_o node None
+                                            traversal.play_for_p())
+                                | _ ->
+                                    for justifier in valid_justifiers do
+                                        selectedTraversal
+                                        |> apply_inplacetransform_ptrseq
+                                            (fun (traversal:TraversalObject) ->
+                                                traversal.play_for_o node (Some justifier)
+                                                traversal.play_for_p())
 
-                                    clonedTraversal.play_for_o node (Some justifier)
-                                    clonedTraversal.play_for_p() // play for the Propoment
                             )
                     )
 
@@ -1440,7 +1487,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
 
 
     // Traversal buttons
-    form.btNewGame.Click.Add(fun _ -> change_selection_object (AddObject ((TraversalObject(wsparam,[||])):>WorksheetObject)))
+    form.btNewGame.Click.Add(fun _ -> change_selection_object (add_object_to_worksheet ((TraversalObject(wsparam,[||])):>WorksheetObject)))
     //map_button_to_transform_inplace form.btPlay (fun (trav:TraversalObject) -> trav.play_for_p())
     map_button_to_transform_inplace form.btUndo (fun (trav:TraversalObject) ->
                                                         let newTrav = trav.undo()
@@ -1450,11 +1497,12 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
                                                         form.seqflowPanel.Controls.SetChildIndex(newTrav.Control,i)
                                                         change_selection_object newTrav)
 
-    form.btBetaReduce.Click.Add(fun _ -> play_all_possible_omoves ())
+    form.btPlayAllOMoves.Click.Add(fun _ -> play_all_possible_omoves ())
 
-    // Sequence buttons
-    map_button_to_transform form.btDuplicate (fun (pstrobj:WorksheetObject) -> pstrobj.Clone())
-    map_button_to_transform form.btPview (fun (pstrobj) -> (pstrobj:PstringObject).pview())
+    // Sequence operationpstrobj
+    form.btDuplicate.Click.Add(fun _ -> apply_to_selection_ifoftype (fun cursel -> cursel.Clone() |> add_object_to_worksheet |> change_selection_object))
+    
+    map_button_to_transform form.btPview (fun (pstrobj:PstringObject) -> pstrobj.pview())
     map_button_to_transform form.btOview (fun (pstrobj:PstringObject) -> pstrobj.oview())
     map_button_to_transform form.btHerProj (fun (pstrobj:PstringObject) -> pstrobj.herproj())
     map_button_to_transform form.btSubtermProj (fun (pstrobj:PstringObject) -> pstrobj.subtermproj())
@@ -1462,7 +1510,9 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     map_button_to_transform form.btExt (fun (pstrobj:PstringObject) -> pstrobj.ext())
     map_button_to_transform form.btStar (fun (pstrobj:PstringObject) -> pstrobj.star())
 
-    form.btNew.Click.Add(fun _ -> change_selection_object (AddObject (new EditablePstringObject(wsparam,[||]):>WorksheetObject)))
+    form.btNew.Click.Add(fun _ -> change_selection_object (add_object_to_worksheet (new EditablePstringObject(wsparam,[||]):>WorksheetObject)))
+
+    /// Sequence in-place editing operations
     map_button_to_transform_inplace  form.btDelete
                                      (fun selbobj ->
                                         let i = form.seqflowPanel.Controls.GetChildIndex(selbobj.Control)
@@ -1479,8 +1529,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
 
                                         // remove the control of the object from the flow panel
                                         form.seqflowPanel.Controls.Remove(selbobj.Control)
-                                      );
-
+                                      )
     map_button_to_transform_inplace form.btBackspace (fun (editobj:EditablePstringObject) -> editobj.remove_last_occ())
     map_button_to_transform_inplace form.btAdd (fun (editobj:EditablePstringObject) -> editobj.add_occ())
     map_button_to_transform_inplace form.btEditLabel (fun (editobj:EditablePstringObject) -> editobj.edit_occ_label())
@@ -1501,7 +1550,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
                                       d.FilterIndex <- 1
                                       d.Title <- "Import a worksheet..."
                                       if d.ShowDialog() = DialogResult.OK then
-                                        import_worksheet d.FileName wsparam AddObject )
+                                        import_worksheet d.FileName wsparam add_object_to_worksheet )
 
 
 
@@ -1572,7 +1621,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
                                         Texexportform.LoadExportToLatexWindow mdiparent latex_preamb !exp latex_post)
 
     // execute the worksheet initialization function
-    initialize_ws wsparam AddObject
+    initialize_ws wsparam add_object_to_worksheet
 
     // select the last line
     let p = form.seqflowPanel.Controls.Count
