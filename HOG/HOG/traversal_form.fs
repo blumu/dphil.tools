@@ -1439,27 +1439,46 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     let play_all_possible_omoves () =
         apply_to_selection_ifoftype
             (fun (selectedTraversal:TraversalObject) ->
-                    for omove in selectedTraversal.valid_omoves do
-                        omove.Key
-                        |> selectedTraversal.get_omoves_from_selected_graph_node
-                        |> Option.iter(
-                            fun (node, valid_justifiers) ->
-                                match valid_justifiers with
-                                | [] -> // Initial move
-                                    selectedTraversal
-                                    |> apply_inplacetransform_ptrseq
-                                        (fun (traversal:TraversalObject) ->
-                                            traversal.play_for_o node None
-                                            traversal.play_for_p())
-                                | _ ->
-                                    for justifier in valid_justifiers do
-                                        selectedTraversal
-                                        |> apply_inplacetransform_ptrseq
-                                            (fun (traversal:TraversalObject) ->
-                                                traversal.play_for_o node (Some justifier)
-                                                traversal.play_for_p())
+                    let play_single_possibility node justifier =
+                        selectedTraversal
+                        |> apply_inplacetransform_ptrseq
+                            (fun (traversal:TraversalObject) ->
+                                traversal.play_for_o node justifier
+                                traversal.play_for_p())
+                    
+                    let clone () =
+                        selectedTraversal.Clone()
+                        |> add_object_to_worksheet
+                        |> change_selection :?> TraversalObject
 
-                            )
+                    for omove in selectedTraversal.valid_omoves do
+                        match omove.Value with
+                        | valid_omove.GhostInternalLambda (label, justifier) ->
+                            play_single_possibility (TraversalNode.GhostLambda label) (Some justifier)
+
+                        | valid_omove.StructuralLambda [] ->
+                            play_single_possibility (TraversalNode.StructuralNode omove.Key) None
+                        
+                        | valid_omove.StructuralLambda [justifier] ->
+                            play_single_possibility (TraversalNode.StructuralNode omove.Key) (Some justifier)
+
+                        | valid_omove.StructuralLambda valid_justifiers ->
+                            // Play the move with each possible justifier
+                            let node = TraversalNode.StructuralNode omove.Key
+                            for j in valid_justifiers do
+                                let traversal = clone ()
+                                traversal.play_for_o node (Some j)
+                                traversal.play_for_p()
+
+                        | valid_omove.GhostInputLambda (arity_threshold, valid_justifiers) ->
+                            // Play the move with each possible justifier and each possible arity
+                            for k in 1..arity_threshold do
+                                let node = TraversalNode.GhostLambda k
+                                for j in valid_justifiers do
+                                    let traversal = clone ()
+                                    traversal.play_for_o node (Some j)
+                                    traversal.play_for_p()
+
                     )
 
     // Give the focus back to the currently selected line
