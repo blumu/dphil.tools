@@ -34,7 +34,7 @@ namespace GUI
             this.LeftToolStripPanel = new System.Windows.Forms.ToolStripPanel();
             this.ContentPanel = new System.Windows.Forms.ToolStripContentPanel();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
-            this.seqflowPanel = new System.Windows.Forms.FlowLayoutPanel();
+            this.seqflowPanel = new PointerSequenceFlowPanel();
             this.gViewer = new Microsoft.Msagl.GraphViewerGdi.GViewer();
             this.btSubtermProj = new System.Windows.Forms.Button();
             this.btHerProj = new System.Windows.Forms.Button();
@@ -519,7 +519,7 @@ namespace GUI
         public System.Windows.Forms.ToolStripPanel LeftToolStripPanel;
         public System.Windows.Forms.ToolStripContentPanel ContentPanel;
         public System.Windows.Forms.SplitContainer splitContainer1;
-        public System.Windows.Forms.FlowLayoutPanel seqflowPanel;
+        public PointerSequenceFlowPanel seqflowPanel;
         public Microsoft.Msagl.GraphViewerGdi.GViewer gViewer;
         public System.Windows.Forms.Button btExportWS;
         public System.Windows.Forms.Button btHerProj;

@@ -75,6 +75,12 @@
     <Compile Include="Pda.Designer.cs">
       <DependentUpon>Pda.cs</DependentUpon>
     </Compile>
+    <Compile Include="PointerSequenceFlowPanel.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="PointerSequenceFlowPanel.Designer.cs">
+      <DependentUpon>PointerSequenceFlowPanel.cs</DependentUpon>
+    </Compile>
     <Compile Include="Recscheme.cs">
       <SubType>Form</SubType>
     </Compile>

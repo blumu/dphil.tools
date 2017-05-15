@@ -357,10 +357,9 @@ type WorksheetParam =
         compgraph:computation_graph;
         lnfrules: lnfrule list;
         msaglviewer: Microsoft.Msagl.GraphViewerGdi.GViewer
-        seqflowpanel: System.Windows.Forms.FlowLayoutPanel
+        seqflowpanel: GUI.PointerSequenceFlowPanel
         labinfo: System.Windows.Forms.Label
     }
-
 
 /// Represent an object from the Worksheet
 [<AbstractClass>]
@@ -382,18 +381,9 @@ type WorksheetObject =
     // @return the XML element created
     abstract ToXmlElement : System.Xml.XmlDocument -> System.Xml.XmlElement
 
-    // adujust the scrolling of the flow container so that the end of the sequence is visible
-    member x.flush_flowcontainer_to_right() =
-        ()
-        //let viewwidth = x.ws.seqflowpanel.ClientSize.Width // HorizontalScroll.LargeChange
-        //form.seqflowPanel.HorizontalScroll.Maximum -
-        //base.ws.seqflowpanel.HorizontalScroll.Value <- max 0 (base.pstrcontrol.Width - viewwidth)
-        //let p = base.ws.seqflowpanel.AutoScrollPosition in
-        //base.ws.seqflowpanel.AutoScrollPosition <- Point((max 0 (base.pstrcontrol.Width - viewwidth)), p.Y)
-          //x.ws.seqflowpanel.AutoScrollPosition <- //Point(min 0 (viewwidth-x.pstrcontrol.Width), x.ws.seqflowpanel.AutoScrollPosition.Y)
-                                                    //Point(x.ws.seqflowpanel.AutoScrollPosition.Y+10, x.ws.seqflowpanel.AutoScrollPosition.Y)
-        //hscr.Value <- obj.Control.Width
-
+    // adjust the scrolling of the paretn flow container to make the end of the sequence visible
+    member x.scroll_parentcontainer_to_right() =
+        x.ws.seqflowpanel.ScrollToEndOfSequence(x.Control)
   end
 
 /// Represent a justification sequence object
@@ -425,7 +415,7 @@ type PstringObject =
     override x.Clone() = new PstringObject(x.ws,x.pstrcontrol.Sequence):>WorksheetObject
 
     override x.Selection() =
-        x.pstrcontrol.AutoSizeMaxWidth <- x.ws.seqflowpanel.ClientSize.Width
+        x.pstrcontrol.AutoSizeMaxWidth <- 0
         x.pstrcontrol.Selection() // tell the control that it's about to be selected using PstringControl.Selection()
         x.pstrcontrol.Select()    // select it with System.Windows.Forms.Form.Select()
 
@@ -661,6 +651,7 @@ type TraversalObject =
         // it is assumed that pstr is an odd-length sequence (finishing with an O-move)
         x.pstrcontrol.Editable <- false
         x.recompute_valid_omoves()
+        x.pstrcontrol.AutoSizeMode <- AutoSizeType.Both
 
         // Set up handler for clicks on the sequence nodes.
         // This is where the Opponent gets to chose the justifier of a lambda node when more than one possible justifiers exist in the O-view.
@@ -739,7 +730,7 @@ type TraversalObject =
         x.HighlightAllowedMovesOnCompGraph()
         x.RefreshLabelInfo()
         base.Selection()
-        base.flush_flowcontainer_to_right()
+        base.scroll_parentcontainer_to_right()
 
     override x.Deselection()=
         x.RestoreCompGraphViewer()
@@ -1056,7 +1047,7 @@ type TraversalObject =
         if not (Map.isEmpty x.valid_omoves) then
           // add a dummy node at the end of the traversal as a placeholder for the forthcoming initial O-move
           x.pstrcontrol.add_node (create_blank_occ())
-          x.flush_flowcontainer_to_right()
+          x.scroll_parentcontainer_to_right()
 
         x.RefreshLabelInfo()
 
