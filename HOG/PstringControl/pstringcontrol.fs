@@ -126,8 +126,26 @@ let inactive_selection_arrow_pen = new Pen(inactive_selectcolor, float32 2.0, En
 
 
 let fontHeight:float32 = float32 10.0
-let font = new Font("Arial", fontHeight)
+let baseFont = new Font("Arial", fontHeight)
+let get_scaled_font (g:Graphics) (scale:float32) =
+    new Font(baseFont.FontFamily,
+            baseFont.SizeInPoints * scale,
+            baseFont.Style,
+            GraphicsUnit.Point,
+            baseFont.GdiCharSet,
+            baseFont.GdiVerticalFont)
+ 
+let get_scaled_rect (scale:float32) (r:Rectangle) =
+    let s = float scale
+    new Rectangle(int <| System.Math.Ceiling(float r.X * s),
+                  int <| System.Math.Ceiling(float r.Y * s),
+                  int <| System.Math.Ceiling(float r.Width * s),
+                  int <| System.Math.Ceiling(float r.Height * s))
 
+let get_scaled_size (scale:float32) (size:Size) =
+    let s = float scale
+    new Size(int <| System.Math.Ceiling(float size.Width * s),
+             int <| System.Math.Ceiling(float size.Height * s))
 
 let selection_brush = new SolidBrush(selectcolor)
 let textBrush = new SolidBrush(Color.Black)
@@ -204,6 +222,12 @@ type PstringControl =
     override x.BackColor with set c = x.seq_unselection_pen <- new Pen(c, seq_selection_pensize)
                          and get() = base.BackColor
 
+
+    /// Scaling factor used for rendering
+    val mutable private scaleFactor : float32
+    member x.ScaleFactor with set s = x.scaleFactor <- s
+                         and get() = x.scaleFactor
+
     //// Private variables
     val mutable private sequence : pstring          // the sequence of nodes with links to be represented
     val mutable private bboxes : Rectangle array    // bounding boxes of the nodes
@@ -214,7 +238,6 @@ type PstringControl =
 
     // Pens and brushes
     val mutable seq_unselection_pen : System.Drawing.Pen // pen of the color of the background
-
 
     //// Constructor
     new (pstr:pstring) as this =
@@ -237,10 +260,12 @@ type PstringControl =
             nodesvalign= Middle
             // Create the events
             nodeClickEvent = new Event<PstringControl * NodeClickEventArgs>()
+            scaleFactor = 1.0f
         }
         then
             this.BackColor <- System.Drawing.SystemColors.Control
             this.InitializeComponent()
+
 
     //// Members
 
@@ -260,6 +285,7 @@ type PstringControl =
         // place some text horizontally and return a pair containing
         // its bounding box and the text dimensions
         let place_in_hbox txt =
+            use font  = get_scaled_font graphics this.scaleFactor
             let txt_dim = graphics.MeasureString(txt, font);
             let bbox = Rectangle(!x, 0, int txt_dim.Width + 2*node_padding, int txt_dim.Height + 2*node_padding)
             x:= !x + int txt_dim.Width + internodesep
@@ -312,28 +338,40 @@ type PstringControl =
         done
 
         // Adjust the horizontal scrollbar bounds
+        let overall_box_scaled = get_scaled_rect this.scaleFactor !overall_bbox
         this.hScroll.Minimum <- 0
-        this.hScroll.Maximum <- max 0  (!overall_bbox).Right
+        this.hScroll.Maximum <- max 0  overall_box_scaled.Right
 
         // Resize the control
         if this.autosize then
-            let mutable sizeClient = this.ClientSize
-            if this.autosizemode = AutoSizeType.Both || this.autosizemode = AutoSizeType.Width then
-                sizeClient.Width <- (!overall_bbox).Width + int seq_selection_pensize
-                if this.autosize_maxwidth<>0 && sizeClient.Width > this.autosize_maxwidth then
-                    sizeClient.Width <- this.autosize_maxwidth
-                    this.hScroll.Visible <- true
-                else
-                    this.hScroll.Visible <- false
+            let width =
+                match this.autosizemode with
+                | AutoSizeType.Both | AutoSizeType.Width ->
+                    let w = (!overall_bbox).Width + int seq_selection_pensize
+                    if this.autosize_maxwidth <> 0 && w > this.autosize_maxwidth then
+                        this.hScroll.Visible <- true
+                        this.autosize_maxwidth
+                    else
+                        this.hScroll.Visible <- false
+                        w
+                | _ ->
+                    this.ClientSize.Width
 
-            if this.autosizemode = AutoSizeType.Both || this.autosizemode = AutoSizeType.Height then
-                sizeClient.Height <- (!overall_bbox).Height + (if this.hScroll.Visible then this.hScroll.Height else 0)
-                                +  int seq_selection_pensize
-            this.ClientSize <- sizeClient
+            let height =
+                if this.autosizemode = AutoSizeType.Both || this.autosizemode = AutoSizeType.Height then
+                    (!overall_bbox).Height + (if this.hScroll.Visible then this.hScroll.Height else 0) +  int seq_selection_pensize
+                else
+                    this.ClientSize.Height
+
+            this.ClientSize <- get_scaled_size this.scaleFactor (Size(width, height))
 
             // Adjust the horizontal scrollbar increments
             this.hScroll.LargeChange <- this.ClientRectangle.Width
-            this.hScroll.SmallChange <- if Array.length this.bboxes > 0 then this.bboxes.[0].Width else 0
+            this.hScroll.SmallChange <- if not <| Seq.isEmpty this.bboxes then 
+                                            let incrementBox = get_scaled_rect this.scaleFactor this.bboxes.[0]
+                                            incrementBox.Width
+                                        else
+                                            0
 
         else
             this.hScroll.Visible <- false
@@ -503,7 +541,14 @@ type PstringControl =
                     this.recompute_bbox()
                     this.Invalidate()
 
-        this.MouseDown.Add ( fun e ->                    
+        /// Zoom using mouse wheel. 
+        /// Could not find a way to avoid interferance with parent control scrolling. Switched to keypress handler instead.
+        //this.MouseWheel.Add(fun e ->
+        //                        this.scaleFactor <- max 0.3f (this.scaleFactor + (float32 e.Delta)/1000.0f)
+        //                        this.recompute_bbox()
+        //                        this.Invalidate())
+
+        this.MouseDown.Add (fun e ->
                     this.CancelLabelEdit()
                     match this.tryGetNodeFromClientPosition e.Location with
                     | Some clickedNodeIndex when e.Button = MouseButtons.Left ->
@@ -559,6 +604,19 @@ type PstringControl =
                                         (* edition of the sequence *)
                                         | Keys.Enter when this.editable && not this.nodeEditTextBox.Visible -> this.EditLabel()
                                         | Keys.Back when this.editable -> this.remove_last_occ()
+
+                                        (* zoom out *)
+                                        | Keys.Subtract ->
+                                            this.scaleFactor <- max 0.3f (this.scaleFactor - 0.01f)
+                                            this.recompute_bbox()
+                                            this.Invalidate()
+                                        
+                                        (* zoom in *)
+                                        | Keys.Add ->
+                                            this.scaleFactor <- max 0.3f (this.scaleFactor + 0.01f)
+                                            this.recompute_bbox()
+                                            this.Invalidate()
+
                                         | _ -> ()
                            )
 
@@ -579,21 +637,26 @@ type PstringControl =
         this.Paint.Add( fun e ->
           let graphics = e.Graphics
           graphics.SmoothingMode <- System.Drawing.Drawing2D.SmoothingMode.AntiAlias
+         
 
           let active_selection = this.Parent.ContainsFocus
 
-          let mutable rc = this.ClientRectangle
-          rc.Width <- rc.Width -  int (seq_selection_pensize/float32 2.0)
-          rc.Height <- rc.Height -  int (seq_selection_pensize/float32 2.0)
-          if this.control_selected then
-            if active_selection then
-                graphics.DrawRectangle(selection_pen,rc)
-            else
-                graphics.DrawRectangle(inactive_selection_pen,rc)
-          else
-            graphics.DrawRectangle(this.seq_unselection_pen,rc)
+          do
+              let rc = new Rectangle(this.ClientRectangle.Location, 
+                                    new Size(this.ClientRectangle.Size.Width - int (seq_selection_pensize/float32 2.0),
+                                             this.ClientRectangle.Size.Height - int (seq_selection_pensize/float32 2.0)))
+              if this.control_selected then
+                if active_selection then
+                    graphics.DrawRectangle(selection_pen,rc)
+                else
+                    graphics.DrawRectangle(inactive_selection_pen,rc)
+              else
+                graphics.DrawRectangle(this.seq_unselection_pen,rc)
 
-          TextRenderer.DrawText(e.Graphics, prefix, font, this.prefix_bbox,
+          graphics.ScaleTransform(this.scaleFactor, this.scaleFactor)
+        
+          use font = get_scaled_font graphics this.scaleFactor
+          TextRenderer.DrawText(e.Graphics, prefix, font, get_scaled_rect this.scaleFactor this.prefix_bbox,
                                     (if this.control_selected then
                                         (if active_selection then selectcolor  else inactive_selectcolor)
                                      else
@@ -611,7 +674,7 @@ type PstringControl =
                 | ShapeOval -> graphics.FillEllipse(brush, bbox )
                                graphics.DrawEllipse(pen, bbox )
 
-              TextRenderer.DrawText(e.Graphics, node.label, font, bbox,
+              TextRenderer.DrawText(e.Graphics, node.label, font, get_scaled_rect this.scaleFactor bbox,
                                      SystemColors.ControlText,
                                      ( TextFormatFlags.VerticalCenter ||| TextFormatFlags.HorizontalCenter));
 
