@@ -750,7 +750,6 @@ type TraversalObject =
         x.HighlightAllowedMovesOnCompGraph()
         x.RefreshLabelInfo()
         base.Selection()
-        base.scroll_parentcontainer_to_right()
 
     override x.Deselection()=
         x.RestoreCompGraphViewer()
@@ -1200,12 +1199,7 @@ let do_onsomeobject_oftype (f:'a->unit) =
     | _ -> ()
 
 
-// Return the object corresponding to the ith control of a seqflowPanel
-let object_from_controlindex (ws:WorksheetParam) (i:int) = ws.seqflowpanel.Controls.Item(i).Tag:?>WorksheetObject
-
-
 (************* WORKSHEET FILE OPERATIONS  *************)
-
 
 (** Save the worksheet to an XML file **)
 let save_worksheet (filename:string) (ws:WorksheetParam)  =
@@ -1227,8 +1221,11 @@ let save_worksheet (filename:string) (ws:WorksheetParam)  =
     xmlCompgraph.AppendChild(xmlSource) |> ignore
     xmlWorksheet.AppendChild(xmlCompgraph) |> ignore
 
+    // Return the object corresponding to the ith control of a seqflowPanel
+    let object_from_controlindex (i:int) = ws.seqflowpanel.Controls.Item(i).Tag:?>WorksheetObject
+
     for i = 0 to ws.seqflowpanel.Controls.Count-1 do
-      xmlWorksheet.AppendChild((object_from_controlindex ws i).ToXmlElement xmldoc) |> ignore
+      xmlWorksheet.AppendChild((object_from_controlindex i).ToXmlElement xmldoc) |> ignore
     done;
 
     // save the document
@@ -1338,6 +1335,9 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
         apply_to_selection (fun curobj -> curobj.Deselection()) // if an object is already selected then deselect it
         select_object wsobj
         wsobj
+    
+    // Return the object corresponding to the ith control of the seqflowPanel
+    let object_from_controlindex (i:int) = form.seqflowPanel.Controls.Item(i).Tag:?>WorksheetObject
 
     // Add an object to the worksheet
     let add_object_to_worksheet (new_obj:#WorksheetObject) =
@@ -1348,21 +1348,23 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
         ctrl.BackColor <- form.seqflowPanel.BackColor
         // add an event handler to the a given pstring control in order to detect selection
         // of the control by the user
-        ctrl.MouseDown.Add(fun _ -> change_selection_object new_obj );
+        ctrl.MouseDown.Add(fun _ -> change_selection_object new_obj )
         ctrl.KeyDown.Add(fun e ->
-                                    let i =
+                                    let selectedSequenceIndex =
                                         match !selection with
                                         | None -> -1
-                                        | Some(selobj) -> form.seqflowPanel.Controls.GetChildIndex(selobj.Control)
+                                        | Some selobj -> form.seqflowPanel.Controls.GetChildIndex(selobj.Control)
+
                                     match e.KeyCode with
-                                    | Keys.Up when i-1 >=0  ->
+                                    | Keys.Up when selectedSequenceIndex-1 >=0  ->
                                         // if there is a predecessor then select it
-                                        change_selection_object (object_from_controlindex wsparam (i-1))
-                                    | Keys.Down when i+1 < form.seqflowPanel.Controls.Count ->
+                                        change_selection_object (object_from_controlindex (selectedSequenceIndex-1))
+                                    | Keys.Down when selectedSequenceIndex+1 < form.seqflowPanel.Controls.Count ->
                                         // if there is a successor then select it
-                                        change_selection_object (object_from_controlindex wsparam (i+1))
-                                    | _ -> ()
-                               );
+                                        change_selection_object (object_from_controlindex (selectedSequenceIndex+1))
+                                    | Keys.Delete ->
+                                        form.btDelete.PerformClick()
+                                    | _ -> ())
         // we need to add the control of that object to the seqflowPanel control
         form.seqflowPanel.Controls.Add ctrl
         new_obj
@@ -1411,39 +1413,6 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     (* map a button click event to an in-place transformation *)
     let map_button_to_transform_inplace (bt:System.Windows.Forms.Button) (inplacetransform:'a->unit) =
         bt.Click.Add(fun _ -> apply_to_selection_ifoftype inplacetransform)
-
-    // Return the object corresponding to the ith control of the seqflowPanel
-    let object_from_controlindex (i:int) = form.seqflowPanel.Controls.Item(i).Tag:?>WorksheetObject
-
-    // Add an object to the worksheet
-    let add_object_to_worksheet (new_obj:WorksheetObject) =
-        let ctrl = new_obj.Control
-        ctrl.AutoSize <- true
-        ctrl.TabStop <- false
-        ctrl.Tag <- (new_obj:>obj) // link back to the worksheet object (it's not really clean since there may be objects that want to use the Tag property for themselves, but this avoids to create an extra array to store the mapping...)
-        ctrl.BackColor <- form.seqflowPanel.BackColor
-        // add an event handler to the a given pstring control in order to detect selection
-        // of the control by the user
-        ctrl.MouseDown.Add(fun _ -> change_selection_object new_obj)
-        ctrl.KeyDown.Add(fun e ->
-                            let selectedSequenceIndex =
-                                match !selection with
-                                | None -> -1
-                                | Some selobj -> form.seqflowPanel.Controls.GetChildIndex(selobj.Control)
-
-                            match e.KeyCode with
-                            | Keys.Up when selectedSequenceIndex-1 >= 0 ->
-                                // if there is a predecessor then select it
-                                change_selection_object (object_from_controlindex (selectedSequenceIndex-1))
-                            | Keys.Down when selectedSequenceIndex+1 < form.seqflowPanel.Controls.Count ->
-                                // if there is a successor then select it
-                                change_selection_object (object_from_controlindex (selectedSequenceIndex+1))
-                            | Keys.Delete ->
-                                form.btDelete.PerformClick()
-                            | _ -> ())
-        // we need to add the control of that object to the seqflowPanel control
-        form.seqflowPanel.Controls.Add ctrl
-        new_obj
 
     (** Apply all possible traversal rules on the selected traversal. Create as many new traversals as needed
         to explore all the possible branches of the traversal game (i.e. play all possible O-moves) **)
