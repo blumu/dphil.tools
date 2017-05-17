@@ -84,7 +84,8 @@ type NodeClickHandler = obj // IHandlerEvent<NodeClickEventArgs>
 type VerticalAlignement = Top | Bottom | Middle
 
 
-let prefix = "► "
+/// Prompt message printed between the label and the pointer string itself
+let Prompt = "► "
 let f2 = float32 2.0
 
 //  Constants measures
@@ -196,13 +197,14 @@ type PstringControl (pstr:pstring, dummy : unit) =
 
     /// Default constructor. This constructor must be used
     /// when creating new instances of this object instead of "new (pstr:pstring, ?dummy : unit)".
-    new (pstr:pstring) as this =
+    new (pstr:pstring, label:string) as this =
         // The following trick is need to be able to define a "then" clause to call InitializeComponent() 
         // only after the object is constructed.
         // If using a "do" statement instead, this would result in the following exception at initialization time:
         // "InvalidOperationException: the initialization of an object or value resulted in an object or value being accessed recursively before it was fully initialized"
         new PstringControl (pstr, ())
         then
+            this.Label <- label
             this.BackColor <- System.Drawing.SystemColors.Control
             this.InitializeComponent()
 
@@ -255,6 +257,8 @@ type PstringControl (pstr:pstring, dummy : unit) =
 
     member val NodesVerticalAlignment = Middle with get, set
 
+    member val Label = "Test" with get, set
+
     // Property to change the color of the background
     override x.BackColor with set c = 
                             seq_unselection_pen <- new Pen(c, seq_selection_pensize)
@@ -282,7 +286,7 @@ type PstringControl (pstr:pstring, dummy : unit) =
         // place some text horizontally and return a pair containing
         // its bounding box and the text dimensions
         let place_in_hbox txt =
-            use font  = get_scaled_font graphics this.ScaleFactor
+            use font = get_scaled_font graphics this.ScaleFactor
             let txt_dim = graphics.MeasureString(txt, font);
             let bbox = Rectangle(!x, 0, int txt_dim.Width + 2*node_padding, int txt_dim.Height + 2*node_padding)
             x:= !x + int txt_dim.Width + internodesep
@@ -291,7 +295,8 @@ type PstringControl (pstr:pstring, dummy : unit) =
 
 
         // place the prefix string
-        prefix_bbox <- fst (place_in_hbox prefix);
+        let prefix_string = this.Label + Prompt
+        prefix_bbox <- fst (place_in_hbox prefix_string);
 
         for i = 0 to (Array.length sequence)-1 do
           let label = sequence.[i].label
@@ -649,7 +654,8 @@ type PstringControl (pstr:pstring, dummy : unit) =
           graphics.ScaleTransform(this.ScaleFactor, this.ScaleFactor)
         
           use font = get_scaled_font graphics this.ScaleFactor
-          TextRenderer.DrawText(e.Graphics, prefix, font, get_scaled_rect this.ScaleFactor prefix_bbox,
+          let prefix_string = this.Label + Prompt
+          TextRenderer.DrawText(e.Graphics, prefix_string, font, get_scaled_rect this.ScaleFactor prefix_bbox,
                                     (if control_selected then
                                         (if active_selection then selectcolor  else inactive_selectcolor)
                                      else

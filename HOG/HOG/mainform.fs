@@ -66,7 +66,8 @@ mainform.Load.Add( fun _ -> if Array.length Sys.argv = 2 then
                                   exit 0;
                                 end
                               else
-                                open_file Sys.argv.(1));
+                                let fullPath = System.IO.Path.GetFullPath(Sys.argv.(1))
+                                open_file fullPath);
 mainform.Text <- "HOG Version "^VERSION
 
 type FileType = RecSchemeFile | SimplyTypedTermFile | UntypedTermFile | Worksheet

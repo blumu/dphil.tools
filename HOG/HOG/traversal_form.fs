@@ -53,7 +53,7 @@ type valid_omove =
 (** assertions used for XML parsing **)
 let assert_xmlname nameexpected (node:XmlNode) =
   if node.Name <> nameexpected then
-    failwith "Bad worksheet xml file!"
+    failwithf "Bad worksheet xml file! Expecting: %s, got: %s" nameexpected node.Name
 
 let assert_xmlnotnull (node:XmlNode) =
   if isNull node then
@@ -387,32 +387,38 @@ type WorksheetObject =
   end
 
 /// Represent a justification sequence object
-type PstringObject =
+type PstringObject(nws, pstr:pstring, label:string) =
   class
-    inherit WorksheetObject
-    val pstrcontrol : Pstring.PstringControl
-    new (nws,pstr:pstring) = {inherit WorksheetObject(nws);
-                              pstrcontrol = new Pstring.PstringControl(pstr) }
+    inherit WorksheetObject(nws)
+    let pstr_control = new Pstring.PstringControl(pstr, label)
+
+    member x.pretty_ptring operation =
+        sprintf "%s(%s)" operation pstr_control.Label
+
+    member x.pretty_ptring_postfix operation =
+        sprintf "(%s)^%s" pstr_control.Label operation
 
     // specific to objects supporting game-semantic transformations (like editable pstring and traversal)
     abstract pview : unit -> WorksheetObject
-    default x.pview() = PstringObject(x.ws,[||]):>WorksheetObject
+    default x.pview() = PstringObject(x.ws,[||], x.pretty_ptring "Pview"):>WorksheetObject
     abstract oview : unit -> WorksheetObject
-    default x.oview() = PstringObject(x.ws,[||]):>WorksheetObject
+    default x.oview() = PstringObject(x.ws,[||], x.pretty_ptring "Oview"):>WorksheetObject
     abstract herproj : unit -> WorksheetObject
-    default x.herproj() = PstringObject(x.ws,[||]):>WorksheetObject
+    default x.herproj() = PstringObject(x.ws,[||], x.pretty_ptring "HProj"):>WorksheetObject
     abstract subtermproj : unit -> WorksheetObject
-    default x.subtermproj() = PstringObject(x.ws,[||]):>WorksheetObject
+    default x.subtermproj() = PstringObject(x.ws,[||], x.pretty_ptring "SubProj"):>WorksheetObject
     abstract ext : unit -> WorksheetObject
-    default x.ext() = PstringObject(x.ws,[||]):>WorksheetObject
+    default x.ext() = PstringObject(x.ws,[||], x.pretty_ptring "Ext" ):>WorksheetObject
     abstract star : unit -> WorksheetObject
-    default x.star() = PstringObject(x.ws,[||]):>WorksheetObject
+    default x.star() = PstringObject(x.ws,[||], x.pretty_ptring_postfix "*"):>WorksheetObject
     abstract prefix : unit -> WorksheetObject
-    default x.prefix() = PstringObject(x.ws,[||]):>WorksheetObject
+    default x.prefix() = PstringObject(x.ws,[||], x.pretty_ptring "Prefix"):>WorksheetObject
+   
+    member __.pstrcontrol = pstr_control
 
     override x.Control = x.pstrcontrol:>System.Windows.Forms.Control
 
-    override x.Clone() = new PstringObject(x.ws,x.pstrcontrol.Sequence):>WorksheetObject
+    override x.Clone() = new PstringObject(nws, x.pstrcontrol.Sequence, label):>WorksheetObject
 
     override x.Selection() =
         x.pstrcontrol.AutoSizeMaxWidth <- 0
@@ -430,12 +436,11 @@ type PstringObject =
     override x.OnCompGraphNodeMouseDown _ _ = ()
 
     // create a pstring sequence from an XML description
-    new (nws,xmlPstr:XmlNode,_) as x =
-      {inherit WorksheetObject(nws);
-       pstrcontrol = new Pstring.PstringControl([||]) }
-      then
-        assert_xmlname "pstring" xmlPstr;
-        x.LoadSequenceFromXmlNode xmlPstr
+    new (nws,xmlPstr:XmlNode) as x =
+        new PstringObject(nws, [||], "")
+        then
+            assert_xmlname "pstring" xmlPstr;
+            x.LoadSequenceFromXmlNode xmlPstr
 
 
     // convert the pstring sequence to an XML element.
@@ -469,9 +474,17 @@ type PstringObject =
               link=int_of_string xmlLink.InnerText;
               shape=shape_of_string xmlShape.InnerText; }
       in
-        let p = xmlPstr.ChildNodes.Count in
-        x.pstrcontrol.Sequence <- Array.init p (fun i -> xml_to_occ (xmlPstr.ChildNodes.Item(i)))
-
+        let label =
+            let xmlLabel = xmlPstr.SelectSingleNode("label") in
+            if System.String.IsNullOrEmpty xmlLabel.InnerText then
+                ""
+            else
+                xmlLabel.InnerText
+        in
+        x.pstrcontrol.Label <- label
+      let occurrencenodes = xmlPstr.SelectNodes("occ")
+      let p = occurrencenodes.Count in
+      x.pstrcontrol.Sequence <- Array.init p (fun i -> xml_to_occ (occurrencenodes.Item(i)))
 
     // Convert the occurrences of the pstring sequence into XML nodes and attach them to a given root XML element.
     // @param xmldoc is the xmldocument
@@ -523,7 +536,10 @@ type PstringObject =
         rootelement.AppendChild(xmlOcc) |> ignore
 
       in
-       Array.iter occ_to_xml x.pstrcontrol.Sequence
+        let xmlLabel = xmldoc.CreateElement("label") in
+        xmlLabel.InnerText <- x.pstrcontrol.Label;
+        rootelement.AppendChild(xmlLabel) |> ignore;
+        Array.iter occ_to_xml x.pstrcontrol.Sequence
 
   end
 
@@ -534,9 +550,9 @@ type EditablePstringObject =
     inherit PstringObject
 
     // Constructor
-    new (nws,pstr:pstring) as x = {inherit PstringObject(nws,pstr)} then x.pstrcontrol.Editable <- true
+    new (nws, pstr:pstring, label:string) as x = {inherit PstringObject(nws, pstr, label)} then x.pstrcontrol.Editable <- true
 
-    override x.Clone() = new EditablePstringObject(x.ws,x.pstrcontrol.Sequence):>WorksheetObject
+    override x.Clone() = new EditablePstringObject(x.ws, x.pstrcontrol.Sequence, x.pstrcontrol.Label):>WorksheetObject
 
     // Convert the pstring sequence to an XML element.
     override x.ToXmlElement xmldoc =
@@ -545,8 +561,8 @@ type EditablePstringObject =
       xmlPstr
 
     // create a pstring sequence from an XML description
-    new (ws,xmlPstr:XmlNode,_) as x =
-        {inherit PstringObject(ws,[||])}
+    new (ws,xmlPstr:XmlNode) as x =
+        {inherit PstringObject(ws, [||], "")}
         then
           x.pstrcontrol.Editable <- true
           assert_xmlname "editablepstring" xmlPstr;
@@ -565,28 +581,30 @@ type EditablePstringObject =
             x.pstrcontrol.add_node (occ_from_gennode x.ws.compgraph (TraversalNode.ValueLeaf(gr_nodeindex,1)) 0 )
 
         x.Refocus()
+    
+
 
     override x.pview() =
         let seq = pstrseq_pview_at x.ws.compgraph x.pstrcontrol.Sequence x.pstrcontrol.SelectedNodeIndex
-        (new EditablePstringObject(x.ws,seq)):>WorksheetObject
+        (new EditablePstringObject(x.ws,seq, x.pretty_ptring "Pview")):>WorksheetObject
     override x.oview() =
         let seq = pstrseq_oview_at x.ws.compgraph x.pstrcontrol.Sequence x.pstrcontrol.SelectedNodeIndex
-        (new EditablePstringObject(x.ws,seq)):>WorksheetObject
+        (new EditablePstringObject(x.ws,seq, x.pretty_ptring "Oview")):>WorksheetObject
     override x.herproj() =
         let seq = pstrseq_herproj x.pstrcontrol.Sequence x.pstrcontrol.SelectedNodeIndex
-        (new EditablePstringObject(x.ws,seq)):>WorksheetObject
+        (new EditablePstringObject(x.ws,seq, x.pretty_ptring "Hproj")):>WorksheetObject
     override x.subtermproj() =
         let seq = pstrseq_subtermproj x.ws.compgraph x.pstrcontrol.Sequence x.pstrcontrol.SelectedNodeIndex
-        (new EditablePstringObject(x.ws,seq)):>WorksheetObject
+        (new EditablePstringObject(x.ws,seq, x.pretty_ptring "SubProj")):>WorksheetObject
     override x.prefix()=
         let seq = pstrseq_prefix x.pstrcontrol.Sequence x.pstrcontrol.SelectedNodeIndex
-        (new EditablePstringObject(x.ws,seq)):>WorksheetObject
+        (new EditablePstringObject(x.ws,seq, x.pretty_ptring "Prefix")):>WorksheetObject
     override x.ext()=
         let seq = pstrseq_ext x.ws.compgraph x.pstrcontrol.Sequence x.pstrcontrol.SelectedNodeIndex
-        (new EditablePstringObject(x.ws,seq)):>WorksheetObject
+        (new EditablePstringObject(x.ws,seq, x.pretty_ptring "Ext")):>WorksheetObject
     override x.star()=
         let seq = pstrseq_star x.ws.compgraph x.pstrcontrol.Sequence x.pstrcontrol.SelectedNodeIndex
-        (new EditablePstringObject(x.ws,seq)):>WorksheetObject
+        (new EditablePstringObject(x.ws,seq, x.pretty_ptring_postfix "*")):>WorksheetObject
 
 
     member x.remove_last_occ() = x.pstrcontrol.remove_last_occ()
@@ -669,9 +687,9 @@ type TraversalObject =
             ))
 
     // Constructor
-    new (ws,pstr:pstring) as x =
+    new (ws,pstr:pstring,label:string) as x =
         {
-            inherit PstringObject(ws,pstr)
+            inherit PstringObject(ws,pstr, label)
             valid_omoves=Map.empty
             wait_for_ojustifier=[]
         }
@@ -688,7 +706,7 @@ type TraversalObject =
             else
                 x.pstrcontrol.Sequence
         in
-        new TraversalObject(x.ws,nseq):>WorksheetObject
+        new TraversalObject(x.ws, nseq, x.pstrcontrol.Label):>WorksheetObject
 
 
 
@@ -698,17 +716,19 @@ type TraversalObject =
       xmlPstr
 
     // create a pstring sequence from an XML description
-    new (ws,xmlPstr:XmlNode,_) as x = {inherit PstringObject(ws,[||])
-                                       valid_omoves=Map.empty
-                                       wait_for_ojustifier=[]
-                                      }
-                                      then
-                                          assert_xmlname "traversal" xmlPstr;
-                                          base.LoadSequenceFromXmlNode xmlPstr
-                                          let occ = x.pstrcontrol.Occurrence(x.pstrcontrol.Length-1)
-                                          if occ.tag = null || pstr_occ_getnode occ = TraversalNode.Custom  then
-                                            x.pstrcontrol.remove_last_occ() // delete the trailing dummy node
-                                          TraversalObject.init x
+    new (ws,xmlPstr:XmlNode) as x = 
+        {
+            inherit PstringObject(ws,[||],"")
+            valid_omoves=Map.empty
+            wait_for_ojustifier=[]
+        }
+        then
+            assert_xmlname "traversal" xmlPstr;
+            base.LoadSequenceFromXmlNode xmlPstr
+            let occ = x.pstrcontrol.Occurrence(x.pstrcontrol.Length-1)
+            if isNull occ.tag || pstr_occ_getnode occ = TraversalNode.Custom  then
+                x.pstrcontrol.remove_last_occ() // delete the trailing dummy node
+            TraversalObject.init x
 
     member x.RefreshLabelInfo() =
         x.ws.labinfo.Text <- if Map.isEmpty x.valid_omoves then "Traversal completed!"
@@ -1144,31 +1164,31 @@ type TraversalObject =
                         s-1
                     else
                         s
-        (new TraversalObject(x.ws,(pstrseq_prefix x.pstrcontrol.Sequence p))):>WorksheetObject
+        (new TraversalObject(x.ws,(pstrseq_prefix x.pstrcontrol.Sequence p), x.pstrcontrol.Label)):>WorksheetObject
 
     override x.pview() =
         let seq = pstrseq_pview_at x.ws.compgraph x.pstrcontrol.Sequence (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
-        (new EditablePstringObject(x.ws,seq)):>WorksheetObject
+        (new EditablePstringObject(x.ws,seq,x.pretty_ptring "Pview")):>WorksheetObject
     override x.oview() =
         let seq = pstrseq_oview_at x.ws.compgraph x.pstrcontrol.Sequence (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
-        (new EditablePstringObject(x.ws,seq)):>WorksheetObject
+        (new EditablePstringObject(x.ws,seq,x.pretty_ptring "Oview")):>WorksheetObject
     override x.herproj() =
         let seq_with_no_trail = Array.sub x.pstrcontrol.Sequence 0 (1+(x.adjust_to_valid_occurrence (x.pstrcontrol.Length-1)))
         let seq = pstrseq_herproj seq_with_no_trail (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
-        (new EditablePstringObject(x.ws,seq)):>WorksheetObject
+        (new EditablePstringObject(x.ws,seq,x.pretty_ptring "HProj")):>WorksheetObject
     override x.subtermproj() =
         let seq_with_no_trail = Array.sub x.pstrcontrol.Sequence 0 (1+(x.adjust_to_valid_occurrence (x.pstrcontrol.Length-1)))
         let seq = pstrseq_subtermproj x.ws.compgraph seq_with_no_trail (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
-        (new EditablePstringObject(x.ws,seq)):>WorksheetObject
+        (new EditablePstringObject(x.ws,seq,x.pretty_ptring "SubProj")):>WorksheetObject
     override x.prefix()=
         let seq = pstrseq_prefix x.pstrcontrol.Sequence (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
-        (new EditablePstringObject(x.ws,seq)):>WorksheetObject
+        (new EditablePstringObject(x.ws,seq,x.pretty_ptring "Prefix")):>WorksheetObject
     override x.ext()=
         let seq = pstrseq_ext x.ws.compgraph x.pstrcontrol.Sequence (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
-        (new EditablePstringObject(x.ws,seq)):>WorksheetObject
+        (new EditablePstringObject(x.ws,seq, x.pretty_ptring "Ext")):>WorksheetObject
     override x.star()=
         let seq = pstrseq_star x.ws.compgraph x.pstrcontrol.Sequence (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
-        (new EditablePstringObject(x.ws,seq)):>WorksheetObject
+        (new EditablePstringObject(x.ws,seq, x.pretty_ptring_postfix "*")):>WorksheetObject
    end
 
 
@@ -1227,9 +1247,9 @@ let import_worksheet (filename:string) (ws:WorksheetParam) addObjectFunc =
     for i = 1 to n-1 do
       let xmlnode = xmlWorksheet.ChildNodes.Item(i)
       let obj = match xmlnode.Name with
-                  | "pstring" -> new PstringObject(ws,xmlnode,0):>WorksheetObject
-                  | "editablepstring" -> new EditablePstringObject(ws,xmlnode,0):>WorksheetObject
-                  | "traversal" -> new TraversalObject(ws,xmlnode,0):>WorksheetObject
+                  | "pstring" -> new PstringObject(ws,xmlnode):>WorksheetObject
+                  | "editablepstring" -> new EditablePstringObject(ws,xmlnode):>WorksheetObject
+                  | "traversal" -> new TraversalObject(ws,xmlnode):>WorksheetObject
                   | _ -> failwith "Unknown object in the XML file your are trying to open!"
       ignore(addObjectFunc obj)
     done;
@@ -1430,36 +1450,38 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     let play_all_possible_omoves () =
         apply_to_selection_ifoftype
             (fun (selectedTraversal:TraversalObject) ->
-                    let play_single_possibility node justifier =
-                        selectedTraversal
-                        |> apply_inplacetransform_ptrseq
-                            (fun (traversal:TraversalObject) ->
-                                traversal.play_for_o node justifier
-                                traversal.play_for_p())
+                    let play_for_o_and_p node justifier (t:TraversalObject) =
+                        t.play_for_o node justifier
+                        t.play_for_p()
                     
+                    let name_index = ref 0
+                    let base_name = selectedTraversal.pstrcontrol.Label
                     let clone () =
-                        selectedTraversal.Clone()
-                        |> add_object_to_worksheet
+                        incr name_index
+
+                        let c = selectedTraversal.Clone() :?> TraversalObject
+                        c.pstrcontrol.Label <- sprintf "%s_%d" base_name !name_index
+                        
+                        add_object_to_worksheet c
                         |> change_selection :?> TraversalObject
 
                     for omove in selectedTraversal.valid_omoves do
                         match omove.Value with
                         | valid_omove.GhostInternalLambda (label, justifier) ->
-                            play_single_possibility (TraversalNode.GhostLambda label) (Some justifier)
+                            selectedTraversal |> play_for_o_and_p (TraversalNode.GhostLambda label) (Some justifier)
 
                         | valid_omove.StructuralLambda [] ->
-                            play_single_possibility (TraversalNode.StructuralNode omove.Key) None
+                            selectedTraversal |> play_for_o_and_p (TraversalNode.StructuralNode omove.Key) None
                         
                         | valid_omove.StructuralLambda [justifier] ->
-                            play_single_possibility (TraversalNode.StructuralNode omove.Key) (Some justifier)
+                            selectedTraversal |> play_for_o_and_p (TraversalNode.StructuralNode omove.Key) (Some justifier)
 
                         | valid_omove.StructuralLambda valid_justifiers ->
                             // Play the move with each possible justifier
                             let node = TraversalNode.StructuralNode omove.Key
                             for j in valid_justifiers do
                                 let traversal = clone ()
-                                traversal.play_for_o node (Some j)
-                                traversal.play_for_p()
+                                traversal |> play_for_o_and_p node (Some j)
 
                         | valid_omove.GhostInputLambda (arity_threshold, valid_justifiers) ->
                             // Play the move with each possible justifier and each possible arity
@@ -1467,8 +1489,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
                                 let node = TraversalNode.GhostLambda k
                                 for j in valid_justifiers do
                                     let traversal = clone ()
-                                    traversal.play_for_o node (Some j)
-                                    traversal.play_for_p()
+                                    traversal |> play_for_o_and_p node (Some j)
 
                     )
 
@@ -1495,9 +1516,14 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     //form.seqflowPanel.HScroll
     ////
 
+    let rowCount = ref 0
+    let getNewLabel prefix =
+        incr rowCount
+        sprintf "%s%d" prefix !rowCount
+    form.btNew.Click.Add(fun _ -> change_selection_object (add_object_to_worksheet (new EditablePstringObject(wsparam, [||], getNewLabel "s"):>WorksheetObject)))
 
     // Traversal buttons
-    form.btNewGame.Click.Add(fun _ -> change_selection_object (add_object_to_worksheet ((TraversalObject(wsparam,[||])):>WorksheetObject)))
+    form.btNewGame.Click.Add(fun _ -> change_selection_object (add_object_to_worksheet ((TraversalObject(wsparam,[||], getNewLabel "t")):>WorksheetObject)))
     //map_button_to_transform_inplace form.btPlay (fun (trav:TraversalObject) -> trav.play_for_p())
     map_button_to_transform_inplace form.btUndo (fun (trav:TraversalObject) ->
                                                         let newTrav = trav.undo()
@@ -1520,7 +1546,6 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     map_button_to_transform form.btExt (fun (pstrobj:PstringObject) -> pstrobj.ext())
     map_button_to_transform form.btStar (fun (pstrobj:PstringObject) -> pstrobj.star())
 
-    form.btNew.Click.Add(fun _ -> change_selection_object (add_object_to_worksheet (new EditablePstringObject(wsparam,[||]):>WorksheetObject)))
 
     /// Sequence in-place editing operations
     map_button_to_transform_inplace  form.btDelete
