@@ -441,7 +441,7 @@ type PstringControl (pstr:pstring, dummy : unit) =
     member private this.ScrollShift = if hScroll.Visible then hScroll.Value else 0
 
     member private this.tryGetNodeFromClientPosition (pos:Point) =
-        Array.tryFindIndex (function (a:Rectangle) -> a.Contains(pos+Size(this.ScrollShift,0))) bboxes
+        Array.tryFindIndex (function (a:Rectangle) -> (get_scaled_rect this.ScaleFactor a).Contains(pos+Size(this.ScrollShift,0))) bboxes
 
     member private this.ClientPositionFromNode inode =
         let rc = bboxes.[inode] in
