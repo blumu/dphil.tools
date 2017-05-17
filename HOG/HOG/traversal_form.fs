@@ -706,7 +706,10 @@ type TraversalObject =
             else
                 x.pstrcontrol.Sequence
         in
-        new TraversalObject(x.ws, nseq, x.pstrcontrol.Label):>WorksheetObject
+        let clone = new TraversalObject(x.ws, nseq, x.pstrcontrol.Label) in
+        // Preserve scale when cloning
+        clone.pstrcontrol.ScaleFactor <- x.pstrcontrol.ScaleFactor
+        clone :>WorksheetObject
 
 
 
@@ -1368,6 +1371,23 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
         // we need to add the control of that object to the seqflowPanel control
         form.seqflowPanel.Controls.Add ctrl
         new_obj
+
+    // Delete an object from the worksheet
+    let delete_object_from_worksheet (object:#WorksheetObject) =
+        let i = form.seqflowPanel.Controls.GetChildIndex(object.Control)
+        // last line removed?
+        if i = form.seqflowPanel.Controls.Count-1 then
+            if i > 0 then
+                // select the previous line if there is one
+                change_selection_object (object_from_controlindex (i-1))
+            else
+                unselect_object() // we are removing the only remaining line, so we just unselect it
+        else // it's not the last line that is removed
+            // select the next line
+            change_selection_object (object_from_controlindex (i+1))
+
+        // remove the control of the object from the flow panel
+        form.seqflowPanel.Controls.Remove(object.Control)
     
     (** Replace specified object in the worksheet with a new object **)
     let replace_object (source:WorksheetObject) (replacement:#WorksheetObject) =
@@ -1427,12 +1447,12 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
                     let base_name = selectedTraversal.pstrcontrol.Label
                     let clone () =
                         incr name_index
-
+                        
                         let c = selectedTraversal.Clone() :?> TraversalObject
                         c.pstrcontrol.Label <- sprintf "%s_%d" base_name !name_index
                         
                         add_object_to_worksheet c
-                        |> change_selection :?> TraversalObject
+                        |> change_selection
 
                     for omove in selectedTraversal.valid_omoves do
                         match omove.Value with
@@ -1451,6 +1471,10 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
                             for j in valid_justifiers do
                                 let traversal = clone ()
                                 traversal |> play_for_o_and_p node (Some j)
+                            delete_object_from_worksheet selectedTraversal
+
+                        | valid_omove.GhostInputLambda (1, [justifier]) ->
+                            selectedTraversal |> play_for_o_and_p (TraversalNode.GhostLambda 1) (Some justifier)
 
                         | valid_omove.GhostInputLambda (arity_threshold, valid_justifiers) ->
                             // Play the move with each possible justifier and each possible arity
@@ -1459,6 +1483,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
                                 for j in valid_justifiers do
                                     let traversal = clone ()
                                     traversal |> play_for_o_and_p node (Some j)
+                            delete_object_from_worksheet selectedTraversal
 
                     )
 
@@ -1517,23 +1542,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
 
 
     /// Sequence in-place editing operations
-    map_button_to_transform_inplace  form.btDelete
-                                     (fun selbobj ->
-                                        let i = form.seqflowPanel.Controls.GetChildIndex(selbobj.Control)
-                                        // last line removed?
-                                        if i = form.seqflowPanel.Controls.Count-1 then
-                                          if i > 0 then
-                                            // select the previous line if there is one
-                                            change_selection_object (object_from_controlindex (i-1))
-                                          else
-                                            unselect_object() // we are removing the only remaining line, so we just unselect it
-                                        else // it's not the last line that is removed
-                                            // select the next line
-                                            change_selection_object (object_from_controlindex (i+1))
-
-                                        // remove the control of the object from the flow panel
-                                        form.seqflowPanel.Controls.Remove(selbobj.Control)
-                                      )
+    map_button_to_transform_inplace form.btDelete delete_object_from_worksheet
     map_button_to_transform_inplace form.btBackspace (fun (editobj:EditablePstringObject) -> editobj.remove_last_occ())
     map_button_to_transform_inplace form.btAdd (fun (editobj:EditablePstringObject) -> editobj.add_occ())
     map_button_to_transform_inplace form.btEditLabel (fun (editobj:EditablePstringObject) -> editobj.edit_occ_label())
