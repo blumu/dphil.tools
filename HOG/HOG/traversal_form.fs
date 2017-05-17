@@ -418,7 +418,10 @@ type PstringObject(nws, pstr:pstring, label:string) =
 
     override x.Control = x.pstrcontrol:>System.Windows.Forms.Control
 
-    override x.Clone() = new PstringObject(nws, x.pstrcontrol.Sequence, label):>WorksheetObject
+    override x.Clone() =
+        let clone = new PstringObject(nws, x.pstrcontrol.Sequence, label)
+        x.pstrcontrol.CopyProperties(clone.pstrcontrol)
+        clone :>WorksheetObject
 
     override x.Selection() =
         x.pstrcontrol.AutoSizeMaxWidth <- 0
@@ -552,7 +555,10 @@ type EditablePstringObject =
     // Constructor
     new (nws, pstr:pstring, label:string) as x = {inherit PstringObject(nws, pstr, label)} then x.pstrcontrol.Editable <- true
 
-    override x.Clone() = new EditablePstringObject(x.ws, x.pstrcontrol.Sequence, x.pstrcontrol.Label):>WorksheetObject
+    override x.Clone() =
+        let clone = new EditablePstringObject(x.ws, x.pstrcontrol.Sequence, x.pstrcontrol.Label)
+        x.pstrcontrol.CopyProperties(clone.pstrcontrol)
+        clone :>WorksheetObject
 
     // Convert the pstring sequence to an XML element.
     override x.ToXmlElement xmldoc =
@@ -696,22 +702,20 @@ type TraversalObject =
         then
             TraversalObject.init x
 
+    /// Clone a traversal object
     override x.Clone() =
-        let l = Array.length x.pstrcontrol.Sequence
+        // Remove last node occurrence if necessary
         let nseq =
-            if l = 0 then
-                [||]
-            else if x.pstrcontrol.Occurrence(l-1).tag = null then
+            let l = Array.length x.pstrcontrol.Sequence
+            if l > 0 && isNull <| x.pstrcontrol.Occurrence(l-1).tag then
                 Array.sub x.pstrcontrol.Sequence 0 (l-1)
             else
                 x.pstrcontrol.Sequence
         in
         let clone = new TraversalObject(x.ws, nseq, x.pstrcontrol.Label) in
-        // Preserve scale when cloning
-        clone.pstrcontrol.ScaleFactor <- x.pstrcontrol.ScaleFactor
+        // Preserve control properties when cloning
+        x.pstrcontrol.CopyProperties(clone.pstrcontrol)
         clone :>WorksheetObject
-
-
 
     override x.ToXmlElement xmldoc =
       let xmlPstr = xmldoc.CreateElement("traversal")

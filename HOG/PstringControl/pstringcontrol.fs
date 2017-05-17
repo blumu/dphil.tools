@@ -159,12 +159,9 @@ type PstringControl (pstr:pstring, dummy : unit) =
   class
     inherit System.Windows.Forms.UserControl()
 
-    let mutable autosize_maxwidth : int = 0
-    let mutable autosizemode : AutoSizeType = AutoSizeType.Both
-    let mutable editable : bool = true
-    let mutable autosize : bool = true
-    // is the control selected?
-    let mutable control_selected : bool = false
+    ////// 
+    ////// Fields inferred from the pointer sequence itself or from other properties
+    ////// 
 
     /// the sequence of nodes with links to be represented
     let mutable sequence : pstring = pstr
@@ -178,21 +175,33 @@ type PstringControl (pstr:pstring, dummy : unit) =
     /// link anchor positions
     let mutable link_anchors : Point array = [||]
 
+    /// Pens and brushes
+    /// pen of the color of the background
+    let mutable seq_unselection_pen : System.Drawing.Pen = null
+
+    ////// 
+    //////  Property-backing fields
+    ////// 
+
+    let mutable autosize_maxwidth : int = 0
+    let mutable autosizemode : AutoSizeType = AutoSizeType.Both
+    let mutable editable : bool = true
+    let mutable autosize : bool = true
+
     /// index of the node currently edited
     let mutable edited_node : int = 0
     
     /// index of the selected node
     let mutable selected_node : int = (Array.length pstr)-1
 
-    /// Pens and brushes
-    /// pen of the color of the background
-    let mutable seq_unselection_pen : System.Drawing.Pen = null
+    /// is the control selected?
+    let mutable control_selected : bool = false
 
-    /// Controls
+    ////// 
+    ////// Controls and events
+    ////// 
     let nodeEditTextBox : System.Windows.Forms.TextBox = new System.Windows.Forms.TextBox ()
     let hScroll : System.Windows.Forms.HScrollBar = new System.Windows.Forms.HScrollBar()
-
-    /// Events
     let nodeClickEvent : Event<PstringControl * NodeClickEventArgs> = new Event<PstringControl * NodeClickEventArgs>()
 
     /// Default constructor. This constructor must be used
@@ -210,15 +219,37 @@ type PstringControl (pstr:pstring, dummy : unit) =
 
     member public x.components : System.ComponentModel.Container = null
     
-    override this.Dispose(disposing) =
-        if disposing && (match this.components with null -> false | _ -> true) then
-            this.components.Dispose()
-        base.Dispose(disposing)
+    /// Clone the PstringControl
+    member x.Clone() =
+        new PstringControl(pstr, (x.Label : string),
+                        ScaleFactor = x.ScaleFactor, 
+                        NodesVerticalAlignment = x.NodesVerticalAlignment,
+                        BackColor = x.BackColor,
+                        Editable = x.Editable,
+                        SelectedNodeIndex = x.SelectedNodeIndex,
+                        AutoSize = x.AutoSize,
+                        AutoSizeMaxWidth = x.AutoSizeMaxWidth,
+                        AutoSizeMode = x.AutoSizeMode
+                    )
+
+    /// Copy control properties from one control to another
+    member x.CopyProperties (target:PstringControl) =
+        target.Label <- x.Label
+        target.ScaleFactor <- x.ScaleFactor
+        target.NodesVerticalAlignment <- x.NodesVerticalAlignment
+        target.BackColor <- x.BackColor
+        target.Editable <- x.Editable
+        target.SelectedNodeIndex <- min x.SelectedNodeIndex (target.Length-1)
+        target.AutoSize <- x.AutoSize
+        target.AutoSizeMaxWidth <- x.AutoSizeMaxWidth
+        target.AutoSizeMode <- x.AutoSizeMode
 
     [<CLIEvent>]
     member x.nodeClick with get() = nodeClickEvent.Publish
 
-    //// Properties
+    //////
+    ////// Properties
+    //////
     member public x.Sequence with get() = Array.copy sequence
                              and  set s = sequence <- Array.copy s
                                           selected_node <- min ((Array.length s)-1) selected_node
@@ -235,6 +266,8 @@ type PstringControl (pstr:pstring, dummy : unit) =
     member public x.Length with get () = Array.length sequence
 
     member public x.SelectedNodeIndex with get() = selected_node
+                                        and set i = selected_node <- i
+                                                    x.Invalidate()
 
     override x.AutoSize with get() = autosize
                          and set b = autosize <- b
@@ -483,7 +516,7 @@ type PstringControl (pstr:pstring, dummy : unit) =
                                           | _ -> base.IsInputKey k
     // form initialization
     member this.InitializeComponent() =
-        base.SuspendLayout();
+        this.SuspendLayout();
         //
         // nodeEditTextBox
         //
