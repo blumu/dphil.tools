@@ -166,7 +166,6 @@ let pstrseq_aritythreshold gr =
         gr
         pstr_occ_getnode
         pstr_occ_getlink
-        pstr_occ_updatelink
 
 /////////////////////// MSAGL graph generation
 

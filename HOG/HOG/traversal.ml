@@ -5,9 +5,21 @@ module Traversal
 
 open FSharp.Compatibility.OCaml
 open Common
-open Lnf
 open Compgraph
 
+(** Implement OCaml's List.filter_map missing from F# **)
+let filter_map l = List.fold_right (fun h q -> match h with Some x -> x::q | None -> q) l [] ;;
+
+(** Implement List.findBack missing from OCaml **)
+let find_back f l = List.find f (List.rev l) ;;
+
+(** Implement F# binding operators missing from OCaml **)
+let (|>) x f = f x ;;
+let (||>) (x, y) f = f x y;;
+let (>>) f g x = g (f x);;
+
+(** return the maximum of a list of integers **)
+let max_list = List.fold_left max 0 ;;
 
 (** Traversal nodes used to represent node occurrences in traversals, given some contextual computation graph.
 
@@ -282,7 +294,7 @@ let heredproj getlink updatelink seq root =
                                          | j -> Some(updatelink seq.(root+i) (j-newindex.(i-(getlink seq.(root+i))))))
                         newindex
 
-(** Determine if an occurrence in a traversal is hereditarily justified by another occurrence *)
+(** Determine if an occurrence in a traversal is hereditarily justified by another occurrence [reference_occurrence] *)
 let is_hereditarily_justified getlink seq source_occurrence reference_occurrence =
   let rec follow_link_from occ =
     if occ = reference_occurrence then
@@ -447,24 +459,85 @@ let extension (gr:computation_graph) get_gennode getlink updatelink createdummy 
   ext
 ;;
 
-(** Implement OCaml's List.filter_map missing from F# *)
-let filter_map l = List.fold_right (fun h q -> match h with Some x -> x::q | None -> q) l [] ;;
-
 (** Calculate the arity threshold (see paper "On-the-fly eta-expansion for traversing and normalizing terms" [Blum 2017] 
     This value defines the maxium number of children of a ghost lambda node that is necessary to be visited
-    through eta-expansion in order to fully normalize a term.
-    (Recall: Children nodes of lambda nodes are numbered from 1 onwards.)
+    through eta-expansion in order to fully normalize a term. (Recall: Children nodes of lambda nodes are numbered from 1 onwards.)
 
-    arth(t) = max |l|-|n|
-              where (l,n) ranges over { l in N_lambda, N in N_var, and l and n occur consecutively in t after the justifier of the last occurrence in t }
+    Defintion ([Blum 2017])
+        Let $t$ be traversal ending with a variable node hereditarily justified by the root.
+        Let a{k} n{k} a{k-1} n{k-1} ... a2 n2 a1 n_1$ be the final weave of $t$ for k>0
+        where - a{j} is a (ghost) lambda node for all 1<=j<=k,
+              - n{j} is a (ghost) variable node for all 1<=j<=k.
+        Then
+            arth(t) = max_{q=1..k-1} |n{q}| + Sum_{j=1..q-1} (|n{j}| - |a{j}|)
 
     @param gr is the computation graph
     @param get_gennode function that maps occurrences of the sequence [seq] to their corresponding generalized node in the computation graph
     @param get_link function that maps occurrences of the sequence [seq] to the length of their link
-    @param update_link function that given an occurrences of the sequence [seq] and a link length
-            returns the same node associated with the new link length
 **)
-let aritythreshold (gr:computation_graph) get_gennode getlink updatelink seq =
+let aritythreshold (gr:computation_graph) get_gennode getlink (seq:'a[]) =
+    let length = Array.length seq in
+    
+    let is_external i =
+        let root = 0 in
+        is_hereditarily_justified getlink seq i root in
+
+    let is_internal = is_external >> not in
+    let arity (_, x) = TraversalNode.arity gr (get_gennode x) in
+
+    let n1 = length-1 in
+
+    if is_internal n1 then
+        failwith "The last occurrence of the traversal must be hereditarily justified by the root!";
+
+    if not <| TraversalNode.is_variable gr (get_gennode seq.(n1)) then
+        failwith "The last occurrence of the traversal must be a variable node!";
+
+    // Convert the sequence as a list of pairs of (lambda_node, variable_nod)
+    // and reverse it. Returns:
+    //  [ (a1, n1); ....; (ak,nk); .... ]
+    // where a1 and n1 are the last two nodes of the sequence and (ak,nk) are the first two nodes of the final weave.
+    let lambdavar_pairs_backwards = 
+        seq
+        |> Array.to_list
+        |> List.mapi (fun i x -> (i, x))
+        |> List.partition (fun (i, x) -> i % 2 = 0)
+        ||> List.combine
+        |> List.rev
+    in
+
+    // Remove all the nodes preceeding the final weave as well as the first 
+    // pair (ak,nk) of the weave. 
+    // Returns [ (a1, n1); ....; (a{k-1},n{k-1}) ] 
+    // where a1 is external and all the other nodes are internal.
+    let rec get_final_weave first sequence = 
+        match sequence with
+        | a1n1::rest when first -> 
+            a1n1::(get_final_weave false rest)
+        | (aj,nj)::rest when aj |> fst |> is_internal ->
+            (aj,nj)::(get_final_weave false rest)
+        | _ -> // [] | (ak,nk)::_ when ak ||> is_external 
+            []
+    in
+        
+    let weave = get_final_weave true lambdavar_pairs_backwards
+    in
+
+    // Iterate backwards through the final weave of the traversal
+    // to calculate the maximum "cumulated arity deltas"
+    let max_delta (sum_delta_1_to_qminus1, maxsofar) (aq, nq) =
+        let value_at_q = sum_delta_1_to_qminus1 + arity nq in
+        let sum_delta_1_to_q = value_at_q - arity aq in
+        let newmax = max maxsofar value_at_q in
+        (sum_delta_1_to_q, newmax)
+    in
+    List.fold_left max_delta (0, 0) weave |> snd
+;;
+
+(** Returns an over-approximation of the arity threshold arth(t) defined as:
+    max |l|-|n|  for (l,n) ranging over { l in N_lambda, N in N_var, and l and n occur consecutively in t after the justifier of the last occurrence in t }
+**)
+let aritythreshold_overapproximation (gr:computation_graph) get_gennode getlink seq =
     let n = Array.length seq in
     let occ = n-1 in
     let link = getlink seq.(occ) in
@@ -488,7 +561,7 @@ let aritythreshold (gr:computation_graph) get_gennode getlink updatelink seq =
                             None)
                     (Array.to_list seq)) in
 
-        let max_list = List.fold_left max 0 in
         let diff (l,n) = (TraversalNode.arity gr l) - (TraversalNode.arity gr n) in
 
         max_list (List.map diff between_last_node_and_its_justifier)
+;;
