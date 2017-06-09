@@ -1,0 +1,6 @@
+(* Neil Jones's "mul three three" *)
+
+(lambda m n f . m (n (f)))
+    (lambda s z. (s (s (s z))) // Three church numeral
+    (lambda s2 z2. (s2 (s2 (s2 z2))) // Three church numeral
+

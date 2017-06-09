@@ -1,0 +1,2 @@
+(lambda x s z . x s (x s z))
+(lambda s1 z1 . s1 (s1 z1))
