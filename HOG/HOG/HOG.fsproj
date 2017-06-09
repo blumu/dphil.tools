@@ -21,7 +21,7 @@
     <DefineConstants>
     </DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <StartArguments>..\..\examples\varity_two.ult</StartArguments>
+    <StartArguments>..\..\examples\example20.ult</StartArguments>
   </PropertyGroup>
   <PropertyGroup>
     <ReferencePath>C:\Program Files\Microsoft\Microsoft Automatic Graph Layout\bin ; ..\bin\Debug</ReferencePath>

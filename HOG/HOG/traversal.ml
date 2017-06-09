@@ -474,10 +474,10 @@ let extension (gr:computation_graph) get_gennode getlink updatelink createdummy 
     @param gr is the computation graph
     @param get_gennode function that maps occurrences of the sequence [seq] to their corresponding generalized node in the computation graph
     @param get_link function that maps occurrences of the sequence [seq] to the length of their link
+    @param pos is the index of the position in the sequence where to calculate the arity threshold
 **)
-let aritythreshold (gr:computation_graph) get_gennode getlink (seq:'a[]) =
-    let length = Array.length seq in
-    
+let aritythreshold (gr:computation_graph) get_gennode getlink (seq:'a[]) pos =
+
     let is_external i =
         let root = 0 in
         is_hereditarily_justified getlink seq i root in
@@ -485,7 +485,7 @@ let aritythreshold (gr:computation_graph) get_gennode getlink (seq:'a[]) =
     let is_internal = is_external >> not in
     let arity (_, x) = TraversalNode.arity gr (get_gennode x) in
 
-    let n1 = length-1 in
+    let n1 = pos in
 
     if is_internal n1 then
         failwith "The last occurrence of the traversal must be hereditarily justified by the root!";
