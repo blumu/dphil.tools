@@ -658,7 +658,6 @@ type TraversalObject =
   class
     inherit PstringObject
 
-
     // [valid_omoves] is a map describing the valid o-moves:
     //   - Keys are the graph indices of nodes representing valid O-moves
     //   - Each key is mapped to the list of possible O-moves and associated possible choices of justfier in the traversal.
@@ -667,6 +666,9 @@ type TraversalObject =
     // [wait_for_ojustifier] is a list which is not empty iff O has selected a move but has not chosen his justifier yet.
     // It contains the list of valid justifier and link label for the pending move.
     val mutable wait_for_ojustifier : (occurrence_index * label_range) list
+
+    /// Determine if the traversal rules should be the normalizing ones (true) or the game semantic ones (false)
+    val normalizing : bool
 
     // highlight the occurrence in the sequence that are valid justifiers for the O-move
     // that has been selected by the user.
@@ -741,11 +743,12 @@ type TraversalObject =
                 ))
 
     // Constructor
-    new (ws,pstr:pstring,label:string) as x =
+    new (ws,pstr:pstring,label:string, normalizing) as x =
         {
             inherit PstringObject(ws,pstr, label)
             valid_omoves=Map.empty
             wait_for_ojustifier=[]
+            normalizing = normalizing
         }
         then
             TraversalObject.init x
@@ -760,7 +763,7 @@ type TraversalObject =
             else
                 x.pstrcontrol.Sequence
         in
-        let clone = new TraversalObject(x.ws, nseq, x.pstrcontrol.Label) in
+        let clone = new TraversalObject(x.ws, nseq, x.pstrcontrol.Label, x.normalizing) in
         // Preserve control properties when cloning
         x.pstrcontrol.CopyProperties(clone.pstrcontrol)
         clone :>WorksheetObject
@@ -776,6 +779,7 @@ type TraversalObject =
             inherit PstringObject(ws,[||],"")
             valid_omoves=Map.empty
             wait_for_ojustifier=[]
+            normalizing=false
         }
         then
             assert_xmlname "traversal" xmlPstr;
@@ -1051,7 +1055,12 @@ type TraversalObject =
                                 (l-1)
 
             // Keep only occurrences of Opponent nodes in the O-view (i.e. lambda nodes)
-            let parents_in_oview = oview_occs |> List.filter (fun o -> (TraversalNode.toPlayer x.ws.compgraph (pstr_occ_getnode (x.pstrcontrol.Occurrence(o)))) = Proponent)
+            let parents_in_oview = 
+                if x.normalizing then
+                    // Normalizing traversals only look at the last node
+                    [ oview_occs |> List.last ]
+                else
+                    oview_occs |> List.filter (fun o -> (TraversalNode.toPlayer x.ws.compgraph (pstr_occ_getnode (x.pstrcontrol.Occurrence(o)))) = Proponent)
 
             // map a traversal occurrence of a Proponent node to its set of children in the computation graph.
             // If the occurrence is a ghost variable then returns a singleton list with the placeholder ghost lambda node.
@@ -1277,7 +1286,7 @@ type TraversalObject =
                         s-1
                     else
                         s
-        (new TraversalObject(x.ws,(pstrseq_prefix x.pstrcontrol.Sequence p), x.pstrcontrol.Label)):>WorksheetObject
+        (new TraversalObject(x.ws,(pstrseq_prefix x.pstrcontrol.Sequence p), x.pstrcontrol.Label, x.normalizing)):>WorksheetObject
 
     override x.pview() =
         let seq = pstrseq_pview_at x.ws.compgraph x.pstrcontrol.Sequence (x.adjust_to_valid_occurrence x.pstrcontrol.SelectedNodeIndex)
@@ -1639,7 +1648,7 @@ let ShowTraversalCalculatorWindow mdiparent graphsource_filename (compgraph:comp
     form.btNew.Click.Add(fun _ -> change_selection_object (add_object_to_worksheet (new EditablePstringObject(wsparam, [||], getNewLabel "s"):>WorksheetObject)))
 
     // Traversal buttons
-    form.btNewGame.Click.Add(fun _ -> change_selection_object (add_object_to_worksheet ((TraversalObject(wsparam,[||], getNewLabel "t")):>WorksheetObject)))
+    form.btNewGame.Click.Add(fun _ -> change_selection_object (add_object_to_worksheet ((TraversalObject(wsparam,[||], getNewLabel "t", form.chkNormalizingTraversals.Checked)):>WorksheetObject)))
     //map_button_to_transform_inplace form.btPlay (fun (trav:TraversalObject) -> trav.play_for_p())
     map_button_to_transform_inplace form.btUndo (fun (trav:TraversalObject) ->
                                                         let newTrav = trav.undo()
