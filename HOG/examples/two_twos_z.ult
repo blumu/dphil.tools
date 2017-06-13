@@ -1,0 +1,4 @@
+/// example from Berezun-Jones 2017 Galop paper
+(lambda s1 z1 . s1 (s1 z1))
+((lambda s2 z2 . s2 (s2 z2)) S)
+Z
