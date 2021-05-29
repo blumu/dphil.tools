@@ -1,20 +1,27 @@
 NUGET
   remote: https://www.nuget.org/api/v2
-    FAKE (4.48)
-    FSharp.Compatibility.OCaml (0.1.12)
-    FSharp.Compatibility.OCaml.Format (0.1.12)
-      FSharp.Compatibility.OCaml (>= 0.1.12)
-    FSharp.Compatibility.OCaml.LexYacc (0.1.12)
-      FSharp.Compatibility.OCaml (>= 0.1.12)
-    FSharp.Compatibility.OCaml.System (0.1.12)
-      FSharp.Compatibility.OCaml (>= 0.1.12)
-    FSharp.Core (4.0.0.1)
+    FAKE (4.64.18)
+    FSharp.Compatibility.OCaml (0.1.14)
+      FSharp.Core (>= 4.3.4) - restriction: || (>= net45) (>= netstandard2.0)
+    FSharp.Compatibility.OCaml.Format (0.1.14)
+      FSharp.Compatibility.OCaml (>= 0.1.14) - restriction: || (>= net45) (>= netstandard2.0)
+      FSharp.Core (>= 4.3.4) - restriction: || (>= net45) (>= netstandard2.0)
+    FSharp.Compatibility.OCaml.LexYacc (0.1.14)
+      FSharp.Compatibility.OCaml (>= 0.1.14) - restriction: >= net45
+      FSharp.Core (>= 4.3.4) - restriction: >= net45
+      FsLexYacc.Runtime (>= 6.1) - restriction: >= net45
+    FSharp.Compatibility.OCaml.System (0.1.14)
+      FSharp.Compatibility.OCaml (>= 0.1.14) - restriction: >= net45
+      FSharp.Core (>= 4.3.4) - restriction: >= net45
+      Mono.Posix (>= 4.0) - restriction: >= net45
+    FSharp.Core (5.0.1)
     FsLexYacc (7.0.3)
       FsLexYacc.Runtime (>= 7.0.3 < 7.1)
     FsLexYacc.Runtime (7.0.3)
       FSharp.Core (>= 3.1.2.5)
-    Microsoft.Msagl (1.0.2)
-    Microsoft.Msagl.Drawing (1.0.2)
-      Microsoft.Msagl (>= 1.0.2)
-    Microsoft.Msagl.GraphViewerGDI (1.0.2)
-      Microsoft.Msagl.Drawing (>= 1.0.2)
+    Microsoft.Msagl (1.1.3)
+    Microsoft.Msagl.Drawing (1.1.3)
+      Microsoft.Msagl (>= 1.1.3)
+    Microsoft.Msagl.GraphViewerGDI (1.1.3)
+      Microsoft.Msagl.Drawing (>= 1.1.3)
+    Mono.Posix (5.4.0.201) - restriction: >= net45

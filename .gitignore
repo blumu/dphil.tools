@@ -38,3 +38,5 @@ HOG/HOG/ulc_lexer.fs
 HOG/HOG/ulc_parser.fs
 HOG/HOG/ulc_parser.fsi
 HOG/publish/*
+
+.ionide

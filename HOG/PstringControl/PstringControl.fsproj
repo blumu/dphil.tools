@@ -10,9 +10,10 @@
     </RootNamespace>
     <AssemblyName>PstringControl</AssemblyName>
     <Name>PstringControl</Name>
-    <TargetFSharpCoreVersion>4.4.1.0</TargetFSharpCoreVersion>
+    <TargetFSharpCoreVersion>4.4.3.0</TargetFSharpCoreVersion>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworks>v4.5.2</TargetFrameworks>
     <TargetFrameworkProfile />
   </PropertyGroup>
   <!-- Configuration Debug -->
