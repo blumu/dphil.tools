@@ -1,0 +1,1 @@
+(lambda a.a (lambda  b c. c (lambda  d e f.f) (lambda  d e. d) (lambda  d e. d e) (lambda  d e. b (lambda  f g. c (lambda  h i. i (h f)) (lambda h.g) (lambda h.h)) d (b (lambda  f g. c(lambda  h i.i (h (lambda  j k. k (j f)))) (lambda h i.g) (lambda  h.h)(lambda  h.h)) d e))) (lambda  b c.c) a) (lambda f x . f(f(f (f x))))

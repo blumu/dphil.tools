@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Common Property Group -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <Name>PstringControl</Name>
+    <TargetFramework>netcore50</TargetFramework>
+    <OtherFlags>--mlcompatibility</OtherFlags>
+  </PropertyGroup>
+  <!-- References -->
+  <ItemGroup>
+
+
+<Reference Include="System.Drawing" />
+<Reference Include="System.Windows.Forms" />
+
+  </ItemGroup>
+  <!-- Files
+<Compile Include="assemblyinfo.fs" />
+
+  -->
+  <ItemGroup>
+    <Compile Include="pstringcontrol.fs" />
+  </ItemGroup>
+</Project>
